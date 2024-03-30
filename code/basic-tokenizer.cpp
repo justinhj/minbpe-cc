@@ -1,5 +1,7 @@
 // 
-#include <cstdio>
+#include "BasicTokenizer.h"
+
 int main(int argc, char *argv[]) {
-  printf("Hello world!");
+  BasicTokenizer bt;
+  bt.train("hello world", 266, true);
 }

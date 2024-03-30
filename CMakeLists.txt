@@ -22,6 +22,6 @@ endif()
 include_directories(code)
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
    
-add_executable(basic_tokenizer code/basic-tokenizer.cpp)
+add_executable(basic_tokenizer code/basic-tokenizer.cpp code/Tokenizer.cpp)
 # target_link_libraries(ReadSparkeyData PRIVATE Boost::boost Boost::thread Boost::system Boost::filesystem Sparkey zstd::libzstd_static Snappy::snappy)
 

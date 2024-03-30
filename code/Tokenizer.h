@@ -1,15 +1,21 @@
 // Base class for tokenizers to extend
 #include <unordered_map>
 #include <tuple>
+#include <string>
+#include <functional>
 
 using std::string;
 using std::unordered_map;
 
+using merge_key_t = std::tuple<int, int>;
+
+extern std::function<std::size_t(const merge_key_t&)> key_hash_lambda;
+
 class Tokenizer {
 
   private:
-     unordered_map<std::tuple<int, int, int>, int> merges;   
-     unordered_map<std::tuple<int, int, int>, string> vocab;   
+     unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
+     unordered_map<int, string> vocab;   
 
     // TODO 
     /* self.pattern = "" # str */
@@ -24,7 +30,7 @@ class Tokenizer {
 
   public:
 
-    Tokenizer() {
+    Tokenizer() : merges(10, key_hash_lambda) {
     };
 
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
