@@ -4,7 +4,7 @@
 #include <string>
 #include <functional>
 
-using std::string;
+using std::u8string;
 using std::unordered_map;
 
 using merge_key_t = std::tuple<int, int>;
@@ -13,9 +13,9 @@ extern std::function<std::size_t(const merge_key_t&)> key_hash_lambda;
 
 class Tokenizer {
 
-  private:
+  protected:
      unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
-     unordered_map<int, string> vocab;   
+     unordered_map<int, u8string> vocab;   
 
     // TODO 
     /* self.pattern = "" # str */
@@ -33,5 +33,5 @@ class Tokenizer {
     Tokenizer() : merges(10, key_hash_lambda) {
     };
 
-    virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
+    virtual void train(const u8string &text, const int vocab_size, const bool verbose) = 0;
 };

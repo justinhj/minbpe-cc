@@ -1,5 +1,5 @@
 // Required to instantiate the lambda
-#include "Tokenizer.h"
+#include "Tokenizer.hpp"
 
 std::function<std::size_t(const merge_key_t&)> key_hash_lambda = 
     [](const merge_key_t& k) -> std::size_t {
