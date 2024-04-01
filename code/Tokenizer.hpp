@@ -7,6 +7,7 @@
 
 using std::u8string;
 using std::unordered_map;
+using std::vector;
 
 using merge_key_t = std::tuple<int, int>;
 
@@ -21,4 +22,6 @@ class Tokenizer {
 
     Tokenizer() : merges(10, key_hash_lambda) {};
     virtual void train(const u8string &text, const int vocab_size, const bool verbose) = 0;
+    virtual vector<int> encode(const u8string &text, const bool verbose) = 0;
+    virtual u8string decode(const vector<int> &encoded, const bool verbose) = 0;
 };

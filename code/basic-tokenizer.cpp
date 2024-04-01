@@ -13,8 +13,18 @@ int main(int argc, char *argv[]) {
     u8"안 👋 hello", // also from the youtube video
     u8"hello world!!!? (안녕하세요!) lol123 😉", // fun small string
     u8"FILE:taylorswift.txt", // FILE: is handled as a special string in unpack() TODO
+    u8"But Unicode can be abstruse plus we know we out to be still finidng the whole thing mysterious",
   };
 
+  auto verbose = true;
+
   BasicTokenizer bt;
-  bt.train(test_strings[5], 256 + 20, true);
+  bt.train(test_strings[1], 256 + 20, verbose);
+  auto encoded = bt.encode(test_strings[1], verbose);
+  cout << "Original string length " << test_strings[1].size() << "\n";
+  cout << "Encoded string length " << encoded.size() << "\n";
+  auto decoded = bt.decode(encoded, false);
+
+  cout << "Original string " << reinterpret_cast<const char *>(test_strings[1].data()) << "\n";
+  cout << "Decoded string " << reinterpret_cast<const char *>(decoded.data()) << "\n";
 }

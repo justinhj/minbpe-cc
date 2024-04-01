@@ -1,10 +1,8 @@
 #include "Tokenizer.hpp"
 #include <climits>
-#include <codecvt>
 #include <iostream>
 #include <ranges>
 #include <vector>
-#include <locale>
 
 using std::u8string;
 using std::unordered_map;
@@ -19,12 +17,6 @@ class BasicTokenizer : public Tokenizer {
   int char_to_int(char8_t c) {
     return c < 0 ? c + 256 : c; 
   }
-
-  /* std::wstring convert_u8string_to_wstring(const std::u8string& u8str) { */
-  /*    std::u16string u16_conv = std::wstring_convert< */
-  /*       std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(u8str); */
-  /*   return L""; // TODO */ 
-  /* } */
 
   protected:
   // Count the frequencies of all pairs and return the most frequently occuring
@@ -94,7 +86,54 @@ class BasicTokenizer : public Tokenizer {
     }
     text = new_text;
   }
-
+  std::vector<int> text_to_vector(const u8string &text) {
+    std::vector<int> text_converted;
+    for(auto c : text) {
+      text_converted.push_back(static_cast<int>(char_to_int(c)));
+    }
+    return text_converted;
+  }
+  // given a string text, return the token ids
+  vector<int> internal_encode(const vector<int> &text, const bool verbose) {
+    vector<int> out;
+    auto i = 0;
+    auto merge_count = 0;
+    auto len = text.size();
+    while(i < len) {
+      auto pair = std::make_tuple(text[i], text[i + 1]);
+      if(i < len - 1 && merges.find(pair) != merges.end()) {
+        out.push_back(merges[pair]);
+        i += 2;
+        merge_count ++;
+      } else {
+        out.push_back(text[i]);
+        i ++;
+      }
+    }
+    if(merge_count == 0) {
+      return out;
+    } else {
+      return internal_encode(out, verbose);
+    }
+/* def encode(ids): */
+/*     out = [] */
+/*     i = 0 */
+/*     merge_count = 0 */
+/*     while i < len(ids): */
+/*         # 0 1 2 3 */
+/*         # a b c d */
+/*         if i < len(ids) - 1 and (ids[i], ids[i + 1]) in merges: */
+/*             out.append(merges[(ids[i], ids[i + 1])]) */
+/*             i += 2; */
+/*             merge_count += 1 */
+/*         else: */
+/*             out.append(ids[i]) */
+/*             i += 1; */
+/*     if merge_count == 0: */
+/*         return out */
+/*     else: */
+/*         return encode(out) */
+  }
   public:
   // Warning for compatibility with common tokenizers it is assumed the input is in 
   // utf-8 encoding.
@@ -106,13 +145,10 @@ class BasicTokenizer : public Tokenizer {
     /*   } */
     /*   cout << "\n"; */
     /* } */
-    std::vector<int> text_converted;
+    auto text_converted = text_to_vector(text);
     for(auto c : text) {
       text_converted.push_back(static_cast<int>(char_to_int(c)));
     }
-    // TODO
-    // 7. build the vocab which just requires the merges 
-
     for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
       if(text_converted.size() < 2) {
         break;
@@ -132,9 +168,6 @@ class BasicTokenizer : public Tokenizer {
     if(verbose) {
       cout << "length of text " << text.size() << " after merges " << text_converted.size() << "\n";
     }
-    /* vocab = {idx: bytes([idx]) for idx in range(256)} */
-    /* for (p0, p1), idx in merges.items(): */
-        /* vocab[idx] = vocab[p0] + vocab[p1] */
     vocab.clear();
     // Add the raw bytes
     for(auto i=0; i<(UCHAR_MAX + 1); i++) {
@@ -146,14 +179,26 @@ class BasicTokenizer : public Tokenizer {
        vocab.push_back(
            vocab[std::get<0>(m.first)] + vocab[std::get<1>(m.first)]);
     }
-    if(verbose) {
-      int token = 0;
-      for(auto v : vocab) {
-        std::cout << token << ": " << reinterpret_cast<const char *>(v.data()) << "\n";
-        token ++;
-      }
-    }
+    /* if(verbose) { */
+    /*   int token = 0; */
+    /*   for(auto v : vocab) { */
+    /*     std::cout << token << ": " << reinterpret_cast<const char *>(v.data()) << "\n"; */
+    /*     token ++; */
+    /*   } */
+    /* } */
   };
+  vector<int> encode(const u8string &text, const bool verbose) {
+    auto text_converted = text_to_vector(text);
+    return internal_encode(text_converted, verbose);
+  }
+  // given ids (list of integers), return Python string
+  u8string decode(const vector<int> &tokens, const bool verbose) {
+    /* tokens = b"".join(vocab[idx] for idx in ids) */
+    /* text = tokens.decode("utf-8", errors="replace") */
+    u8string text  = u8"";
+    for(auto tkn : tokens) {
+      text.append(vocab[tkn]);
+    }
+    return text;
+  }
 };
-
-
