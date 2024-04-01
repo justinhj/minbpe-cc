@@ -16,5 +16,5 @@ int main(int argc, char *argv[]) {
   };
 
   BasicTokenizer bt;
-  bt.train(test_strings[1], 256 + 20, true);
+  bt.train(test_strings[5], 256 + 20, true);
 }

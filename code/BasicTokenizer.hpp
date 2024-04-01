@@ -1,8 +1,10 @@
 #include "Tokenizer.hpp"
 #include <climits>
+#include <codecvt>
 #include <iostream>
 #include <ranges>
 #include <vector>
+#include <locale>
 
 using std::u8string;
 using std::unordered_map;
@@ -17,6 +19,13 @@ class BasicTokenizer : public Tokenizer {
   int char_to_int(char8_t c) {
     return c < 0 ? c + 256 : c; 
   }
+
+  /* std::wstring convert_u8string_to_wstring(const std::u8string& u8str) { */
+  /*    std::u16string u16_conv = std::wstring_convert< */
+  /*       std::codecvt_utf8_utf16<char16_t>, char16_t>{}.from_bytes(u8str); */
+  /*   return L""; // TODO */ 
+  /* } */
+
   protected:
   // Count the frequencies of all pairs and return the most frequently occuring
   std::tuple<int,int> most_frequent_pair(const std::vector<int> &text) {
@@ -24,6 +33,7 @@ class BasicTokenizer : public Tokenizer {
     if(text.size() == 2) {
       return std::make_tuple(text[0], text[1]);
     }
+    // Would like to use a zip iterator here but doesn't seem to be support in Apple Clang yet
     /* for(std::tuple<int,int> elem: std::views::zip(text, &text[1])) { } */
     auto i1 = text.begin();
     auto i2 = ++text.begin();
@@ -121,6 +131,27 @@ class BasicTokenizer : public Tokenizer {
     }
     if(verbose) {
       cout << "length of text " << text.size() << " after merges " << text_converted.size() << "\n";
+    }
+    /* vocab = {idx: bytes([idx]) for idx in range(256)} */
+    /* for (p0, p1), idx in merges.items(): */
+        /* vocab[idx] = vocab[p0] + vocab[p1] */
+    vocab.clear();
+    // Add the raw bytes
+    for(auto i=0; i<(UCHAR_MAX + 1); i++) {
+      u8string s = u8"";
+      s.push_back(static_cast<char8_t>(i));
+      vocab.push_back(s);
+    }
+    for(auto m : merges) {
+       vocab.push_back(
+           vocab[std::get<0>(m.first)] + vocab[std::get<1>(m.first)]);
+    }
+    if(verbose) {
+      int token = 0;
+      for(auto v : vocab) {
+        std::cout << token << ": " << reinterpret_cast<const char *>(v.data()) << "\n";
+        token ++;
+      }
     }
   };
 };
