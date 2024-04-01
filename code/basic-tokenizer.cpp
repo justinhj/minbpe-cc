@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
     u8"안 👋 hello", // also from the youtube video
     u8"hello world!!!? (안녕하세요!) lol123 😉", // fun small string
     u8"FILE:taylorswift.txt", // FILE: is handled as a special string in unpack() TODO
+    u8"ababcdcdcdabcdef",
   };
 
   BasicTokenizer bt;
