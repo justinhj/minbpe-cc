@@ -44,7 +44,6 @@ class BasicTokenizer : public Tokenizer {
       if(f >= max) {
         max = f;
         max_pair = p;
-        /* cout << "new max " << max << "pair " << std::get<0>(p) << " " << std::get<1>(p) << "\n"; */
       }
       ++i1;
       ++i2;
@@ -179,25 +178,18 @@ class BasicTokenizer : public Tokenizer {
     if(verbose) {
       cout << "length of text " << text.size() << " after merges " << text_converted.size() << "\n";
     }
-    /* for(auto m : merges) { */
-    /*   cout << "vocab make " << m.second << "\n"; */
-    /*   vector<int> new_vocab { vocab[std::get<0>(m.first)] }; */
-    /*   const vector<int> &v2 = vocab[std::get<1>(m.first)]; */
-    /*   new_vocab.insert(new_vocab.end(), v2.begin(), v2.end()); */
-    /*   vocab[m.second] = new_vocab; */
+    /* if(verbose) { */
+    /*   int token = 0; */
+    /*   for(auto v : vocab) { */
+    /*     std::cout << token; */
+    /*     cout << ": \t "; */
+    /*     for(auto c : vocab[token]) { */
+    /*       cout << c << " "; */
+    /*     } */
+    /*     cout << "\n"; */
+    /*     token ++; */
+    /*   } */
     /* } */
-    if(verbose) {
-      int token = 0;
-      for(auto v : vocab) {
-        std::cout << token;
-        cout << ": \t ";
-        for(auto c : vocab[token]) {
-          cout << c << " ";
-        }
-        cout << "\n";
-        token ++;
-      }
-    }
   };
   vector<int> encode(const string &text, const bool verbose) {
     auto text_converted = text_to_vector(text);

@@ -28,24 +28,6 @@ int main(int argc, char *argv[]) {
   cout << "Encoded string length " << encoded.size() << "\n";
   auto decoded = bt.decode(encoded, false);
 
-  cout << "Original string " << test_strings[1] << "\n";
-  cout << "Decoded string " << decoded << "\n";
-
-  string text = "안 👋 hello";
-  vector<int> codes;
-  for(int c : text) {
-    cout << char_to_int(c) <<  ' ';
-    codes.push_back(char_to_int(c));
-  }
-  cout << "\n";
-  cout << text << "\n";
-
-  string text2;
-  for(int c : codes) {
-    cout << c <<  ' ';
-    text2.push_back(c);
-  }
-  cout << "\n";
-
-  cout << text2 << "\n";
+  cout << "Original string -- " << test_strings[1] << "\n";
+  cout << "Decoded string  -- " << decoded << "\n";
 }
