@@ -4,7 +4,7 @@
 #include <ranges>
 #include <vector>
 
-using std::u8string;
+using std::string;
 using std::unordered_map;
 using std::cout;
 using std::endl;
@@ -86,7 +86,7 @@ class BasicTokenizer : public Tokenizer {
     }
     text = new_text;
   }
-  std::vector<int> text_to_vector(const u8string &text) {
+  std::vector<int> text_to_vector(const string &text) {
     std::vector<int> text_converted;
     for(auto c : text) {
       text_converted.push_back(static_cast<int>(char_to_int(c)));
@@ -137,7 +137,7 @@ class BasicTokenizer : public Tokenizer {
   public:
   // Warning for compatibility with common tokenizers it is assumed the input is in 
   // utf-8 encoding.
-  void train(const u8string &text, const int vocab_size, const bool verbose) { 
+  void train(const string &text, const int vocab_size, const bool verbose) { 
     // Show input text, a bit too verbose unless you're debugging
     /* if(verbose) { */
     /*   for(int c : text) { */
@@ -169,35 +169,38 @@ class BasicTokenizer : public Tokenizer {
       cout << "length of text " << text.size() << " after merges " << text_converted.size() << "\n";
     }
     vocab.clear();
-    // Add the raw bytes
     for(auto i=0; i<(UCHAR_MAX + 1); i++) {
-      u8string s = u8"";
-      s.push_back(static_cast<char8_t>(i));
-      vocab.push_back(s);
+      vector<int> s;
+      s.push_back(i);
+      vocab[i] = s;
     }
     for(auto m : merges) {
-       vocab.push_back(
-           vocab[std::get<0>(m.first)] + vocab[std::get<1>(m.first)]);
+      vector<int> new_vocab { vocab[std::get<0>(m.first)] };
+      const vector<int> &v2 = vocab[std::get<1>(m.first)];
+      new_vocab.insert(new_vocab.end(), v2.begin(), v2.end());
+      vocab[m.second] = new_vocab;
     }
     /* if(verbose) { */
     /*   int token = 0; */
     /*   for(auto v : vocab) { */
-    /*     std::cout << token << ": " << reinterpret_cast<const char *>(v.data()) << "\n"; */
+    /*     std::cout << token << ": " << v << "\n"; */
     /*     token ++; */
     /*   } */
     /* } */
   };
-  vector<int> encode(const u8string &text, const bool verbose) {
+  vector<int> encode(const string &text, const bool verbose) {
     auto text_converted = text_to_vector(text);
     return internal_encode(text_converted, verbose);
   }
   // given ids (list of integers), return Python string
-  u8string decode(const vector<int> &tokens, const bool verbose) {
+  string decode(const vector<int> &tokens, const bool verbose) {
     /* tokens = b"".join(vocab[idx] for idx in ids) */
     /* text = tokens.decode("utf-8", errors="replace") */
-    u8string text  = u8"";
+    string text  = "";
     for(auto tkn : tokens) {
-      text.append(vocab[tkn]);
+      for(auto c : vocab[tkn]) {
+        text.push_back(c);
+      }
     }
     return text;
   }
