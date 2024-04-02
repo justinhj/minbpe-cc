@@ -149,6 +149,12 @@ class BasicTokenizer : public Tokenizer {
     for(auto c : text) {
       text_converted.push_back(static_cast<int>(char_to_int(c)));
     }
+    vocab.clear();
+    for(auto i=0; i<(UCHAR_MAX + 1); i++) {
+      vector<int> s;
+      s.push_back(i);
+      vocab[i] = s;
+    }
     for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
       if(text_converted.size() < 2) {
         break;
@@ -164,29 +170,34 @@ class BasicTokenizer : public Tokenizer {
       }
       merge(text_converted, mp, i);
       merges[mp] = i;
+
+      vector<int> new_vocab { vocab[std::get<0>(mp)] };
+      const vector<int> &v2 = vocab[std::get<1>(mp)];
+      new_vocab.insert(new_vocab.end(), v2.begin(), v2.end());
+      vocab[i] = new_vocab;
     }
     if(verbose) {
       cout << "length of text " << text.size() << " after merges " << text_converted.size() << "\n";
     }
-    vocab.clear();
-    for(auto i=0; i<(UCHAR_MAX + 1); i++) {
-      vector<int> s;
-      s.push_back(i);
-      vocab[i] = s;
-    }
-    for(auto m : merges) {
-      vector<int> new_vocab { vocab[std::get<0>(m.first)] };
-      const vector<int> &v2 = vocab[std::get<1>(m.first)];
-      new_vocab.insert(new_vocab.end(), v2.begin(), v2.end());
-      vocab[m.second] = new_vocab;
-    }
-    /* if(verbose) { */
-    /*   int token = 0; */
-    /*   for(auto v : vocab) { */
-    /*     std::cout << token << ": " << v << "\n"; */
-    /*     token ++; */
-    /*   } */
+    /* for(auto m : merges) { */
+    /*   cout << "vocab make " << m.second << "\n"; */
+    /*   vector<int> new_vocab { vocab[std::get<0>(m.first)] }; */
+    /*   const vector<int> &v2 = vocab[std::get<1>(m.first)]; */
+    /*   new_vocab.insert(new_vocab.end(), v2.begin(), v2.end()); */
+    /*   vocab[m.second] = new_vocab; */
     /* } */
+    if(verbose) {
+      int token = 0;
+      for(auto v : vocab) {
+        std::cout << token;
+        cout << ": \t ";
+        for(auto c : vocab[token]) {
+          cout << c << " ";
+        }
+        cout << "\n";
+        token ++;
+      }
+    }
   };
   vector<int> encode(const string &text, const bool verbose) {
     auto text_converted = text_to_vector(text);
