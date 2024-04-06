@@ -1,11 +1,9 @@
 #include "BasicTokenizer.hpp"
 #include <fstream>
 #include <iostream>
+#include "../opt/CLI11/CLI11.hpp"
 using std::string;
 
-int char_to_int(char8_t c) {
-  return c < 0 ? c + 256 : c; 
-}
 const string test_strings[] = {
   "abab",
   "FILE:tests/sample.txt",
@@ -18,6 +16,7 @@ const string test_strings[] = {
   "FILE:taylorswift.txt", // FILE: is handled as a special string in unpack() TODO
   "But Unicode can be abstruse plus we know we out to be still finidng the whole thing mysterious",
 };
+
 string getTestString(int index) {
   if (index < 0 || index >= sizeof(test_strings) / sizeof(test_strings[0])) {
     std::cerr << "Index out of bounds." << std::endl;
@@ -45,8 +44,18 @@ string getTestString(int index) {
 }
 // Take the BasicTokenizer for a test drive
 int main(int argc, char *argv[]) {
+  CLI::App app{"App description"};
+  argv = app.ensure_utf8(argv);
+
+  std::string filename = "default";
+  app.add_option("-f,--file", filename, "A help string");
+
+  CLI11_PARSE(app, argc, argv);
+
+  cout << "filename " << filename << "\n";
+
   auto verbose = true;
-  auto input = getTestString(3);
+  auto input = getTestString(2);
 
   BasicTokenizer bt;
   bt.train(input, 256 + 20, verbose);
