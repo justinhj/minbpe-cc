@@ -50,27 +50,39 @@ string getTestString(int index) {
 }
 // Take the BasicTokenizer for a test drive
 int main(int argc, char *argv[]) {
-  CLI::App app{"App description"};
-  argv = app.ensure_utf8(argv);
+  /* CLI::App app{"App description"}; */
+  /* argv = app.ensure_utf8(argv); */
 
-  optional<string> filename;
-  app.add_option("-f,--file", filename, "A help string");
+  /* optional<string> filename; */
+  /* app.add_option("-f,--file", filename, "A help string"); */
 
-  CLI11_PARSE(app, argc, argv);
+  /* CLI11_PARSE(app, argc, argv); */
 
-  if(filename.has_value()) {
-    cout << "filename " << filename.value() << "\n";
-  }
+  /* if(filename.has_value()) { */
+  /*   cout << "filename " << filename.value() << "\n"; */
+  /* } */
 
+  using std::chrono::high_resolution_clock;
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+
+  auto t1 = high_resolution_clock::now(); // Record start time
   auto verbose = true;
   auto input = getTestString(2);
 
   BasicTokenizer bt;
-  bt.train(input, 256 + 20, verbose);
-  auto encoded = bt.encode(input, verbose);
-  cout << "Original string length " << input.size() << "\n";
-  cout << "Encoded string length " << encoded.size() << "\n";
-  auto decoded = bt.decode(encoded, false);
+  bt.train(input, 256 + 256, verbose);
+
+  auto t2 = high_resolution_clock::now(); // Record end time
+  auto duration = t2 - t1;
+  auto ms_int = duration_cast<milliseconds>(duration).count();
+
+  std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
+
+  /* auto encoded = bt.encode(input, verbose); */
+  /* cout << "Original string length " << input.size() << "\n"; */
+  /* cout << "Encoded string length " << encoded.size() << "\n"; */
+  /* auto decoded = bt.decode(encoded, false); */
 
   /* cout << "Original string -- " << input << "\n"; */
   /* cout << "Decoded string  -- " << decoded << "\n"; */
