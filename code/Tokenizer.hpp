@@ -1,4 +1,7 @@
 // Base class for tokenizers to extend
+#ifndef MINBPE_TOKENIZER_HPP
+#define MINBPE_TOKENIZER_HPP
+
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -25,3 +28,4 @@ class Tokenizer {
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
     virtual string decode(const vector<int> &encoded, const bool verbose) = 0;
 };
+#endif

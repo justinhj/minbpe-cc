@@ -1,4 +1,5 @@
 #include "BasicTokenizer.hpp"
+#include "RegexTokenizer.hpp"
 #include <fstream>
 #include <iostream>
 #include "../opt/CLI11/CLI11.hpp"
