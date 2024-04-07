@@ -1,5 +1,4 @@
 .ccls
-ninjabuild/
 compile_commands.json
 .cache/
 ninjabuildrelease

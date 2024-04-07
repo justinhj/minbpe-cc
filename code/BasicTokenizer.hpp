@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 using std::string;
 using std::unordered_map;

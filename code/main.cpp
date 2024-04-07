@@ -3,6 +3,12 @@
 #include <iostream>
 #include "../opt/CLI11/CLI11.hpp"
 using std::string;
+using std::optional;
+
+// Xcode 14.3 14E222b optional monadic
+// same for zip views
+// but I have Xcode-15.3?
+// Apple clang version 14.0.3 (clang-1403.0.22.14.1)
 
 const string test_strings[] = {
   "abab",
@@ -47,12 +53,14 @@ int main(int argc, char *argv[]) {
   CLI::App app{"App description"};
   argv = app.ensure_utf8(argv);
 
-  std::string filename = "default";
+  optional<string> filename;
   app.add_option("-f,--file", filename, "A help string");
 
   CLI11_PARSE(app, argc, argv);
 
-  cout << "filename " << filename << "\n";
+  if(filename.has_value()) {
+    cout << "filename " << filename.value() << "\n";
+  }
 
   auto verbose = true;
   auto input = getTestString(2);

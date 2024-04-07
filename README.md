@@ -14,6 +14,18 @@ cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_C
 ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
 ```
 
+Example build config with Clang 
+
+```
+cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
+```
+
+```
+cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+ln -fs ninjabuildrelease/compile_commands.json compile_commands.json
+```
+
 Build it
 
 ```
@@ -32,7 +44,7 @@ For naming I am using `PascalCase` for class names and constructors. `snake_case
 
 Source file names should use `PascalCase` apart from executables or test which can be `snake-case`.
 
-## TODO
+## Usage
 
 Can run in three modes, train, encode and decode, given by the mode parameter.
 
@@ -43,6 +55,7 @@ Parameters
 --encoder basic the kind of encoder, only basic is implemented so far
 --dictionary-prefix determines the prefix of the output files (defaults to filename)
 --dictionary-path allows you to specify where to load the dictionary data from if it is not cwd
+--verbose prints extra information during the processing
 
 Train
 
