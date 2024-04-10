@@ -63,6 +63,10 @@ int main(int argc, char *argv[]) {
   /*   cout << "filename " << filename.value() << "\n"; */
   /* } */
 
+  RegexTokenizer rt;
+  
+  return 0;
+
   using std::chrono::high_resolution_clock;
   using std::chrono::duration_cast;
   using std::chrono::milliseconds;

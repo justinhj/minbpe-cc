@@ -1,3 +1,6 @@
+#ifndef MINBPE_BASIC_TOKENIZER_HPP
+#define MINBPE_BASIC_TOKENIZER_HPP
+
 #include "Tokenizer.hpp"
 #include <climits>
 #include <iostream>
@@ -212,3 +215,4 @@ class BasicTokenizer : public Tokenizer {
     return text;
   }
 };
+#endif

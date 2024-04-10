@@ -78,3 +78,11 @@ Decode
 
 Input: filename to decode.
 Output: loads the merges and dictionary, uses it to decode the input and writes the original data to the output file.
+
+## References
+
+
+https://github.com/Genivia/RE-flex
+
+https://github.com/glample/fastBPE/tree/master
+

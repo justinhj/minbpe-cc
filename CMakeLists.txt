@@ -19,7 +19,14 @@ include_directories(code)
 include_directories(/opt/CLI11)
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 
+# ./installed/x64-osx/share/re2/re2Config.cmake
+# ./installed/x64-osx/share/re2/re2ConfigVersion.cmake
+
+set(re2_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/re2")
+set(absl_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/absl")
 find_package(Boost COMPONENTS regex REQUIRED)
+find_package(absl CONFIG REQUIRED)
+find_package(re2 CONFIG REQUIRED)
 
 add_executable(minbpe-cc code/main.cpp code/Tokenizer.cpp)
-target_link_libraries(minbpe-cc PRIVATE Boost::regex)
+target_link_libraries(minbpe-cc PRIVATE Boost::regex re2::re2)
