@@ -2,9 +2,9 @@
 #include "RegexTokenizer.hpp"
 #include <fstream>
 #include <iostream>
-#include "../opt/CLI11/CLI11.hpp"
+/* #include "../opt/CLI11/CLI11.hpp" */
 using std::string;
-using std::optional;
+/* using std::optional; */
 
 // Xcode 14.3 14E222b optional monadic
 // same for zip views
@@ -63,7 +63,16 @@ int main(int argc, char *argv[]) {
   /*   cout << "filename " << filename.value() << "\n"; */
   /* } */
 
-  RegexTokenizer rt;
+    const string text = R"(RCA Republic Big Machine
+Website	www.taylorswift.com Edit this at Wikidata
+Signature
+Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. Her versatile artistry, songwriting, and entrepreneurship have influenced the music industry, popular culture, and politics, and her life is a subject of widespread media coverage.
+안 👋 hello
+)";
+
+  /* RegexTokenizer rt = RegexTokenizer(); */
+  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT2_SPLIT_PATTERN);
+  rt.train(text, 256 + 256, true);
   
   return 0;
 

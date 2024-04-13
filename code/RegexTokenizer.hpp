@@ -8,32 +8,40 @@
 using std::cout;
 
 class RegexTokenizer : public Tokenizer {
-  private:
+  public:
     inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
     inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
+  private:
+    reflex::BoostMatcher::Pattern compiled_pattern;
   public:
+    RegexTokenizer(const string &pattern) : Tokenizer() {
+      std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
+      compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+    };
     RegexTokenizer() : Tokenizer() {
-      const string text = R"(RCA Republic Big Machine
-Website	www.taylorswift.com Edit this at Wikidata
-Signature
-
-Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. Her versatile artistry, songwriting, and entrepreneurship have influenced the music industry, popular culture, and politics, and her life is a subject of widespread media coverage.
-)";
-
-      reflex::Input input(text);
-      std::string match;
-
-      static const std::string regex = reflex::BoostMatcher::convert(GPT2_SPLIT_PATTERN, reflex::convert_flag::unicode);
-      static const reflex::BoostMatcher::Pattern pattern(regex);
-
-      auto matcher = reflex::BoostMatcher(pattern, input);
-
-      for(auto &match : matcher.find) {
-        std::cout << "Found " << match << std::endl;
-      }
+      std::string regex = reflex::BoostMatcher::convert(GPT4_SPLIT_PATTERN, reflex::convert_flag::unicode);
+      compiled_pattern = reflex::BoostMatcher::Pattern(regex);
     };
 
     void train(const string &text, const int vocab_size, const bool verbose) {
+      reflex::Input input(text); 
+      
+      auto matcher = reflex::BoostMatcher(compiled_pattern, input);
+
+      vector<vector<int>> text_chunks;
+      for(auto &match : matcher.find) {
+        auto text_converted = text_to_vector(match.text());
+        text_chunks.push_back(text_converted);
+      }
+
+      if(verbose) {
+        for(auto chunk : text_chunks) {
+          for(int c : chunk) {
+            cout << c <<  ", ";
+          }
+          cout << "\n";
+        }
+      }
 
     };
     
