@@ -33,16 +33,12 @@ class BasicTokenizer : public Tokenizer {
     /*   cout << "\n"; */
     /* } */
     auto text_converted = text_to_vector(text);
-    vocab.clear();
-    for(auto i=0; i<(UCHAR_MAX + 1); i++) {
-      vector<int> s;
-      s.push_back(i);
-      vocab[i] = s;
-    }
+    initialize_vocab();
     for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
       if(text_converted.size() < 2) {
         break;
       }
+      // TODO Maybe set verbose as enum levels and add this as trace
       // Just to debug
       /* for(int c : text_converted) { */
       /*   cout << c <<  ' '; */

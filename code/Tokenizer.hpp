@@ -21,7 +21,6 @@ using merge_key_t = std::tuple<int, int>;
 extern std::function<std::size_t(const merge_key_t&)> key_hash_lambda;
 
 class Tokenizer {
-
   protected:
     unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
     unordered_map<int, vector<int>> vocab;   
@@ -35,6 +34,15 @@ class Tokenizer {
       }
       return text_converted;
     }
+    void initialize_vocab() {
+      vocab.clear();
+      for(auto i=0; i<(UCHAR_MAX + 1); i++) {
+        vector<int> s;
+        s.push_back(i);
+        vocab[i] = s;
+      }
+    }
+
   // Count the frequencies of all pairs and return the most frequently occuring
   tuple<int,int,int> most_frequent_pair(const std::vector<int> &text) {
     assert(text.size() > 1);
@@ -144,7 +152,6 @@ class Tokenizer {
     }
   }
   public:
-
     Tokenizer() : merges(10, key_hash_lambda) {};
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;

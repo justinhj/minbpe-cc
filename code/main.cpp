@@ -37,6 +37,7 @@ string getTestString(int index) {
     std::string file_content;
 
     if (file) {
+      cout << "Loading input file: " << file_path << "\n";
       file_content.assign((std::istreambuf_iterator<char>(file)),
                           std::istreambuf_iterator<char>());
       file.close();
@@ -71,10 +72,10 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
 )";
 
   /* RegexTokenizer rt = RegexTokenizer(); */
-  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT2_SPLIT_PATTERN);
-  rt.train(text, 256 + 256, true);
+  /* RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT2_SPLIT_PATTERN); */
+  /* rt.train(text, 256 + 256, true); */
   
-  return 0;
+  /* return 0; */
 
   using std::chrono::high_resolution_clock;
   using std::chrono::duration_cast;
@@ -84,8 +85,11 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
   auto verbose = true;
   auto input = getTestString(2);
 
-  BasicTokenizer bt;
-  bt.train(input, 256 + 256, verbose);
+  /* BasicTokenizer bt; */
+  /* bt.train(input, 256 + 256, verbose); */
+
+  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT2_SPLIT_PATTERN);
+  rt.train(input, 256 + 256, verbose);
 
   auto t2 = high_resolution_clock::now(); // Record end time
   auto duration = t2 - t1;
