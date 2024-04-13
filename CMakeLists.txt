@@ -21,6 +21,10 @@ include_directories(/opt/CLI11)
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 
 find_package(Boost COMPONENTS regex REQUIRED)
+# installed/x64-osx/share/pcre2/pcre2-config.cmake
+set(pcre2_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/pcre2")
+find_package(pcre2 CONFIG REQUIRED)
+# target_link_libraries(main PRIVATE PCRE2::8BIT PCRE2::16BIT PCRE2::32BIT PCRE2::POSIX)
 
 add_executable(minbpe-cc code/main.cpp code/Tokenizer.cpp)
-target_link_libraries(minbpe-cc PRIVATE Boost::regex "/usr/local/lib/libreflex.a")
+target_link_libraries(minbpe-cc PRIVATE Boost::regex PCRE2::8BIT "/usr/local/lib/libreflex.a")
