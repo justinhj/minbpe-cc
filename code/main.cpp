@@ -12,7 +12,7 @@ using std::string;
 // Apple clang version 14.0.3 (clang-1403.0.22.14.1)
 
 const string test_strings[] = {
-  "abab",
+  "were there many words with er in. like erm, i dunno ery and swifter?",
   "FILE:tests/sample.txt",
   "FILE:tests/taylorswift.txt",
   "Ｕｎｉｃｏｄｅ! 🅤🅝🅘🅒🅞🅓🅔‽ 🇺‌🇳‌🇮‌🇨‌🇴‌🇩‌🇪! 😄 The very name strikes fear and awe into the hearts of programmers worldwide. We all know we ought to “support Unicode” in our software (whatever that means—like using wchar_t for all the strings, right?). But Unicode can be abstruse, and diving into the thousand-page Unicode Standard plus its dozens of supplementary annexes, reports, and notes can be more than a little intimidating. I don’t blame programmers for still finding the whole thing mysterious, even 30 years after Unicode’s inception.",
@@ -88,7 +88,7 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
   /* BasicTokenizer bt; */
   /* bt.train(input, 256 + 256, verbose); */
 
-  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT2_SPLIT_PATTERN);
+  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT4_SPLIT_PATTERN);
   rt.train(input, 256 + 256, verbose);
 
   auto t2 = high_resolution_clock::now(); // Record end time

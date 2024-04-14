@@ -4,6 +4,7 @@
 #include "Tokenizer.hpp"
 #include <iostream>
 /* #include <ranges> */
+#include <optional>
 #include <reflex/boostmatcher.h>
 
 using std::cout;
@@ -16,62 +17,69 @@ class RegexTokenizer : public Tokenizer {
     inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
   protected:
     reflex::BoostMatcher::Pattern compiled_pattern;
-    // TODO API why don't you use optional here to more simply handle no pairs?
+
     optional<tuple<int,int,int>> most_frequent_pair(const vector<vector<int>> &chunks) {
       assert(chunks.size() > 1);
-      // TODO use std::ranges::zip_view<input_range Views> to zip over the head and next elements as pairs
+      // TODO for fun use std::ranges::zip_view<input_range Views> to zip over the head and next elements as pairs
       unordered_map<merge_key_t, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
       // Track insert order for predictable vocab output
       auto step = 0;
-      for(auto &chunk: chunks) {
+      for(auto const &chunk: chunks) {
+        /* cout << "chunk "; */
+        /* for(int c : chunk) { */
+        /*   cout << c <<  ", "; */
+        /* } */
+        /* cout << "  => " << string(chunk.begin(), chunk.end()) << "\n"; */
+
         if(chunk.size() < 2) {
-          break; // Skip when no pairs
+          continue; // Skip processing chunk with no pairs
         } 
         auto i1 = chunk.begin();
         auto i2 = ++chunk.begin();
         while(i1 != chunk.end() && i2 != chunk.end()) {
           auto p = make_tuple(*i1, *i2);
           int f = 1;
-          if(freqs.find(p) == freqs.end()) {
+          auto pair = freqs.find(p);
+          if(pair == freqs.end()) {
             freqs[p] = make_tuple(f,step);
+            /* cout << "adding pair " << get<0>(p) << ", " << get<1>(p) << "\n"; */
           } else {
-            auto tf = freqs[p];
-            f = get<0>(freqs[p]);
-            auto s = get<1>(freqs[p]);
-            freqs[p] = make_tuple(++f,s);
+            auto [f,s] = get<1>(*pair);
+            f++;
+            freqs[p] = make_tuple(f,s);
+            /* cout << "increment pair " << get<0>(p) << ", " << get<1>(p) << " count " << f << " seq " << s << "\n"; */
           }
           ++i1;
           ++i2;
-          ++step; // A micro optimization would be to increment this only when the freqs is updated?
+          ++step;
         }
       }
 
-      // Edge case of no pairs found
-      if(freqs.size() == 0) {
-        return {};
-      } else {
-        auto maxElementIt = std::max_element(freqs.begin(), freqs.end(),
-            [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool {
-                auto av = get<0>(a.second); 
-                auto as = get<1>(a.second); 
-                auto bv = get<0>(b.second); 
-                auto bs = get<1>(b.second); 
-                if(av < bv) {
+      auto maxElementIt = std::max_element(freqs.begin(), freqs.end(),
+          [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool {
+              auto av = get<0>(a.second);  // TODO use structured binding here to simplify
+              auto as = get<1>(a.second); 
+              auto bv = get<0>(b.second); 
+              auto bs = get<1>(b.second); 
+              if(av < bv) {
+                return true;
+              } else if (av == bv) {
+                if(bs < as) {
                   return true;
-                } else if (av == bv) {
-                  if(bs < as) {
-                    return true;
-                  } else {
-                    return false;
-                  }
                 } else {
                   return false;
                 }
-            });
-        auto max_pair = *maxElementIt;
+              } else {
+                return false;
+              }
+          });
+      if(maxElementIt != freqs.end()) {
+        auto &max_pair = *maxElementIt;
         auto return_pair = max_pair.first;
         auto max = get<0>(max_pair.second);
         return make_tuple(get<0>(return_pair), get<1>(return_pair), max);
+      } else {
+        return std::nullopt;
       }
     }
     // replace all consecutive occurences of pair with the new token idx
@@ -110,10 +118,14 @@ class RegexTokenizer : public Tokenizer {
       for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
         // TODO Maybe set verbose as enum levels and add this as trace
         // Just to debug
-        /* for(int c : text_converted) { */
-        /*   cout << c <<  ' '; */
+        /* if(verbose) { */
+        /*   for(auto chunk : ids) { */
+        /*     for(int c : chunk) { */
+        /*       cout << c <<  ", "; */
+        /*     } */
+        /*     cout << "  => " << string(chunk.begin(), chunk.end()) << "\n"; */
+        /*   } */
         /* } */
-        /* cout << "\n"; */
         assert(ids.size() > 0);
         auto mp3 = most_frequent_pair(ids);
         if(mp3.has_value()) {
@@ -131,16 +143,12 @@ class RegexTokenizer : public Tokenizer {
         }
       }
       if(verbose) {
-        cout << "length of text " << text.size() << " after merges " << ids.size() << "\n";
+        int size = 0;
+        for(auto &chunk: ids) {
+          size += chunk.size();
+        }
+        cout << "length of text " << text.size() << " after merges " << size << "\n";
       }
-      /* if(verbose) { */
-      /*   for(auto chunk : ids) { */
-      /*     for(int c : chunk) { */
-      /*       cout << c <<  ", "; */
-      /*     } */
-      /*     cout << "\n"; */
-      /*   } */
-      /* } */
     };
     
     vector<int> encode(const string &text, const bool verbose) {
