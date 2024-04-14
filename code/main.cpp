@@ -15,6 +15,7 @@ const string test_strings[] = {
   "with 20 and 201 and 2001 what is happen?",
   "FILE:tests/sample.txt",
   "FILE:tests/taylorswift.txt",
+  "FILE:tests/bible.txt",
   "Ｕｎｉｃｏｄｅ! 🅤🅝🅘🅒🅞🅓🅔‽ 🇺‌🇳‌🇮‌🇨‌🇴‌🇩‌🇪! 😄 The very name strikes fear and awe into the hearts of programmers worldwide. We all know we ought to “support Unicode” in our software (whatever that means—like using wchar_t for all the strings, right?). But Unicode can be abstruse, and diving into the thousand-page Unicode Standard plus its dozens of supplementary annexes, reports, and notes can be more than a little intimidating. I don’t blame programmers for still finding the whole thing mysterious, even 30 years after Unicode’s inception.",
   "", // empty string
   "?", // single character
@@ -83,7 +84,7 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
 
   auto t1 = high_resolution_clock::now(); // Record start time
   auto verbose = true;
-  auto input = getTestString(2);
+  auto input = getTestString(3);
 
   /* BasicTokenizer bt; */
   /* bt.train(input, 256 + 256, verbose); */
