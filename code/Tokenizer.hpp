@@ -2,6 +2,7 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
+#include <iostream>
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -105,12 +106,24 @@ class Tokenizer {
     auto i = 0;
     auto skip = false;
     while(i1 != text.end() && i2 != text.end()) {
+      // A B C and p1 = AB   
+      // i1 = a, i2 = b
+      // output p1 and set skip 
+      // i1 B i2 C skip true
+      // i1 C i2 end skip false
+      // loop ends
+      // so check for i1 not end, i2 end, output i1
       if(skip) {
         skip = false;
         i++;
         i1++;
         i2++;
-        continue;
+        if(i1 != text.end() && i2 == text.end()) {
+          new_text.push_back(*i1);
+          break;
+        } else {
+          continue;
+        }
       }
       auto p = make_tuple(*i1,*i2);
       if(p == mp) {
@@ -126,6 +139,7 @@ class Tokenizer {
       i1++;
       i2++;
     }
+    /* std::cout << "text " << string(text.begin(), text.end()) << " new_text " << string(new_text.begin(), new_text.end()) << "\n"; */
     text = new_text;
   }
   // given a string text, return the token ids

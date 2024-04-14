@@ -117,7 +117,6 @@ class RegexTokenizer : public Tokenizer {
 
       for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
         // TODO Maybe set verbose as enum levels and add this as trace
-        // Just to debug
         /* if(verbose) { */
         /*   for(auto chunk : ids) { */
         /*     for(int c : chunk) { */
@@ -129,9 +128,6 @@ class RegexTokenizer : public Tokenizer {
         assert(ids.size() > 0);
         auto mp3 = most_frequent_pair(ids);
         if(mp3.has_value()) {
-          if(verbose) {
-            cout << "merge pair " << get<0>(mp3.value()) << ", " << get<1>(mp3.value()) << " with new token " << i << " count " << get<2>(mp3.value()) << "\n";
-          }
           auto mp = make_tuple(get<0>(mp3.value()), get<1>(mp3.value()));
           merge_chunks(ids, mp, i);
           merges[mp] = i;
@@ -140,6 +136,9 @@ class RegexTokenizer : public Tokenizer {
           const vector<int> &v2 = vocab[get<1>(mp)];
           new_vocab.insert(new_vocab.end(), v2.begin(), v2.end());
           vocab[i] = new_vocab;
+          if(verbose) {
+            cout << "merge pair " << get<0>(mp3.value()) << ", " << get<1>(mp3.value()) << " with new token " << i << " count " << get<2>(mp3.value()) <<  " new vocab " << string(new_vocab.begin(), new_vocab.end()) << "\n";
+          }
         }
       }
       if(verbose) {
