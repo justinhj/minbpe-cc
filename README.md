@@ -1,7 +1,8 @@
 # minbpe-cc
 
-- What is the real root of suffering? **Tokenization**
-- _Andrej Karpathy_
+> What is the real root of suffering? **Tokenization**
+>
+> _Andrej Karpathy_
 
 ## What is this?
 
