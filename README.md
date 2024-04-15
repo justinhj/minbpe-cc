@@ -1,10 +1,11 @@
 # minbpe-cc
 
-- What is the real root of suffering? **Tokenization**.
+- What is the real root of suffering? **Tokenization**
+- _Andrej Karpathy_
 
 ## What is this?
 
-A modern C++ implementation of bpe tokenization, based on Kaparth's [minbpe](https://github.com/karpathy/minbpe).
+A modern C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://github.com/karpathy/minbpe).
 
 ## Building
 
@@ -89,6 +90,5 @@ Output: loads the merges and dictionary, uses it to decode the input and writes 
 
 
 https://github.com/Genivia/RE-flex
-
 https://github.com/glample/fastBPE/tree/master
 
