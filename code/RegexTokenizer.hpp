@@ -57,21 +57,9 @@ class RegexTokenizer : public Tokenizer {
 
       auto maxElementIt = std::max_element(freqs.begin(), freqs.end(),
           [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool {
-              auto av = get<0>(a.second);  // TODO use structured binding here to simplify
-              auto as = get<1>(a.second); 
-              auto bv = get<0>(b.second); 
-              auto bs = get<1>(b.second); 
-              if(av < bv) {
-                return true;
-              } else if (av == bv) {
-                if(bs < as) {
-                  return true;
-                } else {
-                  return false;
-                }
-              } else {
-                return false;
-              }
+              auto [av,as] = a.second;
+              auto [bv,bs] = b.second; 
+              return (av < bv) || (av == bv && bs < as);
           });
       if(maxElementIt != freqs.end()) {
         auto &max_pair = *maxElementIt;

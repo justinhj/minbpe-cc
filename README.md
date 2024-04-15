@@ -1,5 +1,11 @@
 # minbpe-cc
 
+- What is the real root of suffering? **Tokenization**.
+
+## What is this?
+
+A modern C++ implementation of bpe tokenization, based on Kaparth's [minbpe](https://github.com/karpathy/minbpe).
+
 ## Building
 
 Examples to build with the ninja build system as release or debug. The `compile_commands.json` output is to help the ccls lsp server and other tools, you may omit it otherwise.
