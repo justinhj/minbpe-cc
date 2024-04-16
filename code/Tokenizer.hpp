@@ -142,7 +142,6 @@ class Tokenizer {
     /* std::cout << "text " << string(text.begin(), text.end()) << " new_text " << string(new_text.begin(), new_text.end()) << "\n"; */
     text = new_text;
   }
-  // given a string text, return the token ids
   vector<int> internal_encode(const vector<int> &text, const bool verbose) {
     vector<int> out;
     auto i = 0;

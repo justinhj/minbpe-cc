@@ -138,11 +138,71 @@ class RegexTokenizer : public Tokenizer {
       }
     };
     
+    vector<int> internal_internal_encode(const vector<int> &text) {
+        vector<int> out;
+        auto i = 0;
+        auto merge_count = 0;
+        auto len = text.size();
+        while(i < len) {
+          auto pair = make_tuple(text[i], text[i + 1]);
+          if(i < len - 1 && merges.find(pair) != merges.end()) {
+            out.push_back(merges[pair]);
+            i += 2;
+            merge_count ++;
+          } else {
+            out.push_back(text[i]);
+            i ++;
+          }
+        }
+        if(merge_count == 0) {
+          return out;
+        } else {
+          return internal_internal_encode(out);
+        }
+    }
+
+    vector<vector<int>> internal_encode(const vector<vector<int>> &text) {
+      vector<vector<int>> outer;
+      for(auto &t: text) {
+        auto encoded = internal_internal_encode(t);
+        outer.push_back(encoded);
+      }
+      return outer;
+    }
+
     vector<int> encode(const string &text, const bool verbose) {
-      return vector<int>{};
+        reflex::Input input(text); 
+        auto matcher = reflex::BoostMatcher(compiled_pattern, input);
+
+        // Note if you add special token support it would do a pass
+        // here first to take care of those, then continue as normal
+
+        // GPT2(+) tokenizers first chunk the input text
+        // to keep semantically related pairs together.
+        // This means the input to the merging stage is a vector 
+        // of vectors...
+        vector<vector<int>> text_chunks;
+        for(auto &match : matcher.find) {
+          auto text_converted = text_to_vector(match.text());
+          text_chunks.push_back(text_converted);
+        }
+
+        auto encoded_chunks = internal_encode(text_chunks);
+        vector<int> out;
+        for(auto &chunk: encoded_chunks) {
+          out.insert(out.end(), chunk.begin(), chunk.end());
+        }
+        return out;
+
     };
-    string decode(const vector<int> &encoded, const bool verbose) {
-      return "nope";
+    string decode(const vector<int> &tokens, const bool verbose) {
+      string text  = "";
+      for(auto tkn : tokens) {
+        for(auto c : vocab[tkn]) {
+          text.push_back(c);
+        }
+      }
+      return text;
     }
 };
 #endif

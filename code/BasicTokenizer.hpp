@@ -44,6 +44,7 @@ class BasicTokenizer : public Tokenizer {
       /*   cout << c <<  ' '; */
       /* } */
       /* cout << "\n"; */
+      // TODO make this return and handle an option like the regex one does
       auto mp3 = most_frequent_pair(text_converted);
       if(verbose) {
         cout << "merge pair " << std::get<0>(mp3) << ", " << std::get<1>(mp3) << " with new token " << i << " count " << std::get<2>(mp3) << "\n";
@@ -81,6 +82,7 @@ class BasicTokenizer : public Tokenizer {
   string decode(const vector<int> &tokens, const bool verbose) {
     /* tokens = b"".join(vocab[idx] for idx in ids) */
     /* text = tokens.decode("utf-8", errors="replace") */
+    // TODO move to parent
     string text  = "";
     for(auto tkn : tokens) {
       for(auto c : vocab[tkn]) {

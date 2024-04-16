@@ -93,3 +93,9 @@ Output: loads the merges and dictionary, uses it to decode the input and writes 
 https://github.com/Genivia/RE-flex
 https://github.com/glample/fastBPE/tree/master
 
+## TODO Notes and C++ related
+
+TODO Move towards building as a library with examples
+TODO Use a nested namespace called detail to hide non public implementation details
+TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
+

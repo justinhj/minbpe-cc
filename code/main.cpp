@@ -84,13 +84,17 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
 
   auto t1 = high_resolution_clock::now(); // Record start time
   auto verbose = true;
-  auto input = getTestString(3);
+  auto input = getTestString(2);
 
-  /* BasicTokenizer bt; */
-  /* bt.train(input, 256 + 256, verbose); */
+  if(true) {
+    BasicTokenizer bt;
+    bt.train(input, 256 + 256, verbose);
+  }
 
-  RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT4_SPLIT_PATTERN);
-  rt.train(input, 256 + 256, verbose);
+  if(true) {
+    RegexTokenizer rt = RegexTokenizer(RegexTokenizer::GPT4_SPLIT_PATTERN);
+    rt.train(input, 256 + 256, verbose);
+  }
 
   auto t2 = high_resolution_clock::now(); // Record end time
   auto duration = t2 - t1;
@@ -98,11 +102,16 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
 
   std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
 
-  /* auto encoded = bt.encode(input, verbose); */
-  /* cout << "Original string length " << input.size() << "\n"; */
-  /* cout << "Encoded string length " << encoded.size() << "\n"; */
-  /* auto decoded = bt.decode(encoded, false); */
+  // 28 seconds in Python train.py
+  // 7.1 seconds in C++
 
-  /* cout << "Original string -- " << input << "\n"; */
-  /* cout << "Decoded string  -- " << decoded << "\n"; */
+  if(false) {
+    /* auto encoded = rt.encode(input, verbose); */
+    /* cout << "Original string length " << input.size() << "\n"; */
+    /* cout << "Encoded string length " << encoded.size() << "\n"; */
+    /* auto decoded = rt.decode(encoded, false); */
+    /* cout << "Decoded string length " << decoded.size() << "\n"; */
+
+    /* cout << "Original == decoded: " << (decoded == input ? "Yes" : "No") << "\n"; */ 
+  }
 }
