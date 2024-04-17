@@ -2,21 +2,18 @@
 #include "RegexTokenizer.hpp"
 #include <fstream>
 #include <iostream>
-/* #include "../opt/CLI11/CLI11.hpp" */
+#include "../opt/CLI11/CLI11.hpp"
+
 using std::string;
-/* using std::optional; */
+using std::optional;
 
-// Xcode 14.3 14E222b optional monadic
-// same for zip views
-// but I have Xcode-15.3?
-// Apple clang version 14.0.3 (clang-1403.0.22.14.1)
-
+// TODO can get rid of these once the full CLI interface is working
 const string test_strings[] = {
   "with 20 and 201 and 2001 what is happen?",
-  "FILE:tests/sample.txt",
-  "FILE:tests/taylorswift.txt",
-  "FILE:tests/shakespeare.txt",
-  "FILE:tests/bible.txt",
+  "FILE:data/sample.txt",
+  "FILE:data/taylorswift.txt",
+  "FILE:data/shakespeare.txt",
+  "FILE:data/bible.txt",
   "Ｕｎｉｃｏｄｅ! 🅤🅝🅘🅒🅞🅓🅔‽ 🇺‌🇳‌🇮‌🇨‌🇴‌🇩‌🇪! 😄 The very name strikes fear and awe into the hearts of programmers worldwide. We all know we ought to “support Unicode” in our software (whatever that means—like using wchar_t for all the strings, right?). But Unicode can be abstruse, and diving into the thousand-page Unicode Standard plus its dozens of supplementary annexes, reports, and notes can be more than a little intimidating. I don’t blame programmers for still finding the whole thing mysterious, even 30 years after Unicode’s inception.",
   "", // empty string
   "?", // single character
@@ -53,17 +50,17 @@ string getTestString(int index) {
 }
 // Take the BasicTokenizer for a test drive
 int main(int argc, char *argv[]) {
-  /* CLI::App app{"App description"}; */
-  /* argv = app.ensure_utf8(argv); */
+  CLI::App app{"App description"};
+  argv = app.ensure_utf8(argv);
 
-  /* optional<string> filename; */
-  /* app.add_option("-f,--file", filename, "A help string"); */
+  optional<string> filename;
+  app.add_option("-f,--file", filename, "A help string");
 
-  /* CLI11_PARSE(app, argc, argv); */
+  CLI11_PARSE(app, argc, argv);
 
-  /* if(filename.has_value()) { */
-  /*   cout << "filename " << filename.value() << "\n"; */
-  /* } */
+  if(filename.has_value()) {
+    cout << "filename " << filename.value() << "\n";
+  }
 
     const string text = R"(RCA Republic Big Machine
 Website	www.taylorswift.com Edit this at Wikidata
@@ -101,9 +98,6 @@ Taylor Alison Swift (born December 13, 1989) is an American singer-songwriter. H
   auto ms_int = duration_cast<milliseconds>(duration).count();
 
   std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
-
-  // 28 seconds in Python train.py
-  // 7.1 seconds in C++
 
   if(false) {
     /* auto encoded = rt.encode(input, verbose); */
