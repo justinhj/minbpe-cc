@@ -6,7 +6,12 @@
 
 ## What is this?
 
-A modern C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://github.com/karpathy/minbpe).
+A C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://github.com/karpathy/minbpe).
+
+This is a fairly direct port of the Python code, and is quite a bit faster. Compared to the Python `train.py` example it is roughy 4x faster.
+
+28 seconds in Python train.py
+7.1 seconds in C++
 
 ## Building
 
