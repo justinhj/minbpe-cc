@@ -2,7 +2,7 @@
 #include "RegexTokenizer.hpp"
 #include <fstream>
 #include <iostream>
-#include "../opt/CLI11/CLI11.hpp"
+#include "CLI11/CLI11.hpp"
 
 using std::string;
 using std::optional;
