@@ -2,7 +2,6 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
-#include <iostream>
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -10,6 +9,7 @@
 #include <vector>
 #include <cassert>
 #include <tuple>
+#include <iostream>
 
 using std::string;
 using std::unordered_map;
@@ -166,8 +166,13 @@ class Tokenizer {
   }
   public:
     Tokenizer() : merges(10, key_hash_lambda) {};
+    virtual ~Tokenizer() {};
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
     virtual string decode(const vector<int> &encoded, const bool verbose) = 0;
+    void save() {
+      std::cout << "Saving model\n";
+
+    }
 };
 #endif

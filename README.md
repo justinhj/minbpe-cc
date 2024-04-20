@@ -68,12 +68,13 @@ Can run in three modes, train, encode and decode, given by the mode parameter.
 
 Parameters
 
---filename the input file name for training, encoding or decoding
---mode train|encode|decode determines the execution mode
---encoder basic the kind of encoder, only basic is implemented so far
---dictionary-prefix determines the prefix of the output files (defaults to filename)
---dictionary-path allows you to specify where to load the dictionary data from if it is not cwd
---verbose prints extra information during the processing
+--input The input file name for training, encoding or decoding
+--train Train the input file and output the model data
+--encode Encode the input file using provided model data
+--decode Decode the input file using provided model data
+--model-path Where save and load the models
+--model-prefix Optional prefix to distinguish models
+--verbose Prints extra information during the processing
 
 Train
 
