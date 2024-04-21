@@ -1,12 +1,11 @@
+#include "Tokenizer.hpp"
 #include "BasicTokenizer.hpp"
 #include "RegexTokenizer.hpp"
-#include <__expected/expected.h>
 #include <fstream>
 #include <filesystem>
 #include <iostream>
 #include <expected>
 #include "CLI11/CLI11.hpp"
-#include "Tokenizer.hpp"
 
 using std::string;
 using std::optional;
@@ -51,11 +50,8 @@ int main(int argc, char *argv[]) {
   string encoder = "gpt4";
   app.add_option("--encoder", encoder, "Encoder to use from basic,gpt2,gpt4");
 
-  string model_path = "./models/";
-  app.add_option("--model-path", model_path, "Path to load or save the model");
-
-  string model_postfix = "";
-  app.add_option("--model-postfix", model_postfix, "Optional model file postfix");
+  string model_path = "./output.model";
+  app.add_option("-m,--model-path", model_path, "Path to load or save the model");
 
   bool verbose;
   app.add_flag("-v,--verbose", verbose, "Print more things");
@@ -93,7 +89,8 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    cout << "Training using file " << input_fspath << " encoder " << encoder << " vocab size " << vocab_size << "\n";
+    auto model_fspath = path(model_path);
+    cout << "Training using file " << input_fspath << " encoder " << encoder << " vocab size " << vocab_size << " model path " << model_path << "\n";
 
     auto input = load_file_to_string(input_path.value());
     if(input.has_value()) {
@@ -102,8 +99,7 @@ int main(int argc, char *argv[]) {
        cout << "Failed to load training input file: " << input.error() << "\n";
     }
     rt->train(input.value(), vocab_size, verbose);
-
-    rt->save();
+    rt->save(model_fspath);
   }
 
   auto t2 = high_resolution_clock::now(); // Record end time

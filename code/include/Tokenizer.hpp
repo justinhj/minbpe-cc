@@ -10,12 +10,16 @@
 #include <cassert>
 #include <tuple>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
 
 using std::string;
 using std::unordered_map;
 using std::vector;
 using std::tuple;
+using std::filesystem::path;
 using std::make_tuple;
+using std::ios;
 
 using merge_key_t = std::tuple<int, int>;
 
@@ -25,6 +29,7 @@ class Tokenizer {
   protected:
     unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
     unordered_map<int, vector<int>> vocab;   
+    string pattern;
     int char_to_int(char8_t c) {
       return c < 0 ? c + 256 : c; 
     }
@@ -170,9 +175,23 @@ class Tokenizer {
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
     virtual string decode(const vector<int> &encoded, const bool verbose) = 0;
-    void save() {
-      std::cout << "Saving model\n";
-
+    void save(const path &path) {
+      std::ofstream output_file(path, ios::out);
+      if (output_file.is_open()) {
+        std::cout << "Writing model...\n";
+        output_file << "minbpe v1" << std::endl;
+        output_file << pattern << std::endl;
+        output_file << 0 << std::endl; // special token count
+        // write special tokens
+        for(auto &merge: merges) {
+          auto [pair,freq] = merge;
+          auto [idx1,idx2] = pair;
+          output_file << idx1 << " " << idx2 << std::endl;
+        }
+        output_file.close();
+      } else {
+        std::cerr << "Unable to open file: " << path << std::endl;
+      }
     }
 };
 #endif

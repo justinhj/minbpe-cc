@@ -78,6 +78,7 @@ class RegexTokenizer : public Tokenizer {
     }
   public:
     RegexTokenizer(const string &pattern) : Tokenizer() {
+      this->pattern = pattern;
       std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
       compiled_pattern = reflex::BoostMatcher::Pattern(regex);
     };
