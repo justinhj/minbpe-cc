@@ -4,7 +4,6 @@
 #include <iostream>
 
 using std::string;
-using std::optional;
 
 // Roughly a port of https://github.com/karpathy/minbpe/blob/master/train.py
 

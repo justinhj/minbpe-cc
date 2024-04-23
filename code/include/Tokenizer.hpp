@@ -2,6 +2,7 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
+#include <set>
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -28,6 +29,18 @@ extern std::function<std::size_t(const merge_key_t&)> key_hash_lambda;
 
 class Tokenizer {
   protected:
+
+    struct PairIndex {
+      int idx1;
+      int idx2;
+      int idx;
+    };
+    struct ComparePairIndex {
+      bool operator()(const PairIndex& p1, const PairIndex& p2) const {
+        return p1.idx < p2.idx;
+      }
+    };
+
     unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
@@ -195,12 +208,13 @@ class Tokenizer {
         for(int i=0; i<num_special; i++) {
           // TODO read special tokens
         }
-        int idx1, idx2;
+        int idx = 256, idx1, idx2;
+        cout << "load index " << idx << "\n"; 
         while(input_file >> idx1 >> idx2) {
-          cout << idx1 << ", " << idx2 << "\n";
+          merges[make_tuple(idx1, idx2)] = idx;
+          ++idx;
         }
         cout << "read!\n";
-
       } else {
         cout << "Failed to open file " << path << "\n";
         return false;
@@ -216,10 +230,16 @@ class Tokenizer {
         output_file << pattern << std::endl;
         output_file << 0 << std::endl; // special token count
         // write special tokens
+        // write the merges. Note that merges is not sorted but that is the expectation so 
+        // sort it and then write it ...
+        std::set<PairIndex, ComparePairIndex> merge_set;
         for(auto &merge: merges) {
-          auto [pair,freq] = merge;
+          auto [pair,idx] = merge;
           auto [idx1,idx2] = pair;
-          output_file << idx1 << " " << idx2 << std::endl;
+          merge_set.insert(PairIndex(idx1,idx2,idx));
+        }
+        for(auto &zmerge: merge_set) {
+          output_file << zmerge.idx1 << ' ' << zmerge.idx2 << "\n";
         }
         output_file.close();
         cout << "Complete.\n";
