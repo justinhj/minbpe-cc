@@ -101,7 +101,8 @@ https://github.com/glample/fastBPE/tree/master
 
 ## TODO Notes and C++ related
 
-TODO Move towards building as a library with examples
+WIP Move towards building as a library with examples
 TODO Use a nested namespace called detail to hide non public implementation details
 TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
-
+TODO add urls as a valid input for the training data
+DESIGN look at C++ 23 `flat_map` to make an ordered container for the merges so they can be saved in order

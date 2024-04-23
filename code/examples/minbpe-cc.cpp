@@ -100,6 +100,7 @@ int main(int argc, char *argv[]) {
     }
     rt->train(input.value(), vocab_size, verbose);
     rt->save(model_fspath);
+    rt->load(model_fspath);
   }
 
   auto t2 = high_resolution_clock::now(); // Record end time

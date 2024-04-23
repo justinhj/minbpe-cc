@@ -17,6 +17,7 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 using std::tuple;
+using std::cout;
 using std::filesystem::path;
 using std::make_tuple;
 using std::ios;
@@ -144,7 +145,7 @@ class Tokenizer {
       i1++;
       i2++;
     }
-    /* std::cout << "text " << string(text.begin(), text.end()) << " new_text " << string(new_text.begin(), new_text.end()) << "\n"; */
+    /* cout << "text " << string(text.begin(), text.end()) << " new_text " << string(new_text.begin(), new_text.end()) << "\n"; */
     text = new_text;
   }
   vector<int> internal_encode(const vector<int> &text, const bool verbose) {
@@ -175,10 +176,42 @@ class Tokenizer {
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
     virtual string decode(const vector<int> &encoded, const bool verbose) = 0;
-    void save(const path &path) {
+    bool load(const path &path) {
+      std::ifstream input_file(path, ios::in);
+      if(input_file.is_open()) {
+        string version;
+        std::getline(input_file, version);
+        if(version != "minbpe v1") {
+          cout << "Unexpected version: " << version << "\n";
+          return false;
+        }
+        merges.clear(); 
+        vocab.clear();
+        // TODO init special tokens
+        int index = 256;
+        std::getline(input_file, pattern);
+        int num_special;
+        input_file >> num_special;
+        for(int i=0; i<num_special; i++) {
+          // TODO read special tokens
+        }
+        int idx1, idx2;
+        while(input_file >> idx1 >> idx2) {
+          cout << idx1 << ", " << idx2 << "\n";
+        }
+        cout << "read!\n";
+
+      } else {
+        cout << "Failed to open file " << path << "\n";
+        return false;
+      }
+      
+      return true;
+    }
+    bool save(const path &path) {
       std::ofstream output_file(path, ios::out);
       if (output_file.is_open()) {
-        std::cout << "Writing model...\n";
+        cout << "Writing model...\n";
         output_file << "minbpe v1" << std::endl;
         output_file << pattern << std::endl;
         output_file << 0 << std::endl; // special token count
@@ -189,8 +222,11 @@ class Tokenizer {
           output_file << idx1 << " " << idx2 << std::endl;
         }
         output_file.close();
+        cout << "Complete.\n";
+        return true;
       } else {
         std::cerr << "Unable to open file: " << path << std::endl;
+        return false;
       }
     }
 };
