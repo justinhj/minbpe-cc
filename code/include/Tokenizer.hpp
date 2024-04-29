@@ -188,16 +188,23 @@ class Tokenizer {
     for(auto i=0; i<256; i++) {
       vocab[i] = vector<int>{i};
     }
-    for(auto m: merges) {
-      auto [pair,idx] = m;
-      auto [p1,p2] = pair;
-      cout << "p1 " << p1 << " p2 " << p2 << " idx " << idx << "\n";
+
+    // Again we need to sort the merges so we can build the vocab in the correct order
+    std::set<PairIndex, ComparePairIndex> merge_set;
+    for(auto &merge: merges) {
+      auto [pair,idx] = merge;
+      auto [idx1,idx2] = pair;
+      merge_set.insert(PairIndex(idx1,idx2,idx));
+    }
+
+    for(auto m: merge_set) {
+      auto [p1,p2,idx] = m;
       vector<int> appended{vocab[p1]};
       appended.insert(appended.end(),vocab[p2].begin(), vocab[p2].end());
       vocab[idx] = appended;
     }
     if(verbose) {
-      cout << "Loaded vocab with " << 256 + merges.size() << " entries\n";
+      cout << "Loaded vocab with " << 256 + merges.size() << " merges, vocab size is " << vocab.size() << "\n";
     }
     // TODO special token handling
   }
