@@ -183,19 +183,37 @@ class Tokenizer {
       return internal_encode(out, verbose);
     }
   }
+  void build_vocab(bool verbose) {
+    vocab.clear();
+    for(auto i=0; i<256; i++) {
+      vocab[i] = vector<int>{i};
+    }
+    for(auto m: merges) {
+      auto [pair,idx] = m;
+      auto [p1,p2] = pair;
+      cout << "p1 " << p1 << " p2 " << p2 << " idx " << idx << "\n";
+      vector<int> appended{vocab[p1]};
+      appended.insert(appended.end(),vocab[p2].begin(), vocab[p2].end());
+      vocab[idx] = appended;
+    }
+    if(verbose) {
+      cout << "Loaded vocab with " << 256 + merges.size() << " entries\n";
+    }
+    // TODO special token handling
+  }
   public:
     Tokenizer() : merges(10, key_hash_lambda) {};
     virtual ~Tokenizer() {};
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
     virtual string decode(const vector<int> &encoded, const bool verbose) = 0;
-    bool load(const path &path) {
+    bool load(const path &path, const bool verbose) {
       std::ifstream input_file(path, ios::in);
       if(input_file.is_open()) {
         string version;
         std::getline(input_file, version);
         if(version != "minbpe v1") {
-          cout << "Unexpected version: " << version << "\n";
+          std::cerr << "Unexpected version: " << version << "\n";
           return false;
         }
         merges.clear(); 
@@ -209,14 +227,16 @@ class Tokenizer {
           // TODO read special tokens
         }
         int idx = 256, idx1, idx2;
-        cout << "load index " << idx << "\n"; 
         while(input_file >> idx1 >> idx2) {
           merges[make_tuple(idx1, idx2)] = idx;
           ++idx;
         }
-        cout << "read!\n";
+        if(verbose) {
+          cout << "Read input\n";
+        }
+        build_vocab(verbose);
       } else {
-        cout << "Failed to open file " << path << "\n";
+        std::cerr << "Failed to open file " << path << "\n";
         return false;
       }
       

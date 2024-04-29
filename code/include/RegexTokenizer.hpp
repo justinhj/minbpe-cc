@@ -193,10 +193,14 @@ class RegexTokenizer : public Tokenizer {
         for(auto &chunk: encoded_chunks) {
           out.insert(out.end(), chunk.begin(), chunk.end());
         }
+        if(verbose) {
+          cout << "Encoded input text (length " << text.length() << ") to " << out.size() << " tokens\n"; 
+        }
         return out;
 
     };
     string decode(const vector<int> &tokens, const bool verbose) {
+      cout << "Decoding " << tokens.size() << " tokens\n";
       string text  = "";
       for(auto tkn : tokens) {
         for(auto c : vocab[tkn]) {
