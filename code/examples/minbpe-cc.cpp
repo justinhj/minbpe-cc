@@ -111,8 +111,13 @@ int main(int argc, char *argv[]) {
   CLI11_PARSE(app, argc, argv);
 
   auto input_fspath = path(input_path);
-  if(!exists(input_fspath)) {
-    cerr << "Input file " << input_path << " does not exist\n";
+  if(!input_path.empty()) {
+    if(!exists(input_fspath)) {
+      cerr << "Input file " << input_path << " does not exist\n";
+      return -1;
+    }
+  } else {
+    cerr << "Input file not specified\n";
     return -1;
   }
 
