@@ -25,6 +25,9 @@ class BasicTokenizer : public Tokenizer {
   // utf-8 encoding.
   void train(const string &text, const int vocab_size, const bool verbose) { 
     assert(vocab_size >= 256);
+    merges.clear();
+    merges_insert_order.clear();
+    merges_insert_order.reserve(vocab_size);  
     // Show input text, a bit too verbose unless you're debugging
     /* if(verbose) { */
     /*   for(int c : text) { */
@@ -52,7 +55,7 @@ class BasicTokenizer : public Tokenizer {
       auto mp = make_tuple(std::get<0>(mp3), std::get<1>(mp3));
       merge(text_converted, mp, i);
       merges[mp] = i;
-
+      merges_insert_order.push_back({get<0>(mp),get<1>(mp),&merges[mp]});
       vector<int> new_vocab { vocab[std::get<0>(mp)] };
       const vector<int> &v2 = vocab[std::get<1>(mp)];
       new_vocab.insert(new_vocab.end(), v2.begin(), v2.end());

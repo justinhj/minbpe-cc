@@ -92,6 +92,10 @@ class RegexTokenizer : public Tokenizer {
       reflex::Input input(text); 
       auto matcher = reflex::BoostMatcher(compiled_pattern, input);
 
+      merges.clear();
+      merges_insert_order.clear();
+      merges_insert_order.reserve(vocab_size);  
+
       // GPT2(+) tokenizers first chunk the input text
       // to keep semantically related pairs together.
       // This means the input to the merging stage is a vector 
@@ -120,6 +124,7 @@ class RegexTokenizer : public Tokenizer {
           auto mp = make_tuple(get<0>(mp3.value()), get<1>(mp3.value()));
           merge_chunks(ids, mp, i);
           merges[mp] = i;
+          merges_insert_order.push_back({get<0>(mp),get<1>(mp),&merges[mp]});
 
           vector<int> new_vocab { vocab[get<0>(mp)] };
           const vector<int> &v2 = vocab[get<1>(mp)];
