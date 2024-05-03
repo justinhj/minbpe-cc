@@ -23,9 +23,7 @@ using std::filesystem::path;
 using std::make_tuple;
 using std::ios;
 
-using merge_key_t = std::tuple<int, int>;
-
-extern std::function<std::size_t(const merge_key_t&)> key_hash_lambda;
+extern std::function<std::size_t(const tuple<int,int>&)> key_hash_lambda;
 
 class Tokenizer {
   protected:
@@ -41,7 +39,7 @@ class Tokenizer {
       }
     };
 
-    unordered_map<merge_key_t, int, decltype(key_hash_lambda)> merges;
+    unordered_map<tuple<int,int>, int, decltype(key_hash_lambda)> merges;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
     int char_to_int(char8_t c) {
@@ -75,7 +73,7 @@ class Tokenizer {
     auto i2 = ++text.begin();
     auto step = 0; // count the steps so we can pick the first added to the map
     // this is to work around unordered map not having insertion order maintained
-    unordered_map<merge_key_t, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
+    unordered_map<tuple<int,int>, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
     while(i1 != text.end() && i2 != text.end()) {
       auto p = make_tuple(*i1, *i2);
       int f = 1;

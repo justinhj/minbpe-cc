@@ -21,7 +21,7 @@ class RegexTokenizer : public Tokenizer {
     optional<tuple<int,int,int>> most_frequent_pair(const vector<vector<int>> &chunks) {
       assert(chunks.size() > 1);
       // TODO for fun use std::ranges::zip_view<input_range Views> to zip over the head and next elements as pairs
-      unordered_map<merge_key_t, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
+      unordered_map<tuple<int,int>, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
       // Track insert order for predictable vocab output
       auto step = 0;
       for(auto const &chunk: chunks) {
