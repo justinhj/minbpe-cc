@@ -2,7 +2,6 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
-#include <set>
 #include <unordered_map>
 #include <tuple>
 #include <string>
@@ -27,19 +26,8 @@ extern std::function<std::size_t(const tuple<int,int>&)> key_hash_lambda;
 
 class Tokenizer {
   protected:
-
-    struct PairIndex {
-      int idx1;
-      int idx2;
-      int idx;
-    };
-    struct ComparePairIndex {
-      bool operator()(const PairIndex& p1, const PairIndex& p2) const {
-        return p1.idx < p2.idx;
-      }
-    };
-
     unordered_map<tuple<int,int>, int, decltype(key_hash_lambda)> merges;
+    vector<tuple<int,int>> merges_insert_order;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
     int char_to_int(char8_t c) {
@@ -187,16 +175,9 @@ class Tokenizer {
       vocab[i] = vector<int>{i};
     }
 
-    // Again we need to sort the merges so we can build the vocab in the correct order
-    std::set<PairIndex, ComparePairIndex> merge_set;
-    for(auto &merge: merges) {
-      auto [pair,idx] = merge;
-      auto [idx1,idx2] = pair;
-      merge_set.insert(PairIndex(idx1,idx2,idx));
-    }
-
-    for(auto m: merge_set) {
-      auto [p1,p2,idx] = m;
+    for(auto mio: merges_insert_order) {
+      auto idx = merges[mio]; // By contract this should be present, but is this safe?
+      auto [p1,p2] = mio;
       vector<int> appended{vocab[p1]};
       appended.insert(appended.end(),vocab[p2].begin(), vocab[p2].end());
       vocab[idx] = appended;
@@ -207,7 +188,7 @@ class Tokenizer {
     // TODO special token handling
   }
   public:
-    Tokenizer() : merges(10, key_hash_lambda) {};
+    Tokenizer() : merges(10, key_hash_lambda) {}; // 10 is the bucket size
     virtual ~Tokenizer() {};
     virtual void train(const string &text, const int vocab_size, const bool verbose) = 0;
     virtual vector<int> encode(const string &text, const bool verbose) = 0;
@@ -255,16 +236,10 @@ class Tokenizer {
         output_file << pattern << std::endl;
         output_file << 0 << std::endl; // special token count
         // write special tokens
-        // write the merges. Note that merges is not sorted but that is the expectation so 
-        // sort it and then write it ...
-        std::set<PairIndex, ComparePairIndex> merge_set;
-        for(auto &merge: merges) {
-          auto [pair,idx] = merge;
-          auto [idx1,idx2] = pair;
-          merge_set.insert(PairIndex(idx1,idx2,idx));
-        }
-        for(auto &zmerge: merge_set) {
-          output_file << zmerge.idx1 << ' ' << zmerge.idx2 << "\n";
+        for(auto &mio: merges_insert_order) {
+          auto idx = merges[mio];
+          auto [idx1,idx2] = mio;
+          output_file << idx1 << ' ' << idx2 << "\n";
         }
         output_file.close();
         cout << "Complete.\n";
