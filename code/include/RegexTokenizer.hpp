@@ -124,7 +124,7 @@ class RegexTokenizer : public Tokenizer {
           auto mp = make_tuple(get<0>(mp3.value()), get<1>(mp3.value()));
           merge_chunks(ids, mp, i);
           merges[mp] = i;
-          merges_insert_order.push_back(mp);
+          merges_insert_order.push_back({get<0>(mp),get<1>(mp),&merges[mp]});
 
           vector<int> new_vocab { vocab[get<0>(mp)] };
           const vector<int> &v2 = vocab[get<1>(mp)];

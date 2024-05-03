@@ -26,8 +26,11 @@ extern std::function<std::size_t(const tuple<int,int>&)> key_hash_lambda;
 
 class Tokenizer {
   protected:
+    struct MergeOrder {
+      int p1, p2, *idx;
+    };
     unordered_map<tuple<int,int>, int, decltype(key_hash_lambda)> merges;
-    vector<tuple<int,int>> merges_insert_order;
+    vector<MergeOrder> merges_insert_order;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
     int char_to_int(char8_t c) {
@@ -176,11 +179,9 @@ class Tokenizer {
     }
 
     for(auto mio: merges_insert_order) {
-      auto idx = merges[mio]; // By contract this should be present, but is this safe?
-      auto [p1,p2] = mio;
-      vector<int> appended{vocab[p1]};
-      appended.insert(appended.end(),vocab[p2].begin(), vocab[p2].end());
-      vocab[idx] = appended;
+      vector<int> appended{vocab[mio.p1]};
+      appended.insert(appended.end(),vocab[mio.p2].begin(), vocab[mio.p2].end());
+      vocab[*mio.idx] = appended;
     }
     if(verbose) {
       cout << "Loaded vocab with " << 256 + merges.size() << " merges, vocab size is " << vocab.size() << "\n";
@@ -237,9 +238,7 @@ class Tokenizer {
         output_file << 0 << std::endl; // special token count
         // write special tokens
         for(auto &mio: merges_insert_order) {
-          auto idx = merges[mio];
-          auto [idx1,idx2] = mio;
-          output_file << idx1 << ' ' << idx2 << "\n";
+          output_file << mio.p1 << ' ' << mio.p2 << "\n";
         }
         output_file.close();
         cout << "Complete.\n";
