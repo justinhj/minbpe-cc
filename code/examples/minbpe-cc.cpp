@@ -146,11 +146,10 @@ int main(int argc, char *argv[]) {
     auto input = load_file_to_string(input_path);
     if(input.has_value()) {
       rt->train(input.value(), vocab_size, verbose);
+      rt->save(model_fspath);
     } else { 
        cerr << "Failed to load training input file: " << input.error() << "\n";
     }
-    rt->train(input.value(), vocab_size, verbose);
-    rt->save(model_fspath);
   }
   else if(encode) {
     auto model_fspath = path(model_path);

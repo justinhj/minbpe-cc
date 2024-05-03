@@ -89,6 +89,20 @@ https://github.com/karpathy/minbpe
 https://github.com/Genivia/RE-flex
 https://github.com/glample/fastBPE/tree/master
 
+## Optimization notes
+
+bible.txt (4.2Mb) 512 tokens took 63 seconds in release
+8.5 seconds per iteration
+
+wikitext (514Mb) about 45 seconds for first iteration (count 15622355)
+6 hours for full training?
+then  11137719, 9702736, 9322647
+
+
+
+
+
+
 ## TODO Notes and C++ related
 
 * WIP Move towards building as a library with examples
