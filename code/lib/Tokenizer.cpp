@@ -1,4 +1,6 @@
+// Required to instantiate the lambda
 #include "Tokenizer.hpp"
+#include <iostream>
 
 std::function<std::size_t(const tuple<int,int>&)> key_hash_lambda = 
     [](const tuple<int,int>& k) -> std::size_t {
