@@ -106,6 +106,7 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 
 ## TODO Notes and C++ related
 
+* WIP Remove oop
 * TODO Use a nested namespace called detail to hide non public implementation details
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO add urls as a valid input for the training data

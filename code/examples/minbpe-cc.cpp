@@ -1,6 +1,6 @@
 #include "Tokenizer.hpp"
-#include "BasicTokenizer.hpp"
-#include "RegexTokenizer.hpp"
+/* #include "BasicTokenizer.hpp" */
+/* #include "RegexTokenizer.hpp" */
 #include <cstdint>
 #include <fstream>
 #include <filesystem>
@@ -129,11 +129,11 @@ int main(int argc, char *argv[]) {
 
   std::unique_ptr<Tokenizer> rt;
   if(encoder == "gpt2") {
-    rt =  std::make_unique<RegexTokenizer>(RegexTokenizer::GPT2_SPLIT_PATTERN);
+    rt =  std::make_unique<Tokenizer>(Tokenizer::GPT2_SPLIT_PATTERN);
   } else if(encoder == "gpt4") {
-    rt =  std::make_unique<RegexTokenizer>(RegexTokenizer::GPT4_SPLIT_PATTERN);
+    rt =  std::make_unique<Tokenizer>(Tokenizer::GPT4_SPLIT_PATTERN);
   } else if(encoder == "basic") {
-    rt =  std::make_unique<BasicTokenizer>();
+    rt =  std::make_unique<Tokenizer>();
   } else {
     cout << "Encoder should be one of: basic, gpt2 or gpt4\n";
     return -1;
