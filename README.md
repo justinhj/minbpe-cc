@@ -91,6 +91,8 @@ https://github.com/glample/fastBPE/tree/master
 
 ## Optimization notes
 
+May 3rd
+
 bible.txt (4.2Mb) 512 tokens took 63 seconds in release
 8.5 seconds per iteration
 
@@ -98,19 +100,23 @@ wikitext (514Mb) about 45 seconds for first iteration (count 15622355)
 6 hours for full training?
 then  11137719, 9702736, 9322647
 
+May 5th 2024
 
+After some optimization on the C++ side ran a comparative test of Karpathy's train.py with shakespeare.txt:
 
-
-
+minbpe-cc/train 32.859 seconds
+minbpe/train/.py 157.96 seconds
 
 ## TODO Notes and C++ related
 
-* WIP Move towards building as a library with examples
 * TODO Use a nested namespace called detail to hide non public implementation details
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO add urls as a valid input for the training data
-* DESIGN look at C++ 23 `flat_map` to make an ordered container for the merges so they can be saved in order
+* DONE optimize sorted output by using a vector containing each pair and a pointer to the map key/value
+* DONE Move towards building as a library with examples
 
 ### Optimizations
 
-When calculating the most frequent pair can you track the changes iteratively
+#### Training
+
+* TODO When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector
