@@ -84,15 +84,4 @@ int main(int argc, char *argv[]) {
   auto ms_int = duration_cast<milliseconds>(duration).count();
 
   std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
-
-  // Can uncomment to display and verify the output
-  if(false) {
-    /* auto encoded = rt.encode(input, verbose); */
-    /* cout << "Original string length " << input.size() << "\n"; */
-    /* cout << "Encoded string length " << encoded.size() << "\n"; */
-    /* auto decoded = rt.decode(encoded, false); */
-    /* cout << "Decoded string length " << decoded.size() << "\n"; */
-
-    /* cout << "Original == decoded: " << (decoded == input ? "Yes" : "No") << "\n"; */ 
-  }
 }
