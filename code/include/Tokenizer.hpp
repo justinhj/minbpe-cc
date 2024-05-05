@@ -224,13 +224,17 @@ class Tokenizer {
     };
     Tokenizer(const string &pattern) : merges(bucket_size, key_hash_lambda) {
       this->pattern = pattern;
-      std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
-      compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+      if(pattern.length() > 0) {
+        std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
+        compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+      }
     };
     void train(const string &text, const int vocab_size, const bool verbose) {
       assert(vocab_size >= 256);
       reflex::Input input(text); 
-      auto matcher = reflex::BoostMatcher(compiled_pattern, input);
+
+      // TODO should be able to run without a compiled pattern
+      auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
 
       merges.clear();
       merges_insert_order.clear();
@@ -286,7 +290,8 @@ class Tokenizer {
 
     vector<int> encode(const string &text, const bool verbose) {
         reflex::Input input(text); 
-        auto matcher = reflex::BoostMatcher(compiled_pattern, input);
+        // TODO should be able to run without a compiled pattern
+        auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
 
         // Note if you add special token support it would do a pass
         // here first to take care of those, then continue as normal
