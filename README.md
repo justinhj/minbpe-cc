@@ -104,8 +104,8 @@ May 5th 2024
 
 After some optimization on the C++ side ran a comparative test of Karpathy's train.py with shakespeare.txt:
 
-minbpe-cc/train 32.859 seconds
-minbpe/train/.py 157.96 seconds
+- minbpe-cc/train 32.859 seconds
+- minbpe/train/.py 157.96 seconds
 
 ## TODO Notes and C++ related
 
