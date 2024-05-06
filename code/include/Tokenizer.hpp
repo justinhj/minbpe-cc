@@ -233,21 +233,26 @@ class Tokenizer {
       assert(vocab_size >= 256);
       reflex::Input input(text); 
 
-      // TODO should be able to run without a compiled pattern
-      auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
-
       merges.clear();
       merges_insert_order.clear();
       merges_insert_order.reserve(vocab_size);  
 
-      // GPT2(+) tokenizers first chunk the input text
-      // to keep semantically related pairs together.
-      // This means the input to the merging stage is a vector 
-      // of vectors...
       vector<vector<int>> ids;
-      for(auto &match : matcher.find) {
-        auto text_converted = text_to_vector(match.text());
-        ids.push_back(text_converted);
+
+      if(compiled_pattern.has_value()) {
+        // GPT-2, GPT-4 tokenizers first chunk the input text
+        // to keep semantically related pairs together.
+        // This means the input to the merging stage is a vector 
+        // of vectors...
+        auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
+        for(auto &match : matcher.find) {
+          auto text_converted = text_to_vector(match.text());
+          ids.push_back(text_converted);
+        }
+      } else {
+        // When no split pattern just treat the whole text as
+        // a single chunk
+        ids.push_back(text_to_vector(text));
       }
 
       initialize_vocab();
@@ -289,21 +294,28 @@ class Tokenizer {
     };
 
     vector<int> encode(const string &text, const bool verbose) {
-        reflex::Input input(text); 
-        // TODO should be able to run without a compiled pattern
-        auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
-
-        // Note if you add special token support it would do a pass
-        // here first to take care of those, then continue as normal
-
-        // GPT2(+) tokenizers first chunk the input text
-        // to keep semantically related pairs together.
-        // This means the input to the merging stage is a vector 
-        // of vectors...
         vector<vector<int>> text_chunks;
-        for(auto &match : matcher.find) {
-          auto text_converted = text_to_vector(match.text());
-          text_chunks.push_back(text_converted);
+
+        if(compiled_pattern.has_value()) {
+          reflex::Input input(text); 
+          // TODO should be able to run without a compiled pattern
+          auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
+
+          // Note if you add special token support it would do a pass
+          // here first to take care of those, then continue as normal
+
+          // GPT2(+) tokenizers first chunk the input text
+          // to keep semantically related pairs together.
+          // This means the input to the merging stage is a vector 
+          // of vectors...
+          for(auto &match : matcher.find) {
+            auto text_converted = text_to_vector(match.text());
+            text_chunks.push_back(text_converted);
+          }
+        } else {
+          // When no split pattern just treat the whole text as
+          // a single chunk
+          text_chunks.push_back(text_to_vector(text));
         }
 
         auto encoded_chunks = internal_encode(text_chunks);

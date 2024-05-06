@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
 
   int num_tokens = 512;
 
-  /* Tokenizer bt; */
-  /* bt.train(input, num_tokens, verbose); */
+  Tokenizer bt;
+  bt.train(input, num_tokens, verbose);
 
   Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
   rt.train(input, num_tokens, verbose);

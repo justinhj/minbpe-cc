@@ -127,17 +127,19 @@ int main(int argc, char *argv[]) {
 
   auto t1 = high_resolution_clock::now(); // Record start time of operation
 
-  std::unique_ptr<Tokenizer> rt;
+  string split_pattern;
   if(encoder == "gpt2") {
-    rt =  std::make_unique<Tokenizer>(Tokenizer::GPT2_SPLIT_PATTERN);
+    split_pattern = Tokenizer::GPT2_SPLIT_PATTERN;
   } else if(encoder == "gpt4") {
-    rt =  std::make_unique<Tokenizer>(Tokenizer::GPT4_SPLIT_PATTERN);
+    split_pattern = Tokenizer::GPT4_SPLIT_PATTERN;
   } else if(encoder == "basic") {
-    rt =  std::make_unique<Tokenizer>();
+    split_pattern = "";
   } else {
     cout << "Encoder should be one of: basic, gpt2 or gpt4\n";
     return -1;
   }
+
+  auto rt = Tokenizer(split_pattern);
 
   if(train) {
     auto model_fspath = path(model_path);
@@ -145,8 +147,8 @@ int main(int argc, char *argv[]) {
 
     auto input = load_file_to_string(input_path);
     if(input.has_value()) {
-      rt->train(input.value(), vocab_size, verbose);
-      rt->save(model_fspath);
+      rt.train(input.value(), vocab_size, verbose);
+      rt.save(model_fspath);
     } else { 
        cerr << "Failed to load training input file: " << input.error() << "\n";
     }
@@ -156,10 +158,10 @@ int main(int argc, char *argv[]) {
     auto output_fspath = path(output_path);
 
     cout << "Encoding input file " << input_fspath << " encoder " << encoder << " model path " << model_path << " output to " << output_path << "\n";
-    rt->load(model_fspath, verbose);
+    rt.load(model_fspath, verbose);
     auto input = load_file_to_string(input_fspath);
     if(input.has_value()) {
-      auto encoded = rt->encode(input.value(), verbose);
+      auto encoded = rt.encode(input.value(), verbose);
 
       cout << "Writing " << encoded.size() << " encoded tokens\n";
       auto result = save_encoding(output_fspath, encoded);
@@ -177,10 +179,10 @@ int main(int argc, char *argv[]) {
     auto output_fspath = path(output_path);
 
     cout << "Decoding input file " << input_fspath << " encoder " << encoder << " model path " << model_path << " output to " << output_path << "\n";
-    rt->load(model_fspath, verbose);
+    rt.load(model_fspath, verbose);
     auto input = load_encoding(input_fspath);
     if(input.has_value()) {
-      auto decoded = rt->decode(input.value(), verbose);
+      auto decoded = rt.decode(input.value(), verbose);
 
       cout << "Writing " << decoded.size() << " decoded tokens to " << output_path << "\n";
       auto result = write_file_to_string(output_fspath, decoded);
