@@ -68,7 +68,6 @@ class Tokenizer {
 
   // Count the frequencies of all pairs and return the most frequently occuring
   optional<tuple<int,int,int>> most_frequent_pair(const vector<vector<int>> &chunks) {
-    assert(chunks.size() > 1);
     // TODO for fun use std::ranges::zip_view<input_range Views> to zip over the head and next elements as pairs
     unordered_map<tuple<int,int>, tuple<int,int>, decltype(key_hash_lambda)> freqs(10, key_hash_lambda);
     // Track insert order for predictable vocab output

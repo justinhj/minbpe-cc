@@ -27,5 +27,5 @@ find_package(Boost COMPONENTS regex REQUIRED)
 add_executable(minbpe-cc code/examples/minbpe-cc.cpp)
 target_link_libraries(minbpe-cc PRIVATE Boost::regex "/usr/local/lib/libreflex.a")
 
-add_executable(train code/examples/train.cpp code/lib/Tokenizer.cpp)
+add_executable(train code/examples/train.cpp)
 target_link_libraries(train PRIVATE Boost::regex "/usr/local/lib/libreflex.a")
