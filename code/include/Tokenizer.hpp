@@ -67,17 +67,16 @@ class Tokenizer {
       }
     }
 
-  auto increment_or_add(vector<tuple<int,int>> elements, int element) {
-    auto found = false;
-    for(auto &e: elements) {
-      if(get<0>(e) == element) {
-        get<1>(e)++;
-        found = true;
-        break;
-      }
-    }
-    if(!found) {
-      cout << "add element " << element << "\n";
+  auto increment_or_add(vector<tuple<int,int>> &elements, int element) {
+    auto it = std::find_if(elements.begin(), elements.end(), 
+        [element](const tuple<int,int> &e) -> bool {
+          return get<0>(e) == element;
+        });
+    if(it != elements.end()) {
+      auto &e = *it;
+      auto count = get<1>(e);
+      get<1>(e) = count + 1;
+    } else {
       elements.push_back(make_tuple(element, 1));
     }
   }
@@ -106,12 +105,11 @@ class Tokenizer {
           freqs[p] = make_tuple(count + 1, order);
         }
         if(prev != chunk.end()) {
-          auto this_prev = prevs[p];
-          this_prev.push_back(make_tuple(*prev, 1));
-          /* increment_or_add(this_prev, *prev); */
+          auto &this_prev = prevs[p];
+          increment_or_add(this_prev, *prev);
         }
         if(next != chunk.end()) {
-          auto this_next = nexts[p];
+          auto &this_next = nexts[p];
           increment_or_add(this_next, *next);
         }
         prev = p1;
@@ -134,6 +132,13 @@ class Tokenizer {
       }
     }
     cout << "nexts size " << nexts.size() << "\n";
+    for(auto n: nexts) {
+      auto [p, v] = n;
+      cout << "pair " << get<0>(p) << ", " << get<1>(p) << "\n";
+      for(auto e: v) {
+        cout << "\tprev " << get<0>(e) << " count " << get<1>(e) << "\n";
+      }
+    }
     return make_tuple(freqs, insert_order, prevs, nexts);
 
     /* auto maxElementIt = std::max_element(freqs.begin(), freqs.end(), */
@@ -285,6 +290,13 @@ class Tokenizer {
         // When no split pattern just treat the whole text as
         // a single chunk
         chunks.push_back(text_to_vector(text));
+        // temp print it out
+        for(auto &c: chunks) {
+          for(auto &cc: c) {
+            cout << cc << " ";
+          }
+          cout << "\n";
+        }
       }
 
       initialize_vocab();
