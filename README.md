@@ -117,4 +117,10 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 
 #### Training
 
+May 6th timings (no verbose, release build)
+
+Train shakespeare 20s
+Train taylorswift 3.3s
+
+
 * TODO When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector
