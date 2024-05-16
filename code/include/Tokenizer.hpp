@@ -45,37 +45,48 @@ class Tokenizer {
     inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
     inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
   protected:
+    struct CountOrder {
+      int count;
+      int insert_order;
+    };
     struct PairCount {
       tuple<int,int> key; // TODO maybe rename to `pair` not key
-      int count;
+      CountOrder countOrder;
     };
-
-  typedef boost::multi_index_container<
-      PairCount,
-      boost::multi_index::indexed_by<
-          boost::multi_index::hashed_unique<boost::multi_index::member<PairCount, tuple<int,int>, &PairCount::key>>,
-          boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCount, int, &PairCount::count>, std::greater<int>>
-      > 
-    > PairCountStore;
+    struct CompareCountOrder {
+        bool operator()(const CountOrder& a, const CountOrder& b) const {
+            if (a.count == b.count) {
+                return a.insert_order > b.insert_order; // lower insert_order is greater
+            }
+            return a.count < b.count; // higher count is greater
+        }
+    };
+    typedef boost::multi_index_container<
+        PairCount,
+        boost::multi_index::indexed_by<
+            boost::multi_index::hashed_unique<boost::multi_index::member<PairCount, tuple<int,int>, &PairCount::key>>,
+            boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCount, CountOrder, &PairCount::countOrder>, CompareCountOrder>
+        > 
+      > PairCountStore;
     static const auto bucket_size = 10;
     optional<reflex::BoostMatcher::Pattern> compiled_pattern;
     struct MergeOrder {
       int p1, p2, *idx;
     };
-    void increment_freq_count(PairCountStore &freqs, tuple<int,int> mp) {
+    void increment_freq_count(PairCountStore &freqs, tuple<int,int> mp, int &insert_order) {
       auto& index_by_key = freqs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != freqs.end()) {
-        index_by_key.modify(f, [](PairCount& pc) { pc.count++; });
+        index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
       } else {
-        freqs.insert({mp, 1});
+        freqs.insert({mp, CountOrder{1,insert_order++}});
       }
     }
     void decrement_freq_count(PairCountStore &freqs, tuple<int,int> mp) {
       auto& index_by_key = freqs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != freqs.end()) {
-        index_by_key.modify(f, [](PairCount& pc) { pc.count--; });
+        index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count--; });
       }
     }
     unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges;
@@ -138,9 +149,9 @@ class Tokenizer {
           auto& index_by_key = freqs.get<0>();
           auto f = index_by_key.find(p);
           if(f == freqs.end()) {
-            freqs.insert({p, 1});
+            freqs.insert({p, {1, insert_order++}});
           } else {
-            index_by_key.modify(f, [](PairCount& pc) { pc.count++; });
+            index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
           }
 
           ++p1;
@@ -182,7 +193,7 @@ class Tokenizer {
           if(f == freqs.end()) {
             freqs.insert({p, 1});
           } else {
-            index_by_key.modify(f, [](PairCount& pc) { pc.count++; });
+            index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
           }
           ++p1;
           ++p2;
@@ -195,15 +206,15 @@ class Tokenizer {
       /* } */
       return freqs;
   }
-  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCountStore &freqs) {
+  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCountStore &freqs, int &insert_order) {
     /* cout << "start merge_chunks " << chunks.size() <<  "\n"; */
     for(auto &chunk: chunks) {
       /* cout << "  chunk" << "\n"; */
-      merge(chunk, mp, idx, freqs);
+      merge(chunk, mp, idx, freqs, insert_order);
     }
     /* cout << "merge_chunks\n"; */
   }
-  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCountStore &freqs) {
+  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCountStore &freqs, int &insert_order) {
     // display the text 
     /* cout << "before merge\n"; */
     /* for(auto c: text) { */
@@ -250,7 +261,7 @@ class Tokenizer {
             decrement_freq_count(freqs, prev->key);
           }
           /* cout << "increment new prev pair count " << *i0 << ", " << new_token << "\n"; */
-          increment_freq_count(freqs, make_tuple(*i0, new_token));
+          increment_freq_count(freqs, make_tuple(*i0, new_token), insert_order);
         }
         if(i3 != text.end()) {
           auto next = index_by_key.find(make_tuple(p2, *i3));
@@ -259,7 +270,7 @@ class Tokenizer {
             decrement_freq_count(freqs, next->key);
           }
           /* cout << "increment new next pair count " << new_token << ", " << *i3 << "\n"; */
-          increment_freq_count(freqs, make_tuple(new_token, *i3));
+          increment_freq_count(freqs, make_tuple(new_token, *i3), insert_order);
         }
       }
       /* cout << "hello 1\n"; */
@@ -395,6 +406,7 @@ class Tokenizer {
       reflex::Input input(text); 
 
       merges.clear();
+      // maybe not needed...
       merges_insert_order.clear();
       merges_insert_order.reserve(vocab_size);  
 
@@ -427,6 +439,7 @@ class Tokenizer {
 
       auto flists = create_lists(chunks);
       auto freqs = calculate_freqs(flists);
+      int insert_order = 0;
       for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
         // Find the max frequency pair
         /* auto max = std::max_element(freqs.begin(), freqs.end(), */
@@ -444,13 +457,13 @@ class Tokenizer {
         /* if(max != freqs.end()) { */
           auto max = *index_by_count.begin();
           auto [p1,p2] = max.key;
-          auto freq = max.count;
+          auto freq = max.countOrder.count;
 
           /* cout << "max pair " << p1 << "," << p2 << " freq " */ 
           /*   << freq << " order " << " ? " << "\n"; */
 
           merges[max.key] = i;
-          merge_chunks(flists, max.key, i, freqs);
+          merge_chunks(flists, max.key, i, freqs, insert_order);
 
           // TODO do incrementally
           /* freqs = calculate_freqs(flists); */
