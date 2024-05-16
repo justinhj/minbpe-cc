@@ -23,7 +23,7 @@ const string test_strings[] = {
   "?", // single character
   "안 👋 hello", // also from the youtube video
   "hello world!!!? (안녕하세요!) lol123 😉", // fun small string
-  "But Unicode can be abstruse plus we know we out to be still finidng the whole thing mysterious",
+  "But Unicode can be abstruse plus we know we are still finding the whole thing mysterious",
 };
 
 string getTestString(int index) {
