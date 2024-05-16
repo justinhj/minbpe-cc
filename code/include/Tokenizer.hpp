@@ -196,22 +196,29 @@ class Tokenizer {
       return freqs;
   }
   void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCountStore &freqs) {
+    /* cout << "start merge_chunks " << chunks.size() <<  "\n"; */
     for(auto &chunk: chunks) {
+      /* cout << "  chunk" << "\n"; */
       merge(chunk, mp, idx, freqs);
     }
+    /* cout << "merge_chunks\n"; */
   }
   void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCountStore &freqs) {
-    auto [p1,p2] = mp;
-    auto i0 = text.before_begin();
-    auto i1 = text.begin();
-    auto i2 = next(i1);
-    auto i3 = next(i2);
     // display the text 
     /* cout << "before merge\n"; */
     /* for(auto c: text) { */
     /*   cout << c << " "; */
     /* } */
     /* cout << "\n"; */
+    auto [p1,p2] = mp;
+    auto i0 = text.before_begin();
+    auto i1 = text.begin();
+    auto i2 = next(i1);
+    if(i2 == text.end()) {
+      // No pairs
+      return;
+    }
+    auto i3 = next(i2);
     while(i1 != text.end() && i2 != text.end()) {
       /* cout << "i0 " << *i0 << " i1 " << *i1 << " i2 " << *i2 << " i3 " << (i3 == text.end() ? '?' : *i3) << "\n"; */
       if(*i1 == p1 && *i2 == p2) {
