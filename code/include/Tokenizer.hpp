@@ -12,6 +12,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <climits>
 
 using std::string;
 using std::unordered_map;
