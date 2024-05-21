@@ -17,7 +17,7 @@ endif()
 set(Boost_INCLUDE_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 find_path(Boost_INCLUDE_DIR boost)
 
-include_directories("/usr/local/include")
+include_directories("/opt/homebrew/include")
 include_directories("code/include")
 include_directories("thirdparty")
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
@@ -25,7 +25,7 @@ include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 find_package(Boost COMPONENTS regex REQUIRED)
 
 add_executable(minbpe-cc code/examples/minbpe-cc.cpp)
-target_link_libraries(minbpe-cc PRIVATE Boost::regex "/usr/local/lib/libreflex.a")
+target_link_libraries(minbpe-cc PRIVATE Boost::regex "/opt/homebrew/lib/libreflex.a")
 
 add_executable(train code/examples/train.cpp)
-target_link_libraries(train PRIVATE Boost::regex "/usr/local/lib/libreflex.a")
+target_link_libraries(train PRIVATE Boost::regex "/opt/homebrew/lib/libreflex.a")

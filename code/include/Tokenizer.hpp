@@ -150,9 +150,9 @@ class Tokenizer {
       /* cout << "freqs size " << freqs.size() << "\n"; */
       /* for(auto f: freqs) { */
       /*   auto [p, count] = f; */
-      /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << get<0>(count) << " insert " << get<1>(count) << "\n"; */
+      /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << count << " insert  ? " << "\n"; */
       /* } */
-      return freqs;
+      /* return freqs; */
 
       /* auto maxElementIt = std::max_element(freqs.begin(), freqs.end(), */
       /*     [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool { */
@@ -188,11 +188,12 @@ class Tokenizer {
           ++p2;
         }
       }
-      /* cout << "freqs size " << freqs.size() << "\n"; */
-      /* for(auto f: freqs) { */
-      /*   auto [p, count] = f; */
-      /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << count << "\n"; */
-      /* } */
+      // Iterate over the freqs in order
+      const auto &index_by_count = freqs.get<1>();
+      for(auto &f: index_by_count) {
+        auto [p1, p2] = f.key;
+        cout << "pair " << p1 << ", " << p2 << " count " << f.count << "\n";
+      }
       return freqs;
   }
   void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCountStore &freqs) {
@@ -448,6 +449,9 @@ class Tokenizer {
 
           /* cout << "max pair " << p1 << "," << p2 << " freq " */ 
           /*   << freq << " order " << " ? " << "\n"; */
+
+          // merge pair 101, 32 with new token 256 count 646
+          cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << "\n";
 
           merges[max.key] = i;
           merge_chunks(flists, max.key, i, freqs);
