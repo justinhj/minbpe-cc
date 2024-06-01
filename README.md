@@ -16,8 +16,41 @@ The project uses cmake and the vcpkg package manager to manage dependencies. For
 
 Examples to build with the ninja build system as release or debug. The `compile_commands.json` output is to help the ccls lsp server and other tools, you may omit it otherwise.
 
+No specific compiler
 ```
-cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DVCPKG_TARGET_TRIPLET=x64-osx
+cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release \
+    -DVCPKG_TARGET_TRIPLET=arm64-osx
+
+cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    -DVCPKG_TARGET_TRIPLET=arm64-osx
+
+```
+
+For the release build with clang from llvm
+```
+cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang \
+    -DVCPKG_TARGET_TRIPLET=arm64-osx
+```
+
+```
+cmake -S . -B ninjabuilddebugclang -G Ninja -DCMAKE_BUILD_TYPE=debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DVCPKG_TARGET_TRIPLET=arm64-osx
+```
+gnu C++ from brew
+```
+cmake -S . -B ninjabuilddebug -G Ninja  \
+	-DCMAKE_BUILD_TYPE=Debug  \
+	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON  \
+	-DVCPKG_TARGET_TRIPLET=arm64-osx  \
+	-DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14  \
+	-DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14 \
+    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I/opt/homebrew/include/c++/14"
+
+ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
+ 
 ```
 
 ```
@@ -26,7 +59,7 @@ ln -fs ninjabuildrelease/compile_commands.json compile_commands.json
 ```
 
 ```
-cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DVCPKG_TARGET_TRIPLET=arm64-osx
 ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
 ```
 
@@ -106,7 +139,6 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 
 ## TODO Notes and C++ related
 
-* WIP Remove oop
 * TODO Use a nested namespace called detail to hide non public implementation details
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO add urls as a valid input for the training data
@@ -122,5 +154,10 @@ May 6th timings (no verbose, release build)
 Train shakespeare 20s
 Train taylorswift 3.3s
 
+May 31st 
 
-* TODO When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector
+Train shakespeare 1.52s
+Train taylorswift 0.264s
+Train bible 5.7s
+
+* WIP When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector

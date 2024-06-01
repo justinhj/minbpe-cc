@@ -93,7 +93,7 @@ class Tokenizer {
     vector<MergeOrder> merges_insert_order;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
-    int char_to_int(char8_t c) {
+    int char_to_int(char c) {
       return c < 0 ? c + 256 : c; 
     }
     std::vector<int> text_to_vector(const string &text) {
@@ -199,11 +199,11 @@ class Tokenizer {
         }
       }
       // Iterate over the freqs in order
-      const auto &index_by_count = freqs.get<1>();
-      for(auto &f: index_by_count) {
-        auto [p1, p2] = f.key;
-        cout << "pair " << p1 << ", " << p2 << " count " << f.countOrder.count << " insert " << f.countOrder.insert_order << "\n";
-      }
+      /* const auto &index_by_count = freqs.get<1>(); */
+      /* for(auto &f: index_by_count) { */
+      /*   auto [p1, p2] = f.key; */
+      /*   cout << "pair " << p1 << ", " << p2 << " count " << f.countOrder.count << " insert " << f.countOrder.insert_order << "\n"; */
+      /* } */
       /* cout << "freqs size " << freqs.size() << "\n"; */
       /* for(auto f: freqs) { */
       /*   auto [p, count] = f; */
