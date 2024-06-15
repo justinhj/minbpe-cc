@@ -1,4 +1,3 @@
-// Base class for tokenizers to extend
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
@@ -20,6 +19,8 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+
+#include "PairCount.hpp"
 
 using std::string;
 using std::unordered_map;
@@ -45,50 +46,11 @@ class Tokenizer {
     inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
     inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
   protected:
-    struct CountOrder {
-      int count;
-      int insert_order;
-    };
-    struct PairCount {
-      tuple<int,int> key; // TODO maybe rename to `pair` not key
-      CountOrder countOrder;
-    };
-    struct CompareCountOrder {
-        bool operator()(const CountOrder& a, const CountOrder& b) const {
-            if (a.count == b.count) {
-                return a.insert_order < b.insert_order; // lower insert_order is greater
-            }
-            return a.count > b.count; // higher count is greater
-        }
-    };
-    typedef boost::multi_index_container<
-        PairCount,
-        boost::multi_index::indexed_by<
-            boost::multi_index::hashed_unique<boost::multi_index::member<PairCount, tuple<int,int>, &PairCount::key>>,
-            boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCount, CountOrder, &PairCount::countOrder>, CompareCountOrder>
-        > 
-      > PairCountStore;
     static const auto bucket_size = 10;
     optional<reflex::BoostMatcher::Pattern> compiled_pattern;
     struct MergeOrder {
       int p1, p2, *idx;
     };
-    void increment_freq_count(PairCountStore &freqs, tuple<int,int> mp, int &insert_order) {
-      auto& index_by_key = freqs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != freqs.end()) {
-        index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
-      } else {
-        freqs.insert({mp, CountOrder{1,insert_order++}});
-      }
-    }
-    void decrement_freq_count(PairCountStore &freqs, tuple<int,int> mp) {
-      auto& index_by_key = freqs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != freqs.end()) {
-        index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count--; });
-      }
-    }
     unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges;
     vector<MergeOrder> merges_insert_order;
     unordered_map<int, vector<int>> vocab;   
@@ -120,89 +82,24 @@ class Tokenizer {
       }
       return flists;
     }
-    auto calculate_freqs(const vector<vector<int>> &chunks) {
-      /* unordered_map<tuple<int,int>, tuple<int,int>, decltype(tuple_int_int_hash)> freqs(10, tuple_int_int_hash); */
-
-      /* std::vector<int> vec = {1, 2, 3, 4, 5}; */
-      /* std::forward_list<int> list; */
-
-      /*  // Copy elements from the vector to the forward list */
-      /* std::copy(vec.rbegin(), vec.rend(), std::front_inserter(list)); */
-
-      /* // Print the forward list */
-      /* std::cout << "The elements of the forward list are: "; */
-      /* for (const auto& item : list) { */
-      /*     std::cout << item << ' '; */
-      /* } */
-      /* std::cout << '\n'; */
-      PairCountStore freqs;
-      auto insert_order = 0;
-      for(auto const &chunk: chunks) {
-        if(chunk.size() < 2) {
-          continue; // Skip processing chunk with no pairs
-        } 
-        auto p1 = chunk.begin();
-        auto p2 = next(p1);
-        while(p1 != chunk.end() && p2 != chunk.end()) {
-          auto p = make_tuple(*p1, *p2);
-
-          auto& index_by_key = freqs.get<0>();
-          auto f = index_by_key.find(p);
-          if(f == freqs.end()) {
-            freqs.insert({p, {1, insert_order++}});
-          } else {
-            index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
-          }
-
-          ++p1;
-          ++p2;
-        }
-      }
-      /* cout << "freqs size " << freqs.size() << "\n"; */
-      /* for(auto f: freqs) { */
-      /*   auto [p, count] = f; */
-      /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << count << " insert  ? " << "\n"; */
-      /* } */
-      /* return freqs; */
-
-      /* auto maxElementIt = std::max_element(freqs.begin(), freqs.end(), */
-      /*     [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool { */
-      /*         auto [av,as] = a.second; */
-      /*         auto [bv,bs] = b.second; */ 
-      /*         return (av < bv) || (av == bv && bs < as); */
-      /*     }); */
-      /* if(maxElementIt != freqs.end()) { */
-      /*   auto &max_pair = *maxElementIt; */
-      /*   auto return_pair = max_pair.first; */
-      /*   auto max = get<0>(max_pair.second); */
-      /*   return make_tuple(get<0>(return_pair), get<1>(return_pair), max); */
-      /* } else { */
-      /*   return std::nullopt; */
-      /* } */
-  }
-  auto calculate_freqs(const vector<std::forward_list<int>> &chunks, int &insert_order) {
-      PairCountStore freqs;
+  auto calculate_freqs(const vector<std::forward_list<int>> &chunks) {
+      PairCount freqs;
       for(auto const &chunk: chunks) {
         auto p1 = chunk.begin();
         auto p2 = next(p1);
         while(p1 != chunk.end() && p2 != chunk.end()) {
           auto p = make_tuple(*p1, *p2);
-          auto& index_by_key = freqs.get<0>();
-          auto f = index_by_key.find(p);
-          if(f == freqs.end()) {
-            freqs.insert({p, {1, insert_order++}});
-          } else {
-            index_by_key.modify(f, [](PairCount& pc) { pc.countOrder.count++; });
-          }
+          freqs.increment_freq_count(p);
           ++p1;
           ++p2;
         }
       }
       // Iterate over the freqs in order
+      // pair: (65, 32) count: 8
       /* const auto &index_by_count = freqs.get<1>(); */
       /* for(auto &f: index_by_count) { */
       /*   auto [p1, p2] = f.key; */
-      /*   cout << "pair " << p1 << ", " << p2 << " count " << f.countOrder.count << " insert " << f.countOrder.insert_order << "\n"; */
+      /*   cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.countOrder.count << "   insert " << f.countOrder.insert_order << "\n"; */
       /* } */
       /* cout << "freqs size " << freqs.size() << "\n"; */
       /* for(auto f: freqs) { */
@@ -211,7 +108,7 @@ class Tokenizer {
       /* } */
       return freqs;
   }
-  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCountStore &freqs, int &insert_order) {
+  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCount &freqs, int &insert_order) {
     /* cout << "start merge_chunks " << chunks.size() <<  "\n"; */
     for(auto &chunk: chunks) {
       /* cout << "  chunk" << "\n"; */
@@ -219,7 +116,7 @@ class Tokenizer {
     }
     /* cout << "merge_chunks\n"; */
   }
-  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCountStore &freqs, int &insert_order) {
+  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs, int &insert_order) {
     // display the text 
     /* cout << "before merge\n"; */
     /* for(auto c: text) { */
@@ -253,29 +150,29 @@ class Tokenizer {
         /* } */
 
         // update freqs
-        auto& index_by_key = freqs.get<0>();
+        auto& index_by_key = freqs.get_index_by_key();
         auto f = index_by_key.find(mp);
         if(f != freqs.end()) {
           /* cout << "decrement replaced pair count " << get<0>(f->key) << ", " << get<1>(f->key) << " count " << f->count << "\n"; */
-          decrement_freq_count(freqs, f->key);
+          freqs.decrement_freq_count(f->pair);
         }
         if(i0 != text.end()) {
           auto prev = index_by_key.find(make_tuple(*i0, p1));
           if(prev != freqs.end()) {
             /* cout << "decrement prev pair count " << get<0>(prev->key) << ", " << get<1>(prev->key) << " count " << prev->count << "\n"; */
-            decrement_freq_count(freqs, prev->key);
+            freqs.decrement_freq_count(prev->pair);
           }
           /* cout << "increment new prev pair count " << *i0 << ", " << new_token << "\n"; */
-          increment_freq_count(freqs, make_tuple(*i0, new_token), insert_order);
+          freqs.increment_freq_count(make_tuple(*i0, new_token));
         }
         if(i3 != text.end()) {
           auto next = index_by_key.find(make_tuple(p2, *i3));
           if(next != freqs.end()) {
             /* cout << "decrement next pair count " << get<0>(next->key) << ", " << get<1>(next->key) << " count " << next->count << "\n"; */
-            decrement_freq_count(freqs, next->key);
+            freqs.decrement_freq_count(next->pair);
           }
           /* cout << "increment new next pair count " << new_token << ", " << *i3 << "\n"; */
-          increment_freq_count(freqs, make_tuple(new_token, *i3), insert_order);
+          freqs.increment_freq_count(make_tuple(new_token, *i3));
         }
       }
       /* cout << "hello 1\n"; */
@@ -444,7 +341,7 @@ class Tokenizer {
 
       auto flists = create_lists(chunks);
       int insert_order = 0;
-      auto freqs = calculate_freqs(flists, insert_order);
+      auto freqs = calculate_freqs(flists);
       cout << "next insert " << insert_order << "\n";
       for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
         // Find the max frequency pair
@@ -458,11 +355,11 @@ class Tokenizer {
         /*           return a.second < b.second; */
         /*         } */
         /*     }); */
-        const auto& index_by_count = freqs.get<1>();
+        const auto& index_by_count = freqs.get_most_frequent();
         if(!index_by_count.empty()) {
         /* if(max != freqs.end()) { */
           auto max = *index_by_count.begin();
-          auto [p1,p2] = max.key;
+          auto [p1,p2] = max.pair;
           auto freq = max.countOrder.count;
 
           /* cout << "max pair " << p1 << "," << p2 << " freq " */ 
@@ -471,8 +368,8 @@ class Tokenizer {
           // merge pair 101, 32 with new token 256 count 646
           cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << " order " << max.countOrder.insert_order << "\n";
 
-          merges[max.key] = i;
-          merge_chunks(flists, max.key, i, freqs, insert_order);
+          merges[max.pair] = i;
+          merge_chunks(flists, max.pair, i, freqs, insert_order);
 
           // TODO do incrementally
           /* freqs = calculate_freqs(flists); */

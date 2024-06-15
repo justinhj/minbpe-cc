@@ -75,6 +75,22 @@ cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release -DCMAKE_EXPO
 ln -fs ninjabuildrelease/compile_commands.json compile_commands.json
 ```
 
+```
+cmake -S . -B ninjabuildreleasegcc -G Ninja \
+    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DVCPKG_TARGET_TRIPLET=arm64-osx \
+    -DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14 \
+    -DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14
+
+cmake -S . -B ninjabuilddebuggcc -G Ninja \
+    -DCMAKE_BUILD_TYPE=debug \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DVCPKG_TARGET_TRIPLET=arm64-osx \
+    -DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14 \
+    -DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14
+```
+
 Build it
 
 ```
