@@ -2,6 +2,7 @@
 #define MINBPE_PAIRCOUNT_HPP
 
 #include <tuple>
+#include <optional>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -68,8 +69,16 @@ class PairCount {
         index_by_key.modify(f, [](PairCountOrder& pc) { pc.countOrder.count--; });
       }
     }
-    const auto &get_most_frequent() {
+    const auto &get_index_by_count() {
       return pcs.get<1>();
+    }
+    auto get_top_pair_count_order() {
+      const auto& index_by_count = pcs.get<1>();
+      if(!index_by_count.empty()) {
+        return optional<PairCountOrder>(*index_by_count.begin());
+      } else {
+        return optional<PairCountOrder>();
+      }
     }
     const auto &get_index_by_key() {
       return pcs.get<0>();

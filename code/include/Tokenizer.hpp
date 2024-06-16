@@ -82,7 +82,7 @@ class Tokenizer {
       }
       return flists;
     }
-  auto calculate_freqs(const vector<std::forward_list<int>> &chunks) {
+    auto calculate_freqs(const vector<std::forward_list<int>> &chunks) {
       PairCount freqs;
       for(auto const &chunk: chunks) {
         auto p1 = chunk.begin();
@@ -355,7 +355,7 @@ class Tokenizer {
         /*           return a.second < b.second; */
         /*         } */
         /*     }); */
-        const auto& index_by_count = freqs.get_most_frequent();
+        const auto& index_by_count = freqs.get_index_by_count();
         if(!index_by_count.empty()) {
         /* if(max != freqs.end()) { */
           auto max = *index_by_count.begin();
