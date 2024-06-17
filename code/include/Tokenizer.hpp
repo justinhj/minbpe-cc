@@ -105,6 +105,7 @@ class Tokenizer {
     /* cout << "merge_chunks\n"; */
   }
   void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs) {
+    // can remove verbose setting when it all works lol
     auto verbose = 2;
     // display the text 
     if(verbose >= 2) {
@@ -129,17 +130,6 @@ class Tokenizer {
         verbose >= 1 && cout << "found pair " << p1 << ", " << p2 << " replace with " << new_token << "\n";
         *i1 = new_token;
         i2 = text.erase_after(i1);
-
-        // Seems to cause the bug
-        if(i2 == text.end()) {
-          verbose >= 1 && cout << "i2 end\n";
-        } else {
-          i3  = next(i2);
-        }
-
-        if(verbose >= 1 && i3 == text.end()) {
-          cout << "i3 end\n";
-        }
 
         // update freqs
         auto& index_by_key = freqs.get_index_by_key();
@@ -168,6 +158,18 @@ class Tokenizer {
           verbose >= 1 && cout << "increment new next pair " << new_token << ", " << *i3 << "\n";
           freqs.increment_freq_count(make_tuple(new_token, *i3));
         }
+
+        // Adjust iterators
+        if(i2 == text.end()) {
+          verbose >= 1 && cout << "i2 end\n";
+        } else {
+          i3  = next(i2);
+        }
+
+        if(verbose >= 1 && i3 == text.end()) {
+          cout << "i3 end\n";
+        }
+
       }
       i0++;
       i1++;
