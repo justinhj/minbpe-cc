@@ -40,7 +40,6 @@ typedef boost::multi_index_container<
 class PairCount {
   private:
     PairCountStore pcs;
-    int insertOrder = 0;
   public:
     PairCount() {
     }
@@ -59,17 +58,13 @@ class PairCount {
       }
     }
 
-    auto get_insert_order() {
-      return insertOrder;
-    }
-
-    void increment_freq_count(tuple<int,int> mp) {
+    void increment_freq_count(tuple<int,int> mp, int insert_order) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
         index_by_key.modify(f, [](PairCountOrder& pc) { pc.countOrder.count++; });
       } else {
-        pcs.insert({mp, CountOrder{1,insertOrder++}});
+        pcs.insert({mp, CountOrder{1,insert_order}});
       }
     }
     void decrement_freq_count(tuple<int,int> mp) {

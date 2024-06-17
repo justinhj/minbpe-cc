@@ -7,12 +7,12 @@
 TEST_CASE("PairCount add and count", "[paircount]") {
     PairCount pc;
     REQUIRE( pc.get_count() == 0 );
-    pc.increment_freq_count(make_tuple(1,2));
+    int insert_order = 0;
+    pc.increment_freq_count(make_tuple(1,2), ++insert_order);
     REQUIRE( pc.get_count() == 1 );
-    REQUIRE( pc.get_insert_order() == 1 );
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_tuple(1,2), ++insert_order);
     REQUIRE( pc.get_count() == 1 );
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_tuple(2,3), ++insert_order);
     REQUIRE( pc.get_count() == 2 );
 }
 
@@ -20,24 +20,25 @@ TEST_CASE("PairCount order and get most frequent", "[paircount]") {
     PairCount pc;
     auto max = pc.get_top_pair_count_order();
     REQUIRE( !max.has_value() );
-    pc.increment_freq_count(make_tuple(1,2));
+    int insert_order = 0;
+    pc.increment_freq_count(make_tuple(1,2), ++insert_order);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_tuple(1,2) );
 
-    pc.increment_freq_count(make_tuple(1,2));
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_tuple(1,2), ++insert_order);
+    pc.increment_freq_count(make_tuple(2,3), ++insert_order);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_tuple(1,2) );
 
-    pc.increment_freq_count(make_tuple(2,3));
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_tuple(2,3), ++insert_order);
+    pc.increment_freq_count(make_tuple(2,3), ++insert_order);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_tuple(2,3) );
 
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_tuple(1,2), ++insert_order);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_tuple(1,2) );
@@ -68,8 +69,8 @@ class TokenizerTest : public Tokenizer {
         return calculate_freqs(chunks);
     };
 
-    auto merge_public(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs) {
-      return merge(text, mp, new_token, freqs);
+    auto merge_public(std::forward_list<int> &text, tuple<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
+      return merge(text, mp, new_token, insert_order, freqs);
     }
 };
 
@@ -95,6 +96,7 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
     auto freqs = bt.calculate_freqs_public(flists);
 
     // 97,98,99,98,99,100,101
+    // 0  1  2     3  4       insert orders   
 
     auto max = freqs.get_top_pair_count_order();
     REQUIRE( max.has_value() ); 
@@ -103,16 +105,21 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
     debug_pair_count(freqs);
     cout << "\n";
 
-    bt.merge_public(flists[0], make_tuple(98,99), 256, freqs);
+    bt.merge_public(flists[0], make_tuple(98,99), 256, 1, freqs);
     
     // 97,256,256,100,101
-
-    // 99,98 1 should be 0
-
 
     max = freqs.get_top_pair_count_order();
 
     debug_pair_count(freqs);
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_tuple(256,256) );
+    REQUIRE( max.value().pair == make_tuple(97,256) );
+
+    bt.merge_public(flists[0], make_tuple(97,256), 257, 1, freqs);
+
+    max = freqs.get_top_pair_count_order();
+
+    debug_pair_count(freqs);
+    REQUIRE( max.has_value() ); 
+    REQUIRE( max.value().pair == make_tuple(257,256) );
 }

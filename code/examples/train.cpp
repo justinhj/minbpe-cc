@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
   Tokenizer bt;
   bt.train(input, num_tokens, verbose);
 
-  /* Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN); */
-  /* rt.train(input, num_tokens, verbose); */
+  Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
+  rt.train(input, num_tokens, verbose);
 
   auto t2 = high_resolution_clock::now(); // Record end time
   auto duration = t2 - t1;
