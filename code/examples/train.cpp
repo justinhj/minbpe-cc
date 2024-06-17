@@ -1,5 +1,3 @@
-/* #include "BasicTokenizer.hpp" */
-/* #include "RegexTokenizer.hpp" */
 #include "Tokenizer.hpp"
 #include <fstream>
 #include <iostream>

@@ -1,6 +1,4 @@
 #include "Tokenizer.hpp"
-/* #include "BasicTokenizer.hpp" */
-/* #include "RegexTokenizer.hpp" */
 #include <cstdint>
 #include <fstream>
 #include <filesystem>
