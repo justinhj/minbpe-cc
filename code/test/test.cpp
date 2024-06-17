@@ -43,6 +43,15 @@ TEST_CASE("PairCount order and get most frequent", "[paircount]") {
     REQUIRE( max.value().pair == make_tuple(1,2) );
 }
 
+void debug_pair_count(PairCount &pc) {
+    // Iterate over the freqs in order
+    // pair: (65, 32) count: 8
+    auto &index_by_count = pc.get_index_by_count();
+    for(auto &f: index_by_count) {
+      auto [p1, p2] = f.pair;
+      cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.countOrder.count << "   insert " << f.countOrder.insert_order << "\n";
+    }
+}
 
 // Expose private and protected methods for testing
 class TokenizerTest : public Tokenizer {
@@ -58,6 +67,10 @@ class TokenizerTest : public Tokenizer {
     auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks) {
         return calculate_freqs(chunks);
     };
+
+    auto merge_public(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs) {
+      return merge(text, mp, new_token, freqs);
+    }
 };
 
 template<typename T>
@@ -87,10 +100,19 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_tuple(98,99) );
 
-    /* bt.train(input, num_tokens, verbose); */
-    /* REQUIRE( bt.get_token_count() == 4 ); */
-    /* REQUIRE( bt.get_token("This") == 0 ); */
-    /* REQUIRE( bt.get_token("is") == 1 ); */
-    /* REQUIRE( bt.get_token("a") == 2 ); */
-    /* REQUIRE( bt.get_token("test.") == 3 ); */
+    debug_pair_count(freqs);
+    cout << "\n";
+
+    bt.merge_public(flists[0], make_tuple(98,99), 256, freqs);
+    
+    // 97,256,256,100,101
+
+    // 99,98 1 should be 0
+
+
+    max = freqs.get_top_pair_count_order();
+
+    debug_pair_count(freqs);
+    REQUIRE( max.has_value() ); 
+    REQUIRE( max.value().pair == make_tuple(256,256) );
 }

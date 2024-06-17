@@ -94,35 +94,26 @@ class Tokenizer {
           ++p2;
         }
       }
-      // Iterate over the freqs in order
-      // pair: (65, 32) count: 8
-      /* const auto &index_by_count = freqs.get<1>(); */
-      /* for(auto &f: index_by_count) { */
-      /*   auto [p1, p2] = f.key; */
-      /*   cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.countOrder.count << "   insert " << f.countOrder.insert_order << "\n"; */
-      /* } */
-      /* cout << "freqs size " << freqs.size() << "\n"; */
-      /* for(auto f: freqs) { */
-      /*   auto [p, count] = f; */
-      /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << count.count << " order " << count.insert_order << "\n"; */
-      /* } */
       return freqs;
   }
-  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCount &freqs, int &insert_order) {
+  void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, PairCount &freqs) {
     /* cout << "start merge_chunks " << chunks.size() <<  "\n"; */
     for(auto &chunk: chunks) {
       /* cout << "  chunk" << "\n"; */
-      merge(chunk, mp, idx, freqs, insert_order);
+      merge(chunk, mp, idx, freqs);
     }
     /* cout << "merge_chunks\n"; */
   }
-  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs, int &insert_order) {
+  void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, PairCount &freqs) {
+    auto verbose = 2;
     // display the text 
-    /* cout << "before merge\n"; */
-    /* for(auto c: text) { */
-    /*   cout << c << " "; */
-    /* } */
-    /* cout << "\n"; */
+    if(verbose >= 2) {
+      cout << "before merge\n";
+      for(auto c: text) {
+        cout << c << " ";
+      }
+      cout << "\n";
+    }
     auto [p1,p2] = mp;
     auto i0 = text.before_begin();
     auto i1 = text.begin();
@@ -133,66 +124,67 @@ class Tokenizer {
     }
     auto i3 = next(i2);
     while(i1 != text.end() && i2 != text.end()) {
-      /* cout << "i0 " << *i0 << " i1 " << *i1 << " i2 " << *i2 << " i3 " << (i3 == text.end() ? '?' : *i3) << "\n"; */
+      verbose >= 1 && cout << "i0 " << *i0 << " i1 " << *i1 << " i2 " << *i2 << " i3 " << (i3 == text.end() ? '?' : *i3) << "\n";
       if(*i1 == p1 && *i2 == p2) {
-        /* cout << "found pair " << p1 << ", " << p2 << " replace with " << new_token << "\n"; */
+        verbose >= 1 && cout << "found pair " << p1 << ", " << p2 << " replace with " << new_token << "\n";
         *i1 = new_token;
         i2 = text.erase_after(i1);
 
+        // Seems to cause the bug
         if(i2 == text.end()) {
-          /* cout << "i2 end\n"; */
+          verbose >= 1 && cout << "i2 end\n";
         } else {
           i3  = next(i2);
         }
 
-        /* if(i3 == text.end()) { */
-        /*   cout << "i3 end\n"; */
-        /* } */
+        if(verbose >= 1 && i3 == text.end()) {
+          cout << "i3 end\n";
+        }
 
         // update freqs
         auto& index_by_key = freqs.get_index_by_key();
         auto f = index_by_key.find(mp);
         if(f != freqs.end()) {
-          /* cout << "decrement replaced pair count " << get<0>(f->key) << ", " << get<1>(f->key) << " count " << f->count << "\n"; */
+          verbose >= 1 && cout << "decrement replaced pair " << get<0>(f->pair) << ", " << get<1>(f->pair) << "\n";
           freqs.decrement_freq_count(f->pair);
         }
         if(i0 != text.end()) {
           auto prev = index_by_key.find(make_tuple(*i0, p1));
           if(prev != freqs.end()) {
-            /* cout << "decrement prev pair count " << get<0>(prev->key) << ", " << get<1>(prev->key) << " count " << prev->count << "\n"; */
+            verbose >= 1 && cout << "decrement previous pair " << get<0>(prev->pair) << ", " << get<1>(prev->pair) << "\n";
             freqs.decrement_freq_count(prev->pair);
           }
-          /* cout << "increment new prev pair count " << *i0 << ", " << new_token << "\n"; */
+          verbose >= 1 && cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
           freqs.increment_freq_count(make_tuple(*i0, new_token));
         }
         if(i3 != text.end()) {
           auto next = index_by_key.find(make_tuple(p2, *i3));
           if(next != freqs.end()) {
-            /* cout << "decrement next pair count " << get<0>(next->key) << ", " << get<1>(next->key) << " count " << next->count << "\n"; */
+            verbose >= 1 && cout << "decrement next pair " << get<0>(next->pair) << ", " << get<1>(next->pair) << "\n";
             freqs.decrement_freq_count(next->pair);
+          } else {
+            verbose >= 1 && cout << "next pair not found " << p2 << ", " << *i3 << "\n";
           }
-          /* cout << "increment new next pair count " << new_token << ", " << *i3 << "\n"; */
+          verbose >= 1 && cout << "increment new next pair " << new_token << ", " << *i3 << "\n";
           freqs.increment_freq_count(make_tuple(new_token, *i3));
         }
       }
-      /* cout << "hello 1\n"; */
       i0++;
       i1++;
       if(i2 != text.end()) {
         i2++;
       }
-      /* cout << "hello 2\n"; */
       if(i3 != text.end()) {
-        /* cout << "hello 3\n"; */
         i3++;
-        /* cout << "hello 4\n"; */
       }
     }
-    /* cout << "after merge\n"; */
-    /* for(auto c: text) { */
-    /*   cout << c << " "; */
-    /* } */
-    /* cout << "\n"; */
+    if(verbose >= 2) {
+      cout << "after merge\n";
+      for(auto c: text) {
+        cout << c << " ";
+      }
+      cout << "\n";
+    }
   }
   // replace all consecutive occurences of pair with the new token idx
   void merge_chunks(std::vector<vector<int>> &chunks, tuple<int,int> mp, int idx) {
@@ -340,9 +332,8 @@ class Tokenizer {
       initialize_vocab();
 
       auto flists = create_lists(chunks);
-      int insert_order = 0;
       auto freqs = calculate_freqs(flists);
-      cout << "next insert " << insert_order << "\n";
+      cout << "next insert " << freqs.get_insert_order() << "\n";
       for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
         // Find the max frequency pair
         /* auto max = std::max_element(freqs.begin(), freqs.end(), */
@@ -369,7 +360,7 @@ class Tokenizer {
           cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << " order " << max.countOrder.insert_order << "\n";
 
           merges[max.pair] = i;
-          merge_chunks(flists, max.pair, i, freqs, insert_order);
+          merge_chunks(flists, max.pair, i, freqs);
 
           // TODO do incrementally
           /* freqs = calculate_freqs(flists); */

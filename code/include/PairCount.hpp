@@ -49,6 +49,16 @@ class PairCount {
       return pcs.size();
     }
 
+    std::optional<CountOrder> get_pair(tuple<int,int> mp) {
+      auto& index_by_key = pcs.get<0>();
+      auto f = index_by_key.find(mp);
+      if(f != pcs.end()) {
+        return (*f).countOrder;
+      } else {
+        return {};
+      }
+    }
+
     auto get_insert_order() {
       return insertOrder;
     }
