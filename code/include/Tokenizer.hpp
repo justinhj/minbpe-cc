@@ -48,11 +48,8 @@ class Tokenizer {
   protected:
     static const auto bucket_size = 10;
     optional<reflex::BoostMatcher::Pattern> compiled_pattern;
-    struct MergeOrder {
-      int p1, p2, *idx;
-    };
-    unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges;
-    vector<MergeOrder> merges_insert_order;
+    unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges_lookup;
+    vector<tuple<int,int>> merges;
     unordered_map<int, vector<int>> vocab;   
     string pattern;
     int char_to_int(char c) {
@@ -248,8 +245,8 @@ class Tokenizer {
       auto len = text.size();
       while(i < len) {
         auto pair = make_tuple(text[i], text[i + 1]);
-        if(i < len - 1 && merges.find(pair) != merges.end()) {
-          out.push_back(merges[pair]);
+        if(i < len - 1 && merges_lookup.find(pair) != merges_lookup.end()) {
+          out.push_back(merges_lookup[pair]);
           i += 2;
           merge_count ++;
         } else {
@@ -273,13 +270,15 @@ class Tokenizer {
   }
   void build_vocab(bool verbose) {
     vocab.clear();
-    for(auto i=0; i<256; i++) {
+    auto i=0;
+    for(; i<256; i++) {
       vocab[i] = vector<int>{i};
     }
-    for(auto mio: merges_insert_order) {
-      vector<int> appended{vocab[mio.p1]};
-      appended.insert(appended.end(),vocab[mio.p2].begin(), vocab[mio.p2].end());
-      vocab[*mio.idx] = appended;
+    for(auto mio: merges) {
+      vector<int> appended{vocab[get<0>(mio)]};
+      appended.insert(appended.end(),vocab[get<1>(mio)].begin(), vocab[get<1>(mio)].end());
+      vocab[i] = appended;
+      i++;
     }
     if(verbose) {
       cout << "Loaded vocab with " << 256 + merges.size() << " merges, vocab size is " << vocab.size() << "\n";
@@ -287,11 +286,11 @@ class Tokenizer {
     // TODO special token handling
   }
   public:
-    Tokenizer() : merges(bucket_size, tuple_int_int_hash),
+    Tokenizer() : merges_lookup(bucket_size, tuple_int_int_hash),
                   pattern{},
                   compiled_pattern{} {
     };
-    Tokenizer(const string &pattern) : merges(bucket_size, tuple_int_int_hash) {
+    Tokenizer(const string &pattern) : merges_lookup(bucket_size, tuple_int_int_hash) {
       this->pattern = pattern;
       if(pattern.length() > 0) {
         std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
@@ -303,9 +302,7 @@ class Tokenizer {
       reflex::Input input(text); 
 
       merges.clear();
-      // maybe not needed...
-      /* merges_insert_order.clear(); */
-      /* merges_insert_order.reserve(vocab_size); */  
+      merges.reserve(vocab_size - 256);
 
       vector<vector<int>> chunks;
 
@@ -323,90 +320,35 @@ class Tokenizer {
         // When no split pattern just treat the whole text as
         // a single chunk
         chunks.push_back(text_to_vector(text));
-        // temp print it out
-        /* for(auto &c: chunks) { */
-        /*   for(auto &cc: c) { */
-        /*     cout << cc << " "; */
-        /*   } */
-        /*   cout << "\n"; */
-        /* } */
       }
 
       initialize_vocab();
 
       auto flists = create_lists(chunks);
       auto freqs = calculate_freqs(flists);
-      for(auto i=UCHAR_MAX + 1; i < vocab_size; i++) {
-        // Find the max frequency pair
-        /* auto max = std::max_element(freqs.begin(), freqs.end(), */
-        /*     [](const std::pair<const tuple<int,int>, tuple<int,int>>& a, const std::pair<const tuple<int,int>, tuple<int,int>>& b) -> bool { */
-        /*         auto [f1,i1] = a.second; */
-        /*         auto [f2,i2] = b.second; */
-        /*         if(f1 == f2) { */
-        /*           return i1 < i2; */
-        /*         } else { */
-        /*           return a.second < b.second; */
-        /*         } */
-        /*     }); */
+      for(auto i=0; i < vocab_size - 256; i++) {
         const auto& index_by_count = freqs.get_index_by_count();
         if(!index_by_count.empty()) {
         /* if(max != freqs.end()) { */
           auto max = *index_by_count.begin();
           auto [p1,p2] = max.pair;
           auto freq = max.countOrder.count;
+          if(verbose) {
+            cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << " order " << max.countOrder.insert_order << "\n";
+          }
 
-          /* cout << "max pair " << p1 << "," << p2 << " freq " */ 
-          /*   << freq << " order " << " ? " << "\n"; */
-
-          // merge pair 101, 32 with new token 256 count 646
-          cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << " order " << max.countOrder.insert_order << "\n";
-
-          merges[max.pair] = i;
+          merges.push_back(max.pair);
           merge_chunks(flists, max.pair, i, max.countOrder.insert_order, freqs);
-
-          // TODO do incrementally
-          /* freqs = calculate_freqs(flists); */
-          /* cout << "freqs size " << freqs.size() << "\n"; */
-          /* for(auto f: freqs) { */
-          /*   auto [p, count] = f; */
-          /*   cout << "pair " << get<0>(p) << ", " << get<1>(p) << " count " << count.count << " order " << count.insert_order << "\n"; */
-          /* } */
         } else {
           break;
         }
-
-        /* if(maxElementIt != freqs.end()) { */
-        /*   auto [pair, v] = *maxElementIt; */
-        /*   auto [count, order] = v; */
-        /*   merge_chunks(chunks, pair, i); */
-        /*   merges[pair] = i; */
-        /*   merges_insert_order.push_back({get<0>(pair),get<1>(pair),&merges[pair]}); */
-        /*   if(verbose) { */
-        /*     cout << "merge pair " << get<0>(pair) << ", " << get<1>(pair) << " with new token " << i << "\n"; */
-        /*   } */
-        /* } else { */
-        /*   break; */
-        /* } */
-        /*   auto mp = make_tuple(get<0>(mp3.value()), get<1>(mp3.value())); */
-        /*   merge_chunks(chunks, mp, i); */
-        /*   merges[mp] = i; */
-        /*   merges_insert_order.push_back({get<0>(mp),get<1>(mp),&merges[mp]}); */
-
-        /*   vector<int> new_vocab { vocab[get<0>(mp)] }; */
-        /*   const vector<int> &v2 = vocab[get<1>(mp)]; */
-        /*   new_vocab.insert(new_vocab.end(), v2.begin(), v2.end()); */
-        /*   vocab[i] = new_vocab; */
-        /*   if(verbose) { */
-        /*     cout << "merge pair " << get<0>(mp3.value()) << ", " << get<1>(mp3.value()) << " with new token " << i << " count " << get<2>(mp3.value()) <<  " new vocab " << string(new_vocab.begin(), new_vocab.end()) << "\n"; */
-        /*   } */
-        /* } */
       }
       if(verbose) {
         int size = 0;
         for(auto &fl: flists) {
           size += std::distance(fl.begin(), fl.end());
         }
-        cout << "length of text " << text.size() << " after merges " << size << "\n";
+        cout << "Length of training text " << text.size() << ". After merges " << size << ".\n";
       }
     };
 
@@ -479,7 +421,7 @@ class Tokenizer {
         }
         int idx = 256, idx1, idx2;
         while(input_file >> idx1 >> idx2) {
-          merges[make_tuple(idx1, idx2)] = idx;
+          merges_lookup[make_tuple(idx1, idx2)] = idx;
           ++idx;
         }
         if(verbose) {
@@ -501,8 +443,8 @@ class Tokenizer {
         output_file << pattern << std::endl;
         output_file << 0 << std::endl; // special token count
         // write special tokens
-        for(auto &mio: merges_insert_order) {
-          output_file << mio.p1 << ' ' << mio.p2 << "\n";
+        for(auto &m: merges) {
+          output_file << get<0>(m) << ' ' << get<1>(m) << "\n";
         }
         output_file.close();
         cout << "Complete.\n";
