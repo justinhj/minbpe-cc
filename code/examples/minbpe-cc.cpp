@@ -1,11 +1,12 @@
-#include "Tokenizer.hpp"
-#include <cstdint>
 #include <fstream>
 #include <filesystem>
 #include <ios>
 #include <iostream>
 #include <expected>
+
 #include "CLI11/CLI11.hpp"
+
+#include "Tokenizer.hpp"
 
 using std::string;
 using std::expected;
