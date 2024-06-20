@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
   string model_path = "./output.model";
   app.add_option("-m,--model-path", model_path, "Path to load or save the model");
 
-  bool verbose;
+  bool verbose = false;
   app.add_flag("-v,--verbose", verbose, "Print more things");
 
   CLI11_PARSE(app, argc, argv);
