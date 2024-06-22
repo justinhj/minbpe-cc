@@ -15,20 +15,25 @@ endif()
 set(Boost_INCLUDE_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 find_path(Boost_INCLUDE_DIR boost)
 
+set(Catch2_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/Catch2")
+set(CLI11_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/cli11")
+
 include_directories("/opt/homebrew/include")
+include_directories("../RE-flex/include")
 include_directories("code/include")
 include_directories("thirdparty")
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 
+find_package(CLI11 CONFIG REQUIRED)
+find_package(Catch2 3 REQUIRED)
 find_package(Boost COMPONENTS regex REQUIRED)
-
-find_library(REFLEX libreflex_static_lib.a PATHS ../RE-flex/ninjabuildreleasegcc REQUIRED)
+find_library(REFLEX libreflex.a PATHS ../RE-flex/lib REQUIRED)
 
 add_executable(minbpe-cc code/examples/minbpe-cc.cpp)
-target_link_libraries(minbpe-cc PRIVATE Boost::regex ${REFLEX})
+target_link_libraries(minbpe-cc PRIVATE Boost::regex ${REFLEX} CLI11::CLI11)
 
 add_executable(train code/examples/train.cpp)
 target_link_libraries(train PRIVATE Boost::regex ${REFLEX})
 
 add_executable(test code/test/test.cpp)
-target_link_libraries(train PRIVATE Boost::regex ${REFLEX})
+target_link_libraries(test PRIVATE Boost::regex ${REFLEX} Catch2::Catch2WithMain)

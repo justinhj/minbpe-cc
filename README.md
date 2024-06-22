@@ -49,6 +49,17 @@ cmake -S . -B ninjabuilddebug -G Ninja  \
     -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
     -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I/opt/homebrew/include/c++/14"
 
+cmake -S . -B ninjabuilddebuggcc -G Ninja  \
+	-DCMAKE_BUILD_TYPE=Debug  \
+	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON  \
+	-DVCPKG_TARGET_TRIPLET=arm64-osx-gcc  \
+	-DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14  \
+	-DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14 \
+    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
+    -DVCPKG_OVERLAY_TRIPLETS=../justinhj-triplets \
+    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
+    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I/opt/homebrew/include/c++/14"
+
 ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
  
 ```

@@ -1,5 +1,5 @@
 #define CATCH_CONFIG_MAIN
-#include "Catch2/catch2.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 #include "Tokenizer.hpp"
 
