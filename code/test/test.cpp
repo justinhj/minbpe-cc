@@ -5,14 +5,17 @@
 
 #include "Tokenizer.h"
 
+using MinBpeCC::Tokenizer::Tokenizer;
+
 void debug_pair_count(PairCount &pc) {
-    // Iterate over the freqs in order
-    // pair: (65, 32) count: 8
-    auto &index_by_count = pc.get_index_by_count();
-    for(auto &f: index_by_count) {
-      auto [p1, p2] = f.pair;
-      cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.count << "   insert " << f.count << "\n";
-    }
+  // Iterate over the freqs in order
+  // pair: (65, 32) count: 8
+  auto &index_by_count = pc.get_index_by_count();
+  for (auto &f : index_by_count) {
+    auto [p1, p2] = f.pair;
+    cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.count
+         << "   insert " << f.count << "\n";
+  }
 }
 
 // Tests for the PairCount helper class
@@ -58,22 +61,23 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
 
 // Expose private and protected methods for testing
 class TokenizerTest : public Tokenizer {
-  public:
-    auto create_lists_public(const vector<vector<int>> &chunks) {
-        return create_lists(chunks);
-    };
+public:
+  auto create_lists_public(const vector<vector<int>> &chunks) {
+    return create_lists(chunks);
+  };
 
-    auto text_to_vector_public(const string &text) {
-        return text_to_vector(text);
-    };
+  auto text_to_vector_public(const string &text) {
+    return text_to_vector(text);
+  };
 
-    auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks) {
-        return calculate_freqs(chunks);
-    };
+  auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks) {
+    return calculate_freqs(chunks);
+  };
 
-    auto merge_public(std::forward_list<int> &text, tuple<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
-      return merge(text, mp, new_token, insert_order, freqs);
-    }
+  auto merge_public(std::forward_list<int> &text, tuple<int, int> mp,
+                    int new_token, int insert_order, PairCount &freqs) {
+    return merge(text, mp, new_token, insert_order, freqs);
+  }
 };
 
 template<typename T>

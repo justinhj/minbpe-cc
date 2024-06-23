@@ -12,6 +12,8 @@
 using std::tuple;
 using std::optional;
 
+namespace MinBpeCC::Util {
+
 struct PairCountOrder {
   tuple<int,int> pair;
   int count;
@@ -85,5 +87,5 @@ class PairCount {
       return pcs.end();
     }
 };
-
+}
 #endif

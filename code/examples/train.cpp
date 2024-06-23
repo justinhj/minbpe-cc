@@ -5,6 +5,8 @@
 using std::string;
 using std::cout;
 
+using MinBpeCC::Tokenizer::Tokenizer;
+
 // Roughly a port of https://github.com/karpathy/minbpe/blob/master/train.py
 
 // Note the default is to train on the taylorswift sample, but if you pass in an integer less

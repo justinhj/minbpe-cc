@@ -15,6 +15,8 @@ using std::cerr;
 using std::filesystem::path;
 using std::filesystem::exists;
 
+using namespace MinBpeCC::Tokenizer;
+
 expected<string,string> load_file_to_string(const path &path) {
   std::ifstream file(path);
   if(!file) {
