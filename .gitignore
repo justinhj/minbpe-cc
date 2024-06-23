@@ -4,3 +4,4 @@ compile_commands.json
 ninjabuildrelease
 ninjabuilddebug
 models/
+.DS_Store
