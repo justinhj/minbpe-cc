@@ -4,7 +4,7 @@
 #include <iostream>
 #include <expected>
 
-#include "CLI11/CLI11.hpp"
+#include <CLI/CLI.hpp>
 
 #include "Tokenizer.hpp"
 

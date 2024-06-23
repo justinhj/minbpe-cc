@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.12)
 project(minbpe-cc)
 
+# To improve portability of this build:
+# - re-flex library location should not be hard coded
+# - homebrew shouldn't be mentioned
+# - vcpkg should be optional
+# - boost location should also be optional
+
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,7 +27,6 @@ set(CLI11_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/share/cli11")
 include_directories("/opt/homebrew/include")
 include_directories("../RE-flex/include")
 include_directories("code/include")
-include_directories("thirdparty")
 include_directories("${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/include")
 
 find_package(CLI11 CONFIG REQUIRED)
