@@ -20,7 +20,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-#include "PairCount.hpp"
+#include "PairCount.h"
 
 using std::string;
 using std::unordered_map;
