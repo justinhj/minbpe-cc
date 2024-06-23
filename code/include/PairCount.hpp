@@ -12,20 +12,13 @@
 using std::tuple;
 using std::optional;
 
-struct CountOrder {
-  int count;
-  int insert_order;
-};
 struct PairCountOrder {
   tuple<int,int> pair;
-  CountOrder countOrder;
+  int count;
 };
 struct CompareCountOrder {
-    bool operator()(const CountOrder& a, const CountOrder& b) const {
-        if (a.count == b.count) {
-            return a.insert_order < b.insert_order; // lower insert_order is greater
-        }
-        return a.count > b.count; // higher count is greater
+    bool operator()(const int& a, const int& b) const {
+        return a > b; // higher count is greater
     }
 };
 
@@ -33,7 +26,7 @@ typedef boost::multi_index_container<
     PairCountOrder,
     boost::multi_index::indexed_by<
         boost::multi_index::hashed_unique<boost::multi_index::member<PairCountOrder, tuple<int,int>, &PairCountOrder::pair>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCountOrder, CountOrder, &PairCountOrder::countOrder>, CompareCountOrder>
+        boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCountOrder, int, &PairCountOrder::count>, CompareCountOrder>
     > 
   > PairCountStore;
 
@@ -48,30 +41,30 @@ class PairCount {
       return pcs.size();
     }
 
-    std::optional<CountOrder> get_pair(tuple<int,int> mp) {
+    optional<int> get_pair(tuple<int,int> mp) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
-        return (*f).countOrder;
+        return (*f).count;
       } else {
         return {};
       }
     }
 
-    void increment_freq_count(tuple<int,int> mp, int insert_order) {
+    void increment_freq_count(tuple<int,int> mp) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.countOrder.count++; });
+        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count++; });
       } else {
-        pcs.insert({mp, CountOrder{1,insert_order}});
+        pcs.insert({mp, 1});
       }
     }
     void decrement_freq_count(tuple<int,int> mp) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.countOrder.count--; });
+        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count--; });
       }
     }
     const auto &get_index_by_count() {

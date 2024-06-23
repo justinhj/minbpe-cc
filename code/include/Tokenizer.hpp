@@ -87,7 +87,7 @@ class Tokenizer {
         auto p2 = next(p1);
         while(p1 != chunk.end() && p2 != chunk.end()) {
           auto p = make_tuple(*p1, *p2);
-          freqs.increment_freq_count(p, insert_order++);
+          freqs.increment_freq_count(p);
           ++p1;
           ++p2;
         }
@@ -143,7 +143,7 @@ class Tokenizer {
             freqs.decrement_freq_count(prev->pair);
           }
           verbose >= 1 && cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
-          freqs.increment_freq_count(make_tuple(*i0, new_token), insert_order);
+          freqs.increment_freq_count(make_tuple(*i0, new_token));
         }
         if(i3 != text.end()) {
           auto next = index_by_key.find(make_tuple(p2, *i3));
@@ -154,7 +154,7 @@ class Tokenizer {
             verbose >= 1 && cout << "next pair not found " << p2 << ", " << *i3 << "\n";
           }
           verbose >= 1 && cout << "increment new next pair " << new_token << ", " << *i3 << "\n";
-          freqs.increment_freq_count(make_tuple(new_token, *i3), insert_order);
+          freqs.increment_freq_count(make_tuple(new_token, *i3));
         }
 
         // Adjust iterators
@@ -332,13 +332,12 @@ class Tokenizer {
         /* if(max != freqs.end()) { */
           auto max = *index_by_count.begin();
           auto [p1,p2] = max.pair;
-          auto freq = max.countOrder.count;
           if(verbose) {
-            cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << freq << " order " << max.countOrder.insert_order << "\n";
+            cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << max.count << "\n";
           }
 
           merges.push_back(max.pair);
-          merge_chunks(flists, max.pair, i, max.countOrder.insert_order, freqs);
+          merge_chunks(flists, max.pair, i, max.count, freqs);
         } else {
           break;
         }
