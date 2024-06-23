@@ -16,14 +16,17 @@ The project uses cmake and the vcpkg package manager to manage dependencies. For
 
 Examples to build with the ninja build system as release or debug. The `compile_commands.json` output is to help the ccls lsp server and other tools, you may omit it otherwise.
 
-No specific compiler
+Default toolchain
 ```
 cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DVCPKG_TARGET_TRIPLET=arm64-osx
 
 cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DVCPKG_TARGET_TRIPLET=arm64-osx
 
+ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
 ```
 
 For the release build with clang from llvm

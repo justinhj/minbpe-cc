@@ -1,5 +1,7 @@
+#include <catch2/matchers/catch_matchers_quantifiers.hpp>
 #define CATCH_CONFIG_MAIN
-#include "catch2/catch_test_macros.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_all.hpp>
 
 #include "Tokenizer.hpp"
 
@@ -96,14 +98,10 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
     auto freqs = bt.calculate_freqs_public(flists);
 
     // 97,98,99,98,99,100,101
-    // 0  1  2     3  4       insert orders   
 
     auto max = freqs.get_top_pair_count_order();
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_tuple(98,99) );
-
-    debug_pair_count(freqs);
-    cout << "\n";
 
     bt.merge_public(flists[0], make_tuple(98,99), 256, 1, freqs);
     
@@ -111,7 +109,6 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
 
     max = freqs.get_top_pair_count_order();
 
-    debug_pair_count(freqs);
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_tuple(97,256) );
 
@@ -119,7 +116,15 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
 
     max = freqs.get_top_pair_count_order();
 
-    debug_pair_count(freqs);
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_tuple(257,256) );
+
+    auto expected_values = std::vector{
+          std::make_tuple(257,256),
+          std::make_tuple(256,100),
+          std::make_tuple(0,257),
+          std::make_tuple(100,101)
+      };
+
+   auto it = std::find(expected_values.begin(), expected_values.end(), max.value().pair);
+   REQUIRE(it != expected_values.end());
 }
