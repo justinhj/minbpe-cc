@@ -6,7 +6,7 @@
 
 #include <CLI/CLI.hpp>
 
-#include "Tokenizer.hpp"
+#include "Tokenizer.h"
 
 using std::string;
 using std::expected;

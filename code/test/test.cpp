@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
 
-#include "Tokenizer.hpp"
+#include "Tokenizer.h"
 
 void debug_pair_count(PairCount &pc) {
     // Iterate over the freqs in order
