@@ -170,6 +170,8 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 ## TODO Notes and C++ related
 
 * TODO Make build files more portable
+* TODO Cleanup README.md
+* TODO Warnings when using pointless arguments. vocab size and encoder only matter for training
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * DONE Use namespaces
 * DONE optimize sorted output by using a vector containing each pair and a pointer to the map key/value
