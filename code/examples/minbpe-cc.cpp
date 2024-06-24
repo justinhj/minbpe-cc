@@ -41,6 +41,7 @@ expected<void,string> write_file_to_string(const path &path, const string &data)
 
 // Write out as 16 bit unsigned integers, this could be configurable. Requires thought,
 // it is based on the size of the vocabulary, but we could have a larger vocabulary.
+// Maybe a variable length encoding would be better.
 expected<void,string> save_encoding(const path &path, const vector<int> encoded) {
   std::ofstream file(path, std::ios::binary);
   if(!file) {
@@ -51,6 +52,7 @@ expected<void,string> save_encoding(const path &path, const vector<int> encoded)
       assert(code >= 0);
       assert(code < UINT16_MAX); // TODO oof
       uint16_t c = static_cast<uint16_t>(code);
+      cout << "writing " << c << "\n";
       file.write(reinterpret_cast<const char *>(&c), sizeof(uint16_t));
     }
     return {};
@@ -64,9 +66,10 @@ expected<vector<int>,string> load_encoding(const path &path) {
       return unexpected(ec.message());
     }
     vector<int> data;
-    int number;
+    uint16_t number;
     while(file.read(reinterpret_cast<char *>(&number), sizeof(uint16_t))) {
       data.push_back(number);
+      cout << "Read " << number << "\n";
     }
 
     if (file.fail() && !file.eof()) {
@@ -88,13 +91,13 @@ int main(int argc, char *argv[]) {
   string output_path;
   app.add_option("-o,--output", output_path, "Path for the output of the encoding or decoding");
 
-  bool train;
+  bool train = false;
   app.add_flag("-t,--train", train, "Train on the input");
 
-  bool decode;
+  bool decode = false;
   app.add_flag("-d,--decode", decode, "Decode the input");
 
-  bool encode;
+  bool encode = false;
   app.add_flag("-e,--encode", encode, "Encode the input");
 
   int vocab_size = 512;
@@ -157,6 +160,16 @@ int main(int argc, char *argv[]) {
   else if(encode) {
     auto model_fspath = path(model_path);
     auto output_fspath = path(output_path);
+
+    if(output_path.empty()) {
+      cerr << "Output file not specified\n";
+      return -1;
+    }
+
+    if(!exists(model_fspath)) {
+      cerr << "Model file " << model_path << " does not exist\n";
+      return -1;
+    }
 
     cout << "Encoding input file " << input_fspath << " encoder " << encoder << " model path " << model_path << " output to " << output_path << "\n";
     rt.load(model_fspath, verbose);

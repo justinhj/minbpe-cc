@@ -53,7 +53,7 @@ namespace MinBpeCC::Tokenizer {
       optional<reflex::BoostMatcher::Pattern> compiled_pattern;
       unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges_lookup;
       vector<tuple<int,int>> merges;
-      unordered_map<int, vector<int>> vocab;   
+      vector<vector<int>> vocab;   
       string pattern;
       int char_to_int(char c) {
         return c < 0 ? c + 256 : c; 
@@ -67,10 +67,10 @@ namespace MinBpeCC::Tokenizer {
       }
       void initialize_vocab() {
         vocab.clear();
-        for(auto i=0; i<(UCHAR_MAX + 1); i++) {
+        for(auto i=0; i<256; i++) {
           vector<int> s;
           s.push_back(i);
-          vocab[i] = s;
+          vocab .push_back(s);
         }
       }
       auto create_lists(const vector<vector<int>> &chunks) {
@@ -241,6 +241,7 @@ namespace MinBpeCC::Tokenizer {
       }
       text = new_text;
     }
+    // TODO this could use the forward_list optimization as used in training
     vector<int> internal_internal_encode(const vector<int> &text) {
         vector<int> out;
         auto i = 0;
@@ -249,10 +250,12 @@ namespace MinBpeCC::Tokenizer {
         while(i < len) {
           auto pair = make_tuple(text[i], text[i + 1]);
           if(i < len - 1 && merges_lookup.find(pair) != merges_lookup.end()) {
+            cout << "found pair " << get<0>(pair) << ", " << get<1>(pair) << " replace with " << merges_lookup[pair] << "\n";
             out.push_back(merges_lookup[pair]);
             i += 2;
             merge_count ++;
           } else {
+            cout << "no pair " << text[i] << " replace with " << text[i] << "\n";
             out.push_back(text[i]);
             i ++;
           }
@@ -272,19 +275,30 @@ namespace MinBpeCC::Tokenizer {
       return outer;
     }
     void build_vocab(bool verbose) {
-      vocab.clear();
-      auto i=0;
-      for(; i<256; i++) {
-        vocab[i] = vector<int>{i};
-      }
+      assert(vocab.size() == 256);
+      int idx = 256;
+      /* cout << "initial vocab:\n"; */
+      /* for(auto v: vocab) { */
+      /*   for(auto c: v) { */
+      /*     cout << c << " "; */
+      /*   } */
+      /*   cout << "\n"; */
+      /* } */
+
       for(auto mio: merges) {
         vector<int> appended{vocab[get<0>(mio)]};
         appended.insert(appended.end(),vocab[get<1>(mio)].begin(), vocab[get<1>(mio)].end());
-        vocab[i] = appended;
-        i++;
+        vocab.push_back(appended);
+        /* cout << "vocab " << idx << ": "; */
+        /* cout << " merge " << get<0>(mio) << ", " << get<1>(mio) << "\n"; */
+        /* for(auto c: vocab[idx]) { */
+        /*   cout << c << " "; */
+        /* } */
+        /* cout << "\n"; */
+        idx++;
       }
       if(verbose) {
-        cout << "Loaded vocab with " << 256 + merges.size() << " merges, vocab size is " << vocab.size() << "\n";
+        cout << "Loaded vocab with " << merges.size() << " merges, vocab size is " << vocab.size() << "\n";
       }
       // TODO special token handling
     }
@@ -325,11 +339,9 @@ namespace MinBpeCC::Tokenizer {
           chunks.push_back(text_to_vector(text));
         }
 
-        initialize_vocab();
-
         auto flists = create_lists(chunks);
         auto freqs = calculate_freqs(flists);
-        for(auto i=0; i < vocab_size - 256; i++) {
+        for(auto i=256; i < vocab_size; i++) {
           const auto& index_by_count = freqs.get_index_by_count();
           if(!index_by_count.empty()) {
           /* if(max != freqs.end()) { */
@@ -355,35 +367,37 @@ namespace MinBpeCC::Tokenizer {
       };
 
       vector<int> encode(const string &text, const bool verbose) {
-          vector<vector<int>> text_chunks;
+          /* vector<vector<int>> text_chunks; */
 
-          if(compiled_pattern.has_value()) {
-            reflex::Input input(text); 
-            // TODO should be able to run without a compiled pattern
-            auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
+          /* if(compiled_pattern.has_value()) { */
+          /*   reflex::Input input(text); */ 
+          /*   // TODO should be able to run without a compiled pattern */
+          /*   auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input); */
 
-            // Note if you add special token support it would do a pass
-            // here first to take care of those, then continue as normal
+          /*   // Note if you add special token support it would do a pass */
+          /*   // here first to take care of those, then continue as normal */
 
-            // GPT2(+) tokenizers first chunk the input text
-            // to keep semantically related pairs together.
-            // This means the input to the merging stage is a vector 
-            // of vectors...
-            for(auto &match : matcher.find) {
-              auto text_converted = text_to_vector(match.text());
-              text_chunks.push_back(text_converted);
-            }
-          } else {
-            // When no split pattern just treat the whole text as
-            // a single chunk
-            text_chunks.push_back(text_to_vector(text));
-          }
+          /*   // GPT2(+) tokenizers first chunk the input text */
+          /*   // to keep semantically related pairs together. */
+          /*   // This means the input to the merging stage is a vector */ 
+          /*   // of vectors... */
+          /*   for(auto &match : matcher.find) { */
+          /*     auto text_converted = text_to_vector(match.text()); */
+          /*     text_chunks.push_back(text_converted); */
+          /*   } */
+          /* } else { */
+          /*   // When no split pattern just treat the whole text as */
+          /*   // a single chunk */
+          /*   text_chunks.push_back(text_to_vector(text)); */
+          /* } */
 
-          auto encoded_chunks = internal_encode(text_chunks);
-          vector<int> out;
-          for(auto &chunk: encoded_chunks) {
-            out.insert(out.end(), chunk.begin(), chunk.end());
-          }
+          /* auto encoded_chunks = internal_encode(text_chunks); */
+
+          auto out = internal_internal_encode(text_to_vector(text));
+          /* vector<int> out; */
+          /* for(auto &chunk: encoded_chunks) { */
+          /*   out.insert(out.end(), chunk.begin(), chunk.end()); */
+          /* } */
           if(verbose) {
             cout << "Encoded input text (length " << text.length() << ") to " << out.size() << " tokens\n"; 
           }
@@ -396,6 +410,7 @@ namespace MinBpeCC::Tokenizer {
         }
         string text  = "";
         for(auto tkn : tokens) {
+          cout << "token " << tkn << "\n";
           for(auto c : vocab[tkn]) {
             text.push_back(c);
           }
@@ -411,9 +426,10 @@ namespace MinBpeCC::Tokenizer {
             std::cerr << "Unexpected version: " << version << "\n";
             return false;
           }
+          merges_lookup.clear();
           merges.clear(); 
-          vocab.clear();
           // TODO init special tokens
+          initialize_vocab();
           int index = 256;
           std::getline(input_file, pattern);
           int num_special;
@@ -421,10 +437,11 @@ namespace MinBpeCC::Tokenizer {
           for(int i=0; i<num_special; i++) {
             // TODO read special tokens
           }
-          int idx = 256, idx1, idx2;
+          int idx1, idx2;
           while(input_file >> idx1 >> idx2) {
-            merges_lookup[make_tuple(idx1, idx2)] = idx;
-            ++idx;
+            merges.push_back(make_tuple(idx1, idx2));
+            merges_lookup[make_tuple(idx1, idx2)] = index;
+            index++;
           }
           if(verbose) {
             cout << "Read input\n";

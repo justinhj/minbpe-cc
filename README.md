@@ -169,9 +169,9 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 
 ## TODO Notes and C++ related
 
-* TODO Use a nested namespace called detail to hide non public implementation details
+* TODO Make build files more portable
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
-* TODO add urls as a valid input for the training data
+* DONE Use namespaces
 * DONE optimize sorted output by using a vector containing each pair and a pointer to the map key/value
 * DONE Move towards building as a library with examples
 
@@ -190,4 +190,5 @@ Train shakespeare 1.52s
 Train taylorswift 0.264s
 Train bible 5.7s
 
-* WIP When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector
+* DONE When calculating the most frequent pair can you track the changes iteratively in a map instead of doing the actual swaps in a big vector
+* IDEA Make a forward list of the whole training text in the regex versions. Mark the split points as special nodes so they are not counted as pairs or replaced during training. This avoids having to iterate over a vector of lists.
