@@ -7,7 +7,8 @@ using std::cout;
 
 using MinBpeCC::Tokenizer::Tokenizer;
 
-// Roughly a port of https://github.com/karpathy/minbpe/blob/master/train.py
+// Originally a port of https://github.com/karpathy/minbpe/blob/master/train.py
+// then gradually optimized.
 
 // Note the default is to train on the taylorswift sample, but if you pass in an integer less
 // than the number of test strings I will run that one.

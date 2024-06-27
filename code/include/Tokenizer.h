@@ -454,7 +454,9 @@ namespace MinBpeCC::Tokenizer {
         
         return true;
       }
-      bool save(const path &path) {
+      bool save(const path &path, bool write_vocab) {
+        assert(merges.size() > 0);
+
         std::ofstream output_file(path, ios::out);
         if (output_file.is_open()) {
           cout << "Writing model...\n";
@@ -466,6 +468,36 @@ namespace MinBpeCC::Tokenizer {
             output_file << get<0>(m) << ' ' << get<1>(m) << "\n";
           }
           output_file.close();
+
+          if (write_vocab) {
+            initialize_vocab();
+            build_vocab(false);
+            // Create the .vocab file path
+            std::string vocab_path = path;
+            vocab_path += ".vocab";
+
+            // Open the second file with .vocab extension
+            std::ofstream vocab_file(vocab_path, std::ios::out);
+            if (!vocab_file.is_open()) {
+                return false; // Return false if the .vocab file couldn't be opened
+            }
+
+            // Write the tokens 
+            int token = 1;
+            for (auto &v : vocab) {
+                vocab_file << std::setfill(' ') << std::setw(6) << token << ": \"" << std::setw(0);
+                for (auto &c : v) {
+                  if(c > 31 && c < 127) {
+                    vocab_file << (char) c;
+                  } else {
+                    vocab_file << "�";
+                  }
+                }
+                vocab_file << "\"\n";
+                token++;
+            }
+            vocab_file.close(); // Close the .vocab file
+          }
           cout << "Complete.\n";
           return true;
         } else {

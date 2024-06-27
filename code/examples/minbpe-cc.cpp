@@ -100,6 +100,9 @@ int main(int argc, char *argv[]) {
   bool encode = false;
   app.add_flag("-e,--encode", encode, "Encode the input");
 
+  bool write_vocab = false;
+  app.add_flag("-w,--write-vocab", write_vocab, "When training, write the vocabulary to a file");
+
   int vocab_size = 512;
   app.add_option("--vocab-size", vocab_size, "Vocabulary size");
 
@@ -152,7 +155,7 @@ int main(int argc, char *argv[]) {
     auto input = load_file_to_string(input_path);
     if(input.has_value()) {
       rt.train(input.value(), vocab_size, verbose);
-      rt.save(model_fspath);
+      rt.save(model_fspath, write_vocab);
     } else { 
        cerr << "Failed to load training input file: " << input.error() << "\n";
     }
