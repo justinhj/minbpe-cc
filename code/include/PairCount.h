@@ -1,6 +1,7 @@
 #ifndef MINBPE_PAIRCOUNT_HPP
 #define MINBPE_PAIRCOUNT_HPP
 
+#include <boost/multi_index/identity.hpp>
 #include <tuple>
 #include <optional>
 #include <boost/multi_index_container.hpp>
@@ -19,16 +20,26 @@ struct PairCountOrder {
   int count;
 };
 struct CompareCountOrder {
-    bool operator()(const int& a, const int& b) const {
-        return a > b; // higher count is greater
+    bool operator()(const PairCountOrder& a, const PairCountOrder& b) const {
+      if(a.count == b.count) {
+        return a.pair < b.pair; // lower pair is greater
+      } else {
+        return a.count > b.count; // higher count is greater
+      }
     }
 };
 
+using boost::multi_index::hashed_unique;
+using boost::multi_index::ordered_unique;
+using boost::multi_index::indexed_by;
+using boost::multi_index::member;
+using boost::multi_index::identity;
+
 typedef boost::multi_index_container<
     PairCountOrder,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<boost::multi_index::member<PairCountOrder, tuple<int,int>, &PairCountOrder::pair>>,
-        boost::multi_index::ordered_non_unique<boost::multi_index::member<PairCountOrder, int, &PairCountOrder::count>, CompareCountOrder>
+    indexed_by<
+        hashed_unique<member<PairCountOrder, tuple<int,int>, &PairCountOrder::pair>>,
+        ordered_unique<identity<PairCountOrder>, CompareCountOrder>
     > 
   > PairCountStore;
 

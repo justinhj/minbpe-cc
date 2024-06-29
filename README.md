@@ -10,6 +10,23 @@ A C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://g
 
 This is a fairly direct port of the Python code, and is quite a bit faster. Compared to the Python `train.py` example it is roughy 5x faster.
 
+## References on BPE for NLP
+[Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/pdf/1508.07909)
+
+"In practice, we increase efficiency by indexing all ppairs, and updating data structures incrementally".
+
+## On choosing the next pair to merge
+
+To decide which pair to merge next when multiple pairs have the same frequency in BPE (Byte Pair Encoding) tokenization, there are a few common approaches:
+
+1. Lexicographic order: Choose the pair that comes first alphabetically.
+2. First occurrence: Select the pair that appears earliest in the text.
+3. Length of subwords: Prefer merging shorter subwords over longer ones.
+4. Random selection: Randomly choose among the tied pairs.
+5. Tie-breaking heuristics: Use additional criteria like the frequency of individual tokens in the pair.
+
+The choice often depends on the specific implementation and the goals of the tokenization process.
+
 ## Building
 
 The project uses cmake and the vcpkg package manager to manage dependencies. For utf-8 friendly regexes that support negative lookahead (required by GPT tokenizers), I need use the combination of Boost and the Reflex regex library. Reflex is not available in vcpkg, so you will need to install it manually.
@@ -175,6 +192,7 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 * TODO Warnings when specifying unused arguments. vocab size and encoder only matter for training
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO Add end to end test script
+* DONE Add lexicographic ordering for tie breaking pairs (note this is a bit slower)
 * DONE option to save the vocab
 * DONE Use namespaces
 * DONE optimize sorted output by using a vector containing each pair and a pointer to the map key/value
