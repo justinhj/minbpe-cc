@@ -29,104 +29,7 @@ The choice often depends on the specific implementation and the goals of the tok
 
 ## Building
 
-The project uses cmake and the vcpkg package manager to manage dependencies. For utf-8 friendly regexes that support negative lookahead (required by GPT tokenizers), I need use the combination of Boost and the Reflex regex library. Reflex is not available in vcpkg, so you will need to install it manually.
-
-Examples to build with the ninja build system as release or debug. The `compile_commands.json` output is to help the ccls lsp server and other tools, you may omit it otherwise.
-
-Default toolchain
-```
-cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DVCPKG_TARGET_TRIPLET=arm64-osx
-
-cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DVCPKG_TARGET_TRIPLET=arm64-osx
-
-ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
-```
-
-For the release build with clang from llvm
-```
-cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ \
-    -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang \
-    -DVCPKG_TARGET_TRIPLET=arm64-osx
-```
-
-```
-cmake -S . -B ninjabuilddebugclang -G Ninja -DCMAKE_BUILD_TYPE=debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DVCPKG_TARGET_TRIPLET=arm64-osx
-```
-gnu C++ from brew
-```
-cmake -S . -B ninjabuilddebug -G Ninja  \
-	-DCMAKE_BUILD_TYPE=Debug  \
-	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON  \
-	-DVCPKG_TARGET_TRIPLET=arm64-osx  \
-	-DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14  \
-	-DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14 \
-    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
-    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I/opt/homebrew/include/c++/14"
-
-cmake -S . -B ninjabuilddebuggcc -G Ninja  \
-	-DCMAKE_BUILD_TYPE=Debug  \
-	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON  \
-	-DVCPKG_TARGET_TRIPLET=arm64-osx-gcc  \
-	-DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14  \
-	-DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14 \
-    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
-    -DVCPKG_OVERLAY_TRIPLETS=../justinhj-triplets \
-    -DCMAKE_LIBRARY_PATH=/opt/homebrew/lib \
-    -DCMAKE_CXX_FLAGS="-stdlib=libc++ -I/opt/homebrew/include/c++/14"
-
-ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
- 
-```
-
-```
-cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-ln -fs ninjabuildrelease/compile_commands.json compile_commands.json
-```
-
-```
-cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DVCPKG_TARGET_TRIPLET=arm64-osx
-ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
-```
-
-Example build config with Clang 
-
-```
-cmake -S . -B ninjabuilddebug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-ln -fs ninjabuilddebug/compile_commands.json compile_commands.json
-```
-
-```
-cmake -S . -B ninjabuildrelease -G Ninja -DCMAKE_BUILD_TYPE=release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-ln -fs ninjabuildrelease/compile_commands.json compile_commands.json
-```
-
-```
-cmake -S . -B ninjabuildreleasegcc -G Ninja \
-    -DCMAKE_BUILD_TYPE=release \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DVCPKG_TARGET_TRIPLET=arm64-osx \
-    -DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14 \
-    -DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14
-
-cmake -S . -B ninjabuilddebuggcc -G Ninja \
-    -DCMAKE_BUILD_TYPE=debug \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DVCPKG_TARGET_TRIPLET=arm64-osx \
-    -DCMAKE_CXX_COMPILER=/opt/homebrew/bin/g++-14 \
-    -DCMAKE_C_COMPILER=/opt/homebrew/bin/gcc-14
-```
-
-Build it
-
-```
-ninja -C ninjabuild[release|debug]
-```
+See [BUILDING.md](BUILDING.md) for more detailed instructions.
 
 ## Running
 
@@ -184,8 +87,44 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 - minbpe-cc/train 32.859 seconds
 - minbpe/train/.py 157.96 seconds
 
+July 1st 2024
+
+TODO Use a `boost::container::btree_map` as it seems to have the properties needed in one structure instead of having to use `boost_multi_index`.
+
+```
+#include <boost/container/btree_map.hpp>
+#include <utility>
+
+struct PairFreq {
+    size_t frequency;
+    std::pair<int, int> pair;
+    
+    // Custom comparator for sorting
+    bool operator<(const PairFreq& other) const {
+        if (frequency != other.frequency)
+            return frequency > other.frequency;  // Descending order
+        return pair < other.pair;
+    }
+};
+
+using FrequencyMap = boost::container::btree_map<std::pair<int, int>, PairFreq>;
+```
+
+Easy to update frequencies: O(log n) for each update.
+Automatically maintains order based on your custom comparator.
+Efficient for both small and large datasets.
+Good for frequent insertions and deletions, which might occur as you update frequencies.
+
+
+Retrieving Max Frequency:
+
+To get the pair with the highest frequency: auto max_freq = map.begin();
+This operation is O(1), as the map is always sorted.
+
 ## TODO Notes and C++ related
 
+* TODO replace tuple with pair
+* TODO Use btree_map
 * TODO Add special token support
 * TODO Make build files more portable
 * TODO Cleanup README.md
