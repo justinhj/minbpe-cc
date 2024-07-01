@@ -8,8 +8,6 @@
 using MinBpeCC::Tokenizer::Tokenizer;
 
 void debug_pair_count(PairCount &pc) {
-  // Iterate over the freqs in order
-  // pair: (65, 32) count: 8
   auto &index_by_count = pc.get_index_by_count();
   for (auto &f : index_by_count) {
     auto [p1, p2] = f.pair;
@@ -18,16 +16,15 @@ void debug_pair_count(PairCount &pc) {
   }
 }
 
-// Tests for the PairCount helper class
 TEST_CASE("PairCount add and count", "[paircount]") {
     PairCount pc;
     REQUIRE( pc.get_count() == 0 );
     int insert_order = 0;
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_pair(1,2));
     REQUIRE( pc.get_count() == 1 );
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_pair(1,2));
     REQUIRE( pc.get_count() == 1 );
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_pair(2,3));
     REQUIRE( pc.get_count() == 2 );
 }
 
@@ -35,31 +32,30 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
     PairCount pc;
     auto max = pc.get_top_pair_count_order();
     REQUIRE( !max.has_value() );
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_pair(1,2));
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_tuple(1,2) );
+    REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.increment_freq_count(make_tuple(1,2));
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_pair(1,2));
+    pc.increment_freq_count(make_pair(2,3));
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_tuple(1,2) );
+    REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.increment_freq_count(make_tuple(2,3));
-    pc.increment_freq_count(make_tuple(2,3));
+    pc.increment_freq_count(make_pair(2,3));
+    pc.increment_freq_count(make_pair(2,3));
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_tuple(2,3) );
+    REQUIRE( max.value().pair == make_pair(2,3) );
 
-    pc.increment_freq_count(make_tuple(1,2));
+    pc.increment_freq_count(make_pair(1,2));
 
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
-    REQUIRE( (max.value().pair == make_tuple(1,2) || max.value().pair == make_tuple(2,3)) );
+    REQUIRE( (max.value().pair == make_pair(1,2) || max.value().pair == make_pair(2,3)) );
 }
 
-// Expose private and protected methods for testing
 class TokenizerTest : public Tokenizer {
 public:
   auto create_lists_public(const vector<vector<int>> &chunks) {
@@ -74,7 +70,7 @@ public:
     return calculate_freqs(chunks);
   };
 
-  auto merge_public(std::forward_list<int> &text, tuple<int, int> mp,
+  auto merge_public(std::forward_list<int> &text, pair<int, int> mp,
                     int new_token, int insert_order, PairCount &freqs) {
     return merge(text, mp, new_token, insert_order, freqs);
   }
@@ -89,7 +85,6 @@ size_t getForwardListLength(const std::forward_list<T>& flist) {
     return count;
 }
 
-// Tests for the Tokenizer class
 TEST_CASE("Tokenizer training tests", "[tokenizer]") {
     TokenizerTest bt;
     vector<vector<int>> chunks;
@@ -101,32 +96,27 @@ TEST_CASE("Tokenizer training tests", "[tokenizer]") {
 
     auto freqs = bt.calculate_freqs_public(flists);
 
-    // 97,98,99,98,99,100,101
-
     auto max = freqs.get_top_pair_count_order();
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_tuple(98,99) );
+    REQUIRE( max.value().pair == make_pair(98,99) );
 
-    bt.merge_public(flists[0], make_tuple(98,99), 256, 1, freqs);
+    bt.merge_public(flists[0], make_pair(98,99), 256, 1, freqs);
     
-    // 97,256,256,100,101
-
     max = freqs.get_top_pair_count_order();
 
     REQUIRE( max.has_value() ); 
-    /* REQUIRE( max.value().pair == make_tuple(97,256) ); */
 
-    bt.merge_public(flists[0], make_tuple(97,256), 257, 1, freqs);
+    bt.merge_public(flists[0], make_pair(97,256), 257, 1, freqs);
 
     max = freqs.get_top_pair_count_order();
 
     REQUIRE( max.has_value() ); 
 
     auto expected_values = std::vector{
-          std::make_tuple(257,256),
-          std::make_tuple(256,100),
-          std::make_tuple(0,257),
-          std::make_tuple(100,101)
+          std::make_pair(257,256),
+          std::make_pair(256,100),
+          std::make_pair(0,257),
+          std::make_pair(100,101)
       };
 
    auto it = std::find(expected_values.begin(), expected_values.end(), max.value().pair);

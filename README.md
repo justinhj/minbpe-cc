@@ -1,4 +1,4 @@
-# minbpe-cc
+pair minbpe-cc
 
 > What is the real root of suffering? **Tokenization**
 >
@@ -85,22 +85,27 @@ May 5th 2024
 After some optimization on the C++ side ran a comparative test of Karpathy's train.py with shakespeare.txt:
 
 - minbpe-cc/train 32.859 seconds
-- minbpe/train/.py 157.96 seconds
+- minbpe/train.py 97.96 seconds
 
 July 1st 2024
 
+Incremental optimization on frequency count and added lexicographical ordering for tie breaks
 
+shakespeare.txt (train 2)
+
+- minbpe-cc/train 2.8 seconds 
+- minbpe/train.py 
 
 
 ## TODO Notes and C++ related
 
-* TODO replace tuple with pair
-* TODO Add special token support
+* TODO Add special token support for encoding and decoding
 * TODO Make build files more portable
-* TODO Cleanup README.md
+* TODO check performance of going back to vector instead of forward_list when training in each mode
 * TODO Warnings when specifying unused arguments. vocab size and encoder only matter for training
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO Add end to end test script
+* DONE replace tuple with pair
 * DONE Add lexicographic ordering for tie breaking pairs (note this is a bit slower)
 * DONE option to save the vocab
 * DONE Use namespaces

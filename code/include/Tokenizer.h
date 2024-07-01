@@ -4,13 +4,11 @@
 #include <algorithm>
 #include <climits>
 #include <unordered_map>
-#include <tuple>
 #include <string>
 #include <functional>
 #include <forward_list>
 #include <vector>
 #include <cassert>
-#include <tuple>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -19,24 +17,25 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <utility>
 
 #include "PairCount.h"
 
 using std::string;
 using std::unordered_map;
 using std::vector;
-using std::tuple;
 using std::optional;
 using std::cout;
 using std::filesystem::path;
-using std::make_tuple;
+using std::pair;
 using std::ios;
+using std::make_pair;
 
 using namespace MinBpeCC::Util;
 
 namespace MinBpeCC::Tokenizer {
-  inline std::function<std::size_t(const tuple<int,int>&)> tuple_int_int_hash = 
-      [](const tuple<int,int>& k) -> std::size_t {
+  inline std::function<std::size_t(const pair<int,int>&)> pair_int_int_hash = 
+      [](const pair<int,int>& k) -> std::size_t {
         std::size_t seed = 0;
         std::hash<int> hasher;
         seed ^= hasher(std::get<0>(k)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -51,8 +50,8 @@ namespace MinBpeCC::Tokenizer {
     protected:
       static const auto bucket_size = 10;
       optional<reflex::BoostMatcher::Pattern> compiled_pattern;
-      unordered_map<tuple<int,int>, int, decltype(tuple_int_int_hash)> merges_lookup;
-      vector<tuple<int,int>> merges;
+      unordered_map<pair<int,int>, int, decltype(pair_int_int_hash)> merges_lookup;
+      vector<pair<int,int>> merges;
       vector<vector<int>> vocab;   
       string pattern;
       int char_to_int(char c) {
@@ -89,7 +88,7 @@ namespace MinBpeCC::Tokenizer {
           auto p1 = chunk.begin();
           auto p2 = next(p1);
           while(p1 != chunk.end() && p2 != chunk.end()) {
-            auto p = make_tuple(*p1, *p2);
+            auto p = make_pair(*p1, *p2);
             freqs.increment_freq_count(p);
             ++p1;
             ++p2;
@@ -97,7 +96,7 @@ namespace MinBpeCC::Tokenizer {
         }
         return freqs;
     }
-    void merge_chunks(vector<std::forward_list<int>> &chunks, tuple<int,int> mp, int idx, int insert_order, PairCount &freqs) {
+    void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int insert_order, PairCount &freqs) {
       /* cout << "start merge_chunks " << chunks.size() <<  "\n"; */
       for(auto &chunk: chunks) {
         /* cout << "  chunk" << "\n"; */
@@ -105,7 +104,7 @@ namespace MinBpeCC::Tokenizer {
       }
       /* cout << "merge_chunks\n"; */
     }
-    void merge(std::forward_list<int> &text, tuple<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
+    void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
       // can remove verbose setting when it all works lol
       auto verbose = 0;
       // display the text 
@@ -140,16 +139,16 @@ namespace MinBpeCC::Tokenizer {
             freqs.decrement_freq_count(f->pair);
           }
           if(i0 != text.end()) {
-            auto prev = index_by_key.find(make_tuple(*i0, p1));
+            auto prev = index_by_key.find(make_pair(*i0, p1));
             if(prev != freqs.end()) {
               verbose >= 1 && cout << "decrement previous pair " << get<0>(prev->pair) << ", " << get<1>(prev->pair) << "\n";
               freqs.decrement_freq_count(prev->pair);
             }
             verbose >= 1 && cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
-            freqs.increment_freq_count(make_tuple(*i0, new_token));
+            freqs.increment_freq_count(make_pair(*i0, new_token));
           }
           if(i3 != text.end()) {
-            auto next = index_by_key.find(make_tuple(p2, *i3));
+            auto next = index_by_key.find(make_pair(p2, *i3));
             if(next != freqs.end()) {
               verbose >= 1 && cout << "decrement next pair " << get<0>(next->pair) << ", " << get<1>(next->pair) << "\n";
               freqs.decrement_freq_count(next->pair);
@@ -157,7 +156,7 @@ namespace MinBpeCC::Tokenizer {
               verbose >= 1 && cout << "next pair not found " << p2 << ", " << *i3 << "\n";
             }
             verbose >= 1 && cout << "increment new next pair " << new_token << ", " << *i3 << "\n";
-            freqs.increment_freq_count(make_tuple(new_token, *i3));
+            freqs.increment_freq_count(make_pair(new_token, *i3));
           }
 
           // Adjust iterators
@@ -190,13 +189,13 @@ namespace MinBpeCC::Tokenizer {
       }
     }
     // replace all consecutive occurences of pair with the new token idx
-    void merge_chunks(std::vector<vector<int>> &chunks, tuple<int,int> mp, int idx) {
+    void merge_chunks(std::vector<vector<int>> &chunks, pair<int,int> mp, int idx) {
       for(auto &chunk: chunks) {
         merge(chunk, mp, idx);
       }
     }
     // replace all consecutive occurences of pair with the new token idx
-    void merge(std::vector<int> &text, tuple<int,int> mp, int idx) {
+    void merge(std::vector<int> &text, pair<int,int> mp, int idx) {
       if(text.size() < 2) {
         return;
       }
@@ -225,7 +224,7 @@ namespace MinBpeCC::Tokenizer {
             continue;
           }
         }
-        auto p = make_tuple(*i1,*i2);
+        auto p = make_pair(*i1,*i2);
         if(p == mp) {
           skip = true;
           new_text.push_back(idx);
@@ -248,7 +247,7 @@ namespace MinBpeCC::Tokenizer {
         auto merge_count = 0;
         auto len = text.size();
         while(i < len) {
-          auto pair = make_tuple(text[i], text[i + 1]);
+          auto pair = make_pair(text[i], text[i + 1]);
           if(i < len - 1 && merges_lookup.find(pair) != merges_lookup.end()) {
             cout << "found pair " << get<0>(pair) << ", " << get<1>(pair) << " replace with " << merges_lookup[pair] << "\n";
             out.push_back(merges_lookup[pair]);
@@ -303,11 +302,11 @@ namespace MinBpeCC::Tokenizer {
       // TODO special token handling
     }
     public:
-      Tokenizer() : merges_lookup(bucket_size, tuple_int_int_hash),
+      Tokenizer() : merges_lookup(bucket_size, pair_int_int_hash),
                     pattern{},
                     compiled_pattern{} {
       };
-      Tokenizer(const string &pattern) : merges_lookup(bucket_size, tuple_int_int_hash) {
+      Tokenizer(const string &pattern) : merges_lookup(bucket_size, pair_int_int_hash) {
         this->pattern = pattern;
         if(pattern.length() > 0) {
           std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
@@ -439,8 +438,8 @@ namespace MinBpeCC::Tokenizer {
           }
           int idx1, idx2;
           while(input_file >> idx1 >> idx2) {
-            merges.push_back(make_tuple(idx1, idx2));
-            merges_lookup[make_tuple(idx1, idx2)] = index;
+            merges.push_back(make_pair(idx1, idx2));
+            merges_lookup[make_pair(idx1, idx2)] = index;
             index++;
           }
           if(verbose) {
