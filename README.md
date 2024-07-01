@@ -95,7 +95,6 @@ July 1st 2024
 ## TODO Notes and C++ related
 
 * TODO replace tuple with pair
-* TODO Use btree_map
 * TODO Add special token support
 * TODO Make build files more portable
 * TODO Cleanup README.md
