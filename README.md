@@ -89,37 +89,8 @@ After some optimization on the C++ side ran a comparative test of Karpathy's tra
 
 July 1st 2024
 
-TODO Use a `boost::container::btree_map` as it seems to have the properties needed in one structure instead of having to use `boost_multi_index`.
-
-```
-#include <boost/container/btree_map.hpp>
-#include <utility>
-
-struct PairFreq {
-    size_t frequency;
-    std::pair<int, int> pair;
-    
-    // Custom comparator for sorting
-    bool operator<(const PairFreq& other) const {
-        if (frequency != other.frequency)
-            return frequency > other.frequency;  // Descending order
-        return pair < other.pair;
-    }
-};
-
-using FrequencyMap = boost::container::btree_map<std::pair<int, int>, PairFreq>;
-```
-
-Easy to update frequencies: O(log n) for each update.
-Automatically maintains order based on your custom comparator.
-Efficient for both small and large datasets.
-Good for frequent insertions and deletions, which might occur as you update frequencies.
 
 
-Retrieving Max Frequency:
-
-To get the pair with the highest frequency: auto max_freq = map.begin();
-This operation is O(1), as the map is always sorted.
 
 ## TODO Notes and C++ related
 
