@@ -1,4 +1,4 @@
-pair minbpe-cc
+# minbpe-cc
 
 > What is the real root of suffering? **Tokenization**
 >
@@ -8,7 +8,9 @@ pair minbpe-cc
 
 A C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://github.com/karpathy/minbpe).
 
-This is a fairly direct port of the Python code, and is quite a bit faster. Compared to the Python `train.py` example it is roughy 5x faster.
+This was originally a direct port of the Python code, which was quite a bit faster. Compared to the Python `train.py` example it is roughy 5x faster.
+
+However, after making some data structure changes and other optimizations, it is now faster by a factor of 50x, or almost 2 orders of magniture.
 
 ## References on BPE for NLP
 [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/pdf/1508.07909)
@@ -93,8 +95,8 @@ Incremental optimization on frequency count and added lexicographical ordering f
 
 shakespeare.txt (train 2)
 
-- minbpe-cc/train 2.8 seconds 
-- minbpe/train.py 
+- minbpe-cc/train 1.9 seconds 
+- minbpe/train.py 97.96 seconds
 
 
 ## TODO Notes and C++ related
