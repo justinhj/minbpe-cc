@@ -3,7 +3,8 @@ compile_commands.json
 .cache/
 ninjabuildrelease
 ninjabuilddebug
-models/
+models/*
+!models/.gitkeep
 .DS_Store
 zig-out
 .zig-cache

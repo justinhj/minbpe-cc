@@ -103,7 +103,7 @@ shakespeare.txt (train 2)
 ## TODO Notes and C++ related
 
 * TODO Add special token support for encoding and decoding
-* TODO Make build files more portable
+* WIP Make build files more portable (Converting to zig build)
 * TODO check performance of going back to vector instead of forward_list when training in each mode
 * TODO Warnings when specifying unused arguments. vocab size and encoder only matter for training
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
@@ -114,6 +114,17 @@ shakespeare.txt (train 2)
 * DONE Use namespaces
 * DONE optimize sorted output by using a vector containing each pair and a pointer to the map key/value
 * DONE Move towards building as a library with examples
+
+## Conversion to Zig notes
+Currently I have add a zig build file to allow the project to be built with that tool instead of cmake.The reasoning is I find it a lot simpler to work with.
+
+This opens up the question of whether to reimplement in Zig.
+
+* It helps me with my ongoing Zig learning.
+* Curious how the performance compares.
+* Possible that some of the data structures don't have mature implementations in the Zig library or ecosystem yet.
+
+There is the option of a hybrid approach where the C++ code is used for the core functionality and Zig is used as the CLI. The rewrite can then be incremental.
 
 ### Optimizations
 
