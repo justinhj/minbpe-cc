@@ -44,6 +44,7 @@ In general there are three running modes, `train`, `encode`, and `decode`.
 In this example we train a model on the Taylor Swift wiki page and save it.
 
 ```
+mkdir ./models
 minbpe-cc --train --input ./data/taylorswift.txt -m ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4
 ```
 

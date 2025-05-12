@@ -212,5 +212,5 @@ int main(int argc, char *argv[]) {
   auto duration = t2 - t1;
   auto ms_int = duration_cast<milliseconds>(duration).count();
 
-  std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
+  std::cout << "Execution time: " << ms_int / 1000.0 << " (s)" << std::endl;
 }
