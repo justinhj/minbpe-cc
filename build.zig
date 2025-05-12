@@ -96,6 +96,7 @@ pub fn build(b: *std.Build) void {
     test_exe.addLibraryPath(b.path(catch2_lib));
     test_exe.linkSystemLibrary("boost_regex");
     test_exe.linkSystemLibrary("reflex");
+    test_exe.linkSystemLibrary("Catch2");
     test_exe.linkSystemLibrary("Catch2Main");
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
