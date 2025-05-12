@@ -5,3 +5,5 @@ ninjabuildrelease
 ninjabuilddebug
 models/
 .DS_Store
+zig-out
+.zig-cache
