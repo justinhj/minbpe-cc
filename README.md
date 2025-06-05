@@ -74,7 +74,15 @@ https://github.com/glample/fastBPE/tree/master
 
 ## Optimization notes
 
-May 3rd
+Jun 6th 2025
+
+After migrating to zig build ran train on shakespeare.txt with latest optimizations and ReleaseFast mode.
+Switched test device to Macbook Pro with M1 Pro 10-core CPU
+
+- minbpe-cc/train 1.8 seconds
+- minbpe/train.py 11 seconds
+
+May 3rd 2024
 
 bible.txt (4.2Mb) 512 tokens took 63 seconds in release
 8.5 seconds per iteration
