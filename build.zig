@@ -69,13 +69,9 @@ pub fn build(b: *std.Build) void {
         std.log.err("Failed to get BOOST_INCLUDE: {any}", .{err}); // Use {any} for error types
         @panic("Build configuration error: BOOST_INCLUDE");
     };
-    const reflex_include = getPath(b, "REFLEX_INCLUDE", false, default_lib_path, default_include_path) catch |err| {
-        std.log.err("Failed to get REFLEX_INCLUDE: {any}", .{err});
-        @panic("Build configuration error: REFLEX_INCLUDE");
-    };
-    const reflex_lib = getPath(b, "REFLEX_LIB", true, default_lib_path, default_include_path) catch |err| {
-        std.log.err("Failed to get REFLEX_LIB: {any}", .{err});
-        @panic("Build configuration error: REFLEX_LIB");
+    const pcre2_include = getPath(b, "PCRE2_INCLUDE", false, default_lib_path, default_include_path) catch |err| {
+        std.log.err("Failed to get PCRE2_INCLUDE: {any}", .{err});
+        @panic("Build configuration error: PCRE2_INCLUDE");
     };
     const cli11_include = getPath(b, "CLI11_INCLUDE", false, default_lib_path, default_include_path) catch |err| {
         std.log.err("Failed to get CLI11_INCLUDE: {any}", .{err});
@@ -101,16 +97,9 @@ pub fn build(b: *std.Build) void {
         .flags = &.{"-std=c++23"},
     });
     minbpe_cc.addIncludePath(b.path(boost_include));
-    minbpe_cc.addIncludePath(b.path(reflex_include));
+    minbpe_cc.addIncludePath(b.path(pcre2_include));
     minbpe_cc.addIncludePath(b.path(cli11_include));
     minbpe_cc.addIncludePath(b.path("code/include"));
-    minbpe_cc.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
-    minbpe_cc.addLibraryPath(b.path(reflex_lib));
-    minbpe_cc.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
-    minbpe_cc.linkSystemLibrary("boost_regex");
-    minbpe_cc.linkSystemLibrary("reflex");
-    minbpe_cc.linkSystemLibrary("icuuc");    // ICU Common Library
-    minbpe_cc.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     minbpe_cc.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     minbpe_cc.linkLibCpp();
     b.installArtifact(minbpe_cc);
@@ -126,17 +115,8 @@ pub fn build(b: *std.Build) void {
         .flags = &.{"-std=c++23"},
     });
     train.addIncludePath(b.path(boost_include));
-    train.addIncludePath(b.path(reflex_include));
+    train.addIncludePath(b.path(pcre2_include));
     train.addIncludePath(b.path("code/include"));
-    train.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
-    train.addLibraryPath(b.path(reflex_lib));
-    train.linkSystemLibrary("boost_regex");
-    train.linkSystemLibrary("reflex");
-    train.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
-    train.linkSystemLibrary("boost_regex");
-    train.linkSystemLibrary("reflex");
-    train.linkSystemLibrary("icuuc");    // ICU Common Library
-    train.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     train.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     train.linkLibCpp();
     b.installArtifact(train);
@@ -152,19 +132,12 @@ pub fn build(b: *std.Build) void {
         .flags = &.{"-std=c++23"},
     });
     test_exe.addIncludePath(b.path(boost_include));
-    test_exe.addIncludePath(b.path(reflex_include));
+    test_exe.addIncludePath(b.path(pcre2_include));
     test_exe.addIncludePath(b.path(catch2_include));
     test_exe.addIncludePath(b.path("code/include"));
-    test_exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
     test_exe.addLibraryPath(b.path(catch2_lib));
-    test_exe.linkSystemLibrary("boost_regex");
     test_exe.linkSystemLibrary("Catch2");
     test_exe.linkSystemLibrary("Catch2Main");
-    test_exe.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
-    test_exe.linkSystemLibrary("boost_regex");
-    test_exe.linkSystemLibrary("boost_locale");
-    test_exe.linkSystemLibrary("icuuc");    // ICU Common Library
-    test_exe.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     test_exe.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
