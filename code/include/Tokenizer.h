@@ -2,7 +2,6 @@
 #define MINBPE_TOKENIZER_HPP
 
 #include <algorithm>
-#include <climits>
 #include <unordered_map>
 #include <string>
 #include <functional>
@@ -12,7 +11,6 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
-#include <reflex/boostmatcher.h>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -310,7 +308,11 @@ namespace MinBpeCC::Tokenizer {
         this->pattern = pattern;
         if(pattern.length() > 0) {
           std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
-          compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+          try {
+            compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+          } catch (const boost::regex_error& e) {
+            throw std::runtime_error("Failed to compile regex pattern: " + std::string(e.what()));
+          }
         }
       };
       void train(const string &text, const int vocab_size, const bool verbose) {

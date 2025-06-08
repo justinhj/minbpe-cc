@@ -85,7 +85,19 @@ size_t getForwardListLength(const std::forward_list<T>& flist) {
     return count;
 }
 
-TEST_CASE("Tokenizer training tests", "[tokenizer]") {
+TEST_CASE("GPT4 regex", "[tokenizer]") {
+    TokenizerTest tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
+    auto text = "hello world!!!? (안녕하세요!) lol123 😉";
+    auto chunks = tokenizer.text_to_vector_public(text);
+    // write the chunks to stdout for now
+    cout << "Chunks: ";
+    for (const auto &c : chunks) {
+        cout << c << " ";
+    }
+    cout << "\n";
+}
+
+TEST_CASE("Tokenizer training", "[tokenizer]") {
     TokenizerTest bt;
     vector<vector<int>> chunks;
     const auto test_string = string("abcbcde");
