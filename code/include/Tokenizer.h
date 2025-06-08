@@ -82,6 +82,15 @@ namespace MinBpeCC::Tokenizer {
             return text_converted;
         }
 
+        std::vector<int> text_to_vector(std::string_view text) {
+          std::vector<int> text_converted;
+          text_converted.reserve(text.length()); // Reserve space to prevent reallocations
+          for (char c : text) {
+              text_converted.push_back(static_cast<int>(char_to_int(c)));
+          }
+          return text_converted;
+        }
+
         // Initializes the vocabulary with 256 byte tokens
         void initialize_vocab() {
             vocab.clear();
@@ -420,47 +429,46 @@ namespace MinBpeCC::Tokenizer {
             vector<vector<int>> chunks;
 
             if (compiled_pattern_pcre2 != NULL) {
-                // If a regex pattern is provided, split the text into chunks using PCRE2
-                PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.c_str());
-                PCRE2_SIZE subject_length = text.length();
-                PCRE2_SIZE offset = 0; // Current offset in the subject string
-                int rc; // Return code from pcre2_match
+              PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.data());
+              PCRE2_SIZE subject_length = text.length();
+              PCRE2_SIZE offset = 0;
 
-                while ((rc = pcre2_match_8(
-                            compiled_pattern_pcre2, // Compiled PCRE2 pattern
-                            subject,                // Subject string
-                            subject_length,         // Length of subject string
-                            offset,                 // Start offset for matching
-                            0,                      // Options (e.g., PCRE2_NOTEMPTY)
-                            match_data_pcre2,       // Match data block
-                            match_context_pcre2     // Match context
-                        )) >= 0) { // If a match was found (rc >= 0 indicates number of matched substrings)
+              int rc;
+              while (true) {
+                  rc = pcre2_match(
+                      compiled_pattern_pcre2,
+                      subject,
+                      subject_length,
+                      offset,
+                      PCRE2_NO_UTF_CHECK,  // Optional for performance if you're sure input is valid
+                      match_data_pcre2,
+                      match_context_pcre2
+                  );
 
-                    // Get the ovector, which contains start and end offsets of matched substrings
-                    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer_8(match_data_pcre2);
+                  if (rc < 0) {
+                      if (rc == PCRE2_ERROR_NOMATCH) break;
+                      PCRE2_UCHAR buffer[256];
+                      pcre2_get_error_message(rc, buffer, sizeof(buffer));
+                      throw std::runtime_error("PCRE2 match error: " + std::string(reinterpret_cast<char*>(buffer)));
+                  }
 
-                    // Extract the matched substring using the offsets of the primary match (ovector[0] and ovector[1])
-                    PCRE2_SIZE matched_len = ovector[1] - ovector[0];
-                    std::string matched_text(reinterpret_cast<const char*>(subject + ovector[0]), matched_len);
+                  PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data_pcre2);
+                  PCRE2_SIZE start = ovector[0];
+                  PCRE2_SIZE end = ovector[1];
 
-                    // Convert the matched substring to your internal vector<int> representation
-                    chunks.push_back(text_to_vector(matched_text));
+                  // Avoid empty match loops
+                  if (start == end) {
+                      if (offset >= subject_length) break;
+                      offset++;
+                      continue;
+                  }
 
-                    // Advance the offset to the end of the current match to find the next one
-                    offset = ovector[1];
+                  // Use a string_view to avoid allocation
+                  std::string_view matched_view(reinterpret_cast<const char*>(subject + start), end - start);
+                  chunks.push_back(text_to_vector(matched_view));  // overload text_to_vector for string_view?
 
-                    // Important: Prevent infinite loop if an empty match is found at the end of the subject
-                    if (offset == subject_length) {
-                        break;
-                    }
-                }
-
-                // Handle PCRE2 matching errors (excluding PCRE2_ERROR_NOMATCH, which is expected)
-                if (rc < 0 && rc != PCRE2_ERROR_NOMATCH) {
-                    PCRE2_UCHAR buffer[256];
-                    pcre2_get_error_message_8(rc, buffer, sizeof(buffer));
-                    throw std::runtime_error("PCRE2 matching failed during training: " + std::string(reinterpret_cast<char*>(buffer)));
-                }
+                  offset = end;
+              }
             } else {
                 // If no split pattern, treat the whole text as a single chunk
                 chunks.push_back(text_to_vector(text));
