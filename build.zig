@@ -111,6 +111,7 @@ pub fn build(b: *std.Build) void {
     minbpe_cc.linkSystemLibrary("reflex");
     minbpe_cc.linkSystemLibrary("icuuc");    // ICU Common Library
     minbpe_cc.linkSystemLibrary("icui18n");  // ICU Internationalization Library
+    minbpe_cc.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     minbpe_cc.linkLibCpp();
     b.installArtifact(minbpe_cc);
 
@@ -136,6 +137,7 @@ pub fn build(b: *std.Build) void {
     train.linkSystemLibrary("reflex");
     train.linkSystemLibrary("icuuc");    // ICU Common Library
     train.linkSystemLibrary("icui18n");  // ICU Internationalization Library
+    train.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     train.linkLibCpp();
     b.installArtifact(train);
 
@@ -163,6 +165,7 @@ pub fn build(b: *std.Build) void {
     test_exe.linkSystemLibrary("boost_locale");
     test_exe.linkSystemLibrary("icuuc");    // ICU Common Library
     test_exe.linkSystemLibrary("icui18n");  // ICU Internationalization Library
+    test_exe.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 
