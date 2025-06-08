@@ -516,30 +516,40 @@ namespace MinBpeCC::Tokenizer {
                 PCRE2_SIZE offset = 0;
                 int rc;
 
-                while ((rc = pcre2_match_8(
-                            compiled_pattern_pcre2,
-                            subject,
-                            subject_length,
-                            offset,
-                            0,
-                            match_data_pcre2,
-                            match_context_pcre2
-                        )) >= 0) {
-                    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer_8(match_data_pcre2);
-                    PCRE2_SIZE matched_len = ovector[1] - ovector[0];
-                    std::string matched_text(reinterpret_cast<const char*>(subject + ovector[0]), matched_len);
+                while(true) {
+                  rc = pcre2_match_8(
+                          compiled_pattern_pcre2,
+                          subject,
+                          subject_length,
+                          offset,
+                          PCRE2_NO_UTF_CHECK,  // Optional for performance if you're sure input is valid
+                          match_data_pcre2,
+                          match_context_pcre2
+                      );
 
-                    text_chunks.push_back(text_to_vector(matched_text));
+                  if (rc < 0) {
+                      if (rc == PCRE2_ERROR_NOMATCH) break;
+                      PCRE2_UCHAR buffer[256];
+                      pcre2_get_error_message(rc, buffer, sizeof(buffer));
+                      throw std::runtime_error("PCRE2 match error: " + std::string(reinterpret_cast<char*>(buffer)));
+                  }
 
-                    offset = ovector[1];
-                    if (offset == subject_length) {
-                        break;
-                    }
-                }
-                if (rc < 0 && rc != PCRE2_ERROR_NOMATCH) {
-                    PCRE2_UCHAR buffer[256];
-                    pcre2_get_error_message_8(rc, buffer, sizeof(buffer));
-                    throw std::runtime_error("PCRE2 matching failed in encode: " + std::string(reinterpret_cast<char*>(buffer)));
+                  PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data_pcre2);
+                  PCRE2_SIZE start = ovector[0];
+                  PCRE2_SIZE end = ovector[1];
+
+                  // Avoid empty match loops
+                  if (start == end) {
+                      if (offset >= subject_length) break;
+                      offset++;
+                      continue;
+                  }
+
+                  // Use a string_view to avoid allocation
+                  std::string_view matched_view(reinterpret_cast<const char*>(subject + start), end - start);
+                  text_chunks.push_back(text_to_vector(matched_view));  // overload text_to_vector for string_view?
+
+                  offset = end;
                 }
             } else {
                 // If no split pattern, treat the whole text as a single chunk
