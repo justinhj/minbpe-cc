@@ -371,6 +371,18 @@ namespace MinBpeCC::Tokenizer {
                     throw std::runtime_error("PCRE2 pattern compilation failed: " + std::string(reinterpret_cast<char*>(buffer)));
                 }
 
+                // --- Add this for JIT compilation ---
+                int jit_errorcode;
+                if (pcre2_jit_compile_8(compiled_pattern_pcre2, PCRE2_JIT_COMPLETE) < 0) {
+                    // JIT compilation failed or is not supported by PCRE2 build.
+                    // It's okay, PCRE2 will fall back to its interpretive engine,
+                    // but log a warning if you want.
+                    PCRE2_UCHAR buffer[256];
+                    pcre2_get_error_message_8(jit_errorcode, buffer, sizeof(buffer));
+                    std::cerr << "Warning: PCRE2 JIT compilation failed: " << reinterpret_cast<char*>(buffer) << "\n";
+                }
+                // --- End JIT addition ---
+
                 // Create match data block for the compiled pattern
                 match_data_pcre2 = pcre2_match_data_create_from_pattern_8(compiled_pattern_pcre2, general_context_pcre2);
                 if (match_data_pcre2 == NULL) {
