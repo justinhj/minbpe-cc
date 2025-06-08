@@ -17,6 +17,22 @@ using std::filesystem::exists;
 
 using namespace MinBpeCC::Tokenizer;
 
+#include <vector>
+
+// Utility function to split a string by a delimiter
+std::vector<std::string> split_string(const std::string& str, const std::string& delimiter) {
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end = 0;
+    while ((end = str.find(delimiter, start)) != std::string::npos) {
+        tokens.push_back(str.substr(start, end - start));
+        start = end + delimiter.length();
+    }
+    // Add the last token (or the whole string if delimiter not found)
+    tokens.push_back(str.substr(start));
+    return tokens;
+}
+
 expected<string,string> load_file_to_string(const path &path) {
   std::ifstream file(path);
   if(!file) {
@@ -91,6 +107,9 @@ int main(int argc, char *argv[]) {
   string output_path;
   app.add_option("-o,--output", output_path, "Path for the output of the encoding or decoding");
 
+  string special_token_path;
+  app.add_option("-s,--special-tokens-path", special_token_path, "Path to the special tokens file");
+
   bool train = false;
   app.add_flag("-t,--train", train, "Train on the input");
 
@@ -126,6 +145,29 @@ int main(int argc, char *argv[]) {
   } else {
     cerr << "Input file not specified\n";
     return -1;
+  }
+
+  // Make a vector of strings to hold the special tokens
+  vector<string> special_tokens;
+
+  auto special_token_fspath = path(special_token_path);
+  if(!special_token_path.empty()) {
+    if(exists(special_token_fspath)) {
+      auto special_tokens_data = load_file_to_string(special_token_path);
+      if(special_tokens_data.has_value()) {
+        special_tokens = split_string(special_tokens_data.value(), "\n");
+      } else {
+        cerr << "Failed to load special tokens file: " << special_tokens_data.error() << "\n";
+      }
+    }
+  }
+
+  // For dbeugging just print the special tokens
+  if(verbose) {
+    cout << "Special tokens:\n";
+    for(const auto &token : special_tokens) {
+      cout << "  " << token << "\n";
+    }
   }
 
   using std::chrono::high_resolution_clock;
