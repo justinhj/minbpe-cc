@@ -69,10 +69,15 @@ Source file names should use `PascalCase` apart from executables or test which c
 ## References
 
 https://github.com/karpathy/minbpe
-https://github.com/Genivia/RE-flex
 https://github.com/glample/fastBPE/tree/master
 
-## Optimization notes
+## Optimization and development notes
+
+Jun 9th 2025
+
+Realized in Debug mode I was hitting an assert when using the GPT4 regex. Whilst tracking it down I found that internationalization (ICU) was not working even though boost was built with it.
+
+Turned out the best solution was to use the pcre2 regex library instead of boost. This matches up with the synatx used in Karpathy's original code, since he used the regex module as used in Tiktoken, which is Perl compatible.
 
 Jun 6th 2025
 

@@ -431,8 +431,6 @@ namespace MinBpeCC::Tokenizer {
                     PCRE2_SIZE matched_len = ovector[1] - ovector[0];
                     std::string matched_text(reinterpret_cast<const char*>(subject + ovector[0]), matched_len);
 
-                    std::cout << "Matched text: " << matched_text << "\n"; // Debugging output
-
                     // Convert the matched substring to your internal vector<int> representation
                     chunks.push_back(text_to_vector(matched_text));
 
