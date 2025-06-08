@@ -104,9 +104,13 @@ pub fn build(b: *std.Build) void {
     minbpe_cc.addIncludePath(b.path(reflex_include));
     minbpe_cc.addIncludePath(b.path(cli11_include));
     minbpe_cc.addIncludePath(b.path("code/include"));
+    minbpe_cc.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
     minbpe_cc.addLibraryPath(b.path(reflex_lib));
+    minbpe_cc.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
     minbpe_cc.linkSystemLibrary("boost_regex");
     minbpe_cc.linkSystemLibrary("reflex");
+    minbpe_cc.linkSystemLibrary("icuuc");    // ICU Common Library
+    minbpe_cc.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     minbpe_cc.linkLibCpp();
     b.installArtifact(minbpe_cc);
 
@@ -123,9 +127,15 @@ pub fn build(b: *std.Build) void {
     train.addIncludePath(b.path(boost_include));
     train.addIncludePath(b.path(reflex_include));
     train.addIncludePath(b.path("code/include"));
+    train.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
     train.addLibraryPath(b.path(reflex_lib));
     train.linkSystemLibrary("boost_regex");
     train.linkSystemLibrary("reflex");
+    train.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
+    train.linkSystemLibrary("boost_regex");
+    train.linkSystemLibrary("reflex");
+    train.linkSystemLibrary("icuuc");    // ICU Common Library
+    train.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     train.linkLibCpp();
     b.installArtifact(train);
 
@@ -143,12 +153,16 @@ pub fn build(b: *std.Build) void {
     test_exe.addIncludePath(b.path(reflex_include));
     test_exe.addIncludePath(b.path(catch2_include));
     test_exe.addIncludePath(b.path("code/include"));
-    test_exe.addLibraryPath(b.path(reflex_lib));
+    test_exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/include" });
     test_exe.addLibraryPath(b.path(catch2_lib));
     test_exe.linkSystemLibrary("boost_regex");
-    test_exe.linkSystemLibrary("reflex");
     test_exe.linkSystemLibrary("Catch2");
     test_exe.linkSystemLibrary("Catch2Main");
+    test_exe.addLibraryPath((.{ .cwd_relative = "/opt/homebrew/opt/icu4c@77/lib" }));
+    test_exe.linkSystemLibrary("boost_regex");
+    test_exe.linkSystemLibrary("boost_locale");
+    test_exe.linkSystemLibrary("icuuc");    // ICU Common Library
+    test_exe.linkSystemLibrary("icui18n");  // ICU Internationalization Library
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 

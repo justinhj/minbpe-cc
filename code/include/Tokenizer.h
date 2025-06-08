@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <unordered_map>
+#include <boost/locale.hpp>
 #include <string>
 #include <functional>
 #include <forward_list>
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <boost/regex/icu.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -44,10 +46,13 @@ namespace MinBpeCC::Tokenizer {
   class Tokenizer {
     public:
       inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
-      inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
+      inline const static std::string GPT4_SPLIT_PATTERN_OLD = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
+      inline const static std::string GPT4_SPLIT_PATTERN_OLD_2 = "[[::alpha:]]";
+      inline const static std::string GPT4_SPLIT_PATTERN = "\\p{L}";
     protected:
       static const auto bucket_size = 10;
-      optional<reflex::BoostMatcher::Pattern> compiled_pattern;
+      // optional<reflex::BoostMatcher::Pattern> compiled_pattern;
+      optional<boost::u32regex> compiled_pattern;
       unordered_map<pair<int,int>, int, decltype(pair_int_int_hash)> merges_lookup;
       vector<pair<int,int>> merges;
       vector<vector<int>> vocab;   
@@ -307,9 +312,12 @@ namespace MinBpeCC::Tokenizer {
       Tokenizer(const string &pattern) : merges_lookup(bucket_size, pair_int_int_hash) {
         this->pattern = pattern;
         if(pattern.length() > 0) {
-          std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
+          // std::string regex = reflex::BoostMatcher::convert(pattern, reflex::convert_flag::unicode);
           try {
-            compiled_pattern = reflex::BoostMatcher::Pattern(regex);
+            compiled_pattern = boost::make_u32regex(GPT4_SPLIT_PATTERN, boost::regex_constants::perl);
+
+            compiled_pattern.value().imbue(icu_77::Locale::getDefault());
+            // compiled_pattern = reflex::BoostMatcher::Pattern(regex);
           } catch (const boost::regex_error& e) {
             throw std::runtime_error("Failed to compile regex pattern: " + std::string(e.what()));
           }
@@ -317,7 +325,7 @@ namespace MinBpeCC::Tokenizer {
       };
       void train(const string &text, const int vocab_size, const bool verbose) {
         assert(vocab_size >= 256);
-        reflex::Input input(text); 
+        // reflex::Input input(text); 
 
         merges.clear();
         merges.reserve(vocab_size - 256);
@@ -329,11 +337,29 @@ namespace MinBpeCC::Tokenizer {
           // to keep semantically related pairs together.
           // This means the input to the merging stage is a vector 
           // of vectors...
-          auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
-          for(auto &match : matcher.find) {
-            auto text_converted = text_to_vector(match.text());
-            chunks.push_back(text_converted);
+
+             // Boost.Regex iterators for searching
+          boost::match_results<std::string::const_iterator> results_iter;
+          std::string::const_iterator start = text.begin();
+          std::string::const_iterator end = text.end();
+
+          // Loop using boost::u32regex_search to find all matches
+          while (boost::u32regex_search(start, end, results_iter, compiled_pattern.value())) {
+              // 'results_iter[0]' refers to the entire matched substring
+              std::string matched_text(results_iter[0].first, results_iter[0].second);
+              
+              // Convert the matched substring to your internal vector<int> representation
+              auto text_converted = text_to_vector(matched_text);
+              chunks.push_back(text_converted);
+              
+              // Advance the start iterator past the current match to find the next one
+              start = results_iter[0].second;
           }
+          // auto matcher = reflex::BoostMatcher(compiled_pattern.value(), input);
+          // for(auto &match : matcher.find) {
+          //   auto text_converted = text_to_vector(match.text());
+          //   chunks.push_back(text_converted);
+          // }
         } else {
           // When no split pattern just treat the whole text as
           // a single chunk

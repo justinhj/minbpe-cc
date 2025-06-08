@@ -86,6 +86,11 @@ size_t getForwardListLength(const std::forward_list<T>& flist) {
 }
 
 TEST_CASE("GPT4 regex", "[tokenizer]") {
+    boost::locale::generator gen;
+    // Generate a locale based on the user's system settings (e.g., en_US.UTF-8)
+    std::locale loc = gen(""); 
+    // Make this the global locale for this application
+    std::locale::global(loc);
     TokenizerTest tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
     auto text = "hello world!!!? (안녕하세요!) lol123 😉";
     auto chunks = tokenizer.text_to_vector_public(text);
