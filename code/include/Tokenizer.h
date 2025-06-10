@@ -671,9 +671,14 @@ namespace MinBpeCC::Tokenizer {
                 // Read special token count (currently always 0)
                 int num_special;
                 input_file >> num_special;
-                // For now, skip special token data if any, as it's not implemented
                 for(int i = 0; i < num_special; i++) {
-                    // TODO: read special tokens if implemented
+                    string token;
+                    int id;
+                    input_file >> token >> id;
+                    special_tokens[token] = id; // Store special tokens
+                    if(verbose) {
+                        cout << "Loaded special token: " << token << " with ID " << id << "\n";
+                    }
                 }
 
                 // Read merges
