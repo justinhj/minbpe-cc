@@ -45,7 +45,7 @@ expected<string,string> load_file_to_string(const path &path) {
   return buffer.str();
 }
 
-expected<void,string> write_file_to_string(const path &path, const string &data) {
+expected<void,string> write_string_to_file(const path &path, const string &data) {
   std::ofstream file(path);
   if(!file) {
     std::error_code ec(errno, std::generic_category());
@@ -148,25 +148,17 @@ int main(int argc, char *argv[]) {
   }
 
   // Make a vector of strings to hold the special tokens
-  vector<string> special_tokens;
-
   auto special_token_fspath = path(special_token_path);
+  expected <string,string> special_tokens_data;
   if(!special_token_path.empty()) {
     if(exists(special_token_fspath)) {
-      auto special_tokens_data = load_file_to_string(special_token_path);
+      special_tokens_data = load_file_to_string(special_token_path);
+      // print success if loaded
       if(special_tokens_data.has_value()) {
-        special_tokens = split_string(special_tokens_data.value(), "\n");
+        cout << "Loaded special tokens from " << special_token_path << "\n";
       } else {
-        cerr << "Failed to load special tokens file: " << special_tokens_data.error() << "\n";
+        cerr << "Failed to load special tokens from " << special_token_path << ": " << special_tokens_data.error() << "\n";
       }
-    }
-  }
-
-  // For dbeugging just print the special tokens
-  if(verbose) {
-    cout << "Special tokens:\n";
-    for(const auto &token : special_tokens) {
-      cout << "  " << token << "\n";
     }
   }
 
@@ -191,6 +183,12 @@ int main(int argc, char *argv[]) {
   auto rt = Tokenizer(split_pattern);
 
   if(train) {
+    if(special_tokens_data.has_value()) {
+      rt.set_special_tokens_from_file(special_tokens_data.value());
+    } else {
+      cout << "No special tokens file provided\n";
+    }
+
     auto model_fspath = path(model_path);
     cout << "Training using file " << input_fspath << " encoder " << encoder << " vocab size " << vocab_size << " model path " << model_path << "\n";
 
@@ -244,7 +242,7 @@ int main(int argc, char *argv[]) {
       auto decoded = rt.decode(input.value(), verbose);
 
       cout << "Writing " << decoded.size() << " decoded tokens to " << output_path << "\n";
-      auto result = write_file_to_string(output_fspath, decoded);
+      auto result = write_string_to_file(output_fspath, decoded);
     } else {
       cerr << "Failed with error: " << input.error() << "\n";
     }

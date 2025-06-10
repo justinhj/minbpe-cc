@@ -45,22 +45,19 @@ namespace MinBpeCC::Tokenizer {
 
     class Tokenizer {
     public:
-        // Static regular expression patterns
         inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
         inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
-
     protected:
         static const auto bucket_size = 10;
 
-        // --- PCRE2 specific members ---
+        std::unordered_map<std::string, int> special_tokens;
+
         pcre2_code_8* compiled_pattern_pcre2;     // Compiled PCRE2 pattern
         pcre2_match_data_8* match_data_pcre2;     // Match data block for results
 
-        // PCRE2 context objects for efficient memory management
         pcre2_general_context_8* general_context_pcre2;
         pcre2_compile_context_8* compile_context_pcre2;
         pcre2_match_context_8* match_context_pcre2;
-        // --- End PCRE2 specific members ---
 
         unordered_map<pair<int,int>, int, decltype(pair_int_int_hash)> merges_lookup;
         vector<pair<int,int>> merges;
@@ -82,6 +79,7 @@ namespace MinBpeCC::Tokenizer {
             return text_converted;
         }
 
+        // Same as above but uses string views for performance
         std::vector<int> text_to_vector(std::string_view text) {
           std::vector<int> text_converted;
           text_converted.reserve(text.length()); // Reserve space to prevent reallocations
@@ -419,6 +417,20 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
+        // Sets the special token map from a single string representing the file contents
+        // in the form: 
+        //   token1 20000
+        //   token2 20001
+        void set_special_tokens_from_file(const std::string& input_string) {
+          special_tokens.clear();
+          std::istringstream iss(input_string);
+          std::string key;
+          int value;
+          while (iss >> key >> value) {
+              special_tokens[key] = value;
+          }
+        }
+
         // Trains the tokenizer given input text and desired vocabulary size
         void train(const string &text, const int vocab_size, const bool verbose) {
             assert(vocab_size >= 256); // Must have at least initial byte tokens
@@ -694,7 +706,11 @@ namespace MinBpeCC::Tokenizer {
                 cout << "Writing model...\n";
                 output_file << "minbpe v1" << std::endl; // Version
                 output_file << pattern << std::endl;     // Regex pattern string
-                output_file << 0 << std::endl;           // Special token count (currently 0)
+                output_file << special_tokens.size() << std::endl;           // Special token count (currently 0)
+                // write the special tokens in the same syntax as the input
+                for (const auto &st : special_tokens) {
+                    output_file << st.first << ' ' << st.second << std::endl; // Write special tokens
+                }
                 // Write merges
                 for(const auto &m: merges) {
                     output_file << std::get<0>(m) << ' ' << std::get<1>(m) << "\n";
