@@ -71,6 +71,16 @@ namespace MinBpeCC::Tokenizer {
 
         // Converts a string to a vector of ints (byte representation)
         std::vector<int> text_to_vector(const string &text) {
+            // Handle special token marker: starts with '\0' followed by an int
+            // TODO Can make this a helper that both overloads use later
+            if (!text.empty() && text[0] == '\0') {
+                try {
+                    int id = std::stoi(text.substr(1));
+                    return std::vector<int>{id};
+                } catch (...) {
+                    // Fallback: treat as normal text if parsing fails
+                }
+            }
             std::vector<int> text_converted;
             text_converted.reserve(text.length()); // Reserve space to prevent reallocations
             for(char c : text) {
@@ -81,12 +91,20 @@ namespace MinBpeCC::Tokenizer {
 
         // Same as above but uses string views for performance
         std::vector<int> text_to_vector(std::string_view text) {
-          std::vector<int> text_converted;
-          text_converted.reserve(text.length()); // Reserve space to prevent reallocations
-          for (char c : text) {
-              text_converted.push_back(static_cast<int>(char_to_int(c)));
-          }
-          return text_converted;
+            if (!text.empty() && text[0] == '\0') {
+                try {
+                    int id = std::stoi(std::string(text.substr(1)));
+                    return std::vector<int>{id};
+                } catch (...) {
+                    // Fallback: treat as normal text if parsing fails
+                }
+            }
+            std::vector<int> text_converted;
+            text_converted.reserve(text.length()); // Reserve space to prevent reallocations
+            for (char c : text) {
+                text_converted.push_back(static_cast<int>(char_to_int(c)));
+            }
+            return text_converted;
         }
 
         // Initializes the vocabulary with 256 byte tokens
@@ -578,65 +596,63 @@ namespace MinBpeCC::Tokenizer {
                     auto is_special = part.size() > 0 && part[0] == '\0';
                     cout << "Part: \"" << part << "\" special: " << is_special << "\n";
                 }
-            }    
+            }
 
             vector<vector<int>> text_chunks;
             if (compiled_pattern_pcre2 != NULL) {
-                // Split the text into chunks using PCRE2, similar to training
-                PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.c_str());
-                PCRE2_SIZE subject_length = text.length();
-                PCRE2_SIZE offset = 0;
-                int rc;
-
-                while(true) {
-                  rc = pcre2_match_8(
-                          compiled_pattern_pcre2,
-                          subject,
-                          subject_length,
-                          offset,
-                          PCRE2_NO_UTF_CHECK,  // Optional for performance if you're sure input is valid
-                          match_data_pcre2,
-                          match_context_pcre2
-                      );
-
-                  if (rc < 0) {
-                      if (rc == PCRE2_ERROR_NOMATCH) break;
-                      PCRE2_UCHAR buffer[256];
-                      pcre2_get_error_message(rc, buffer, sizeof(buffer));
-                      throw std::runtime_error("PCRE2 match error: " + std::string(reinterpret_cast<char*>(buffer)));
-                  }
-
-                  PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data_pcre2);
-                  PCRE2_SIZE start = ovector[0];
-                  PCRE2_SIZE end = ovector[1];
-
-                  // Avoid empty match loops
-                  if (start == end) {
-                      if (offset >= subject_length) break;
-                      offset++;
-                      continue;
-                  }
-
-                  // Use a string_view to avoid allocation
-                  std::string_view matched_view(reinterpret_cast<const char*>(subject + start), end - start);
-                  text_chunks.push_back(text_to_vector(matched_view));
-
-                  offset = end;
+                // For each split part, apply regex splitting if not a special token
+                for (const auto& part : split_text) {
+                    if (part.size() > 0 && part[0] == '\0') {
+                        // Special token, treat as a chunk
+                        text_chunks.push_back(text_to_vector(part));
+                        continue;
+                    }
+                    PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(part.c_str());
+                    PCRE2_SIZE subject_length = part.length();
+                    PCRE2_SIZE offset = 0;
+                    int rc;
+                    while(true) {
+                        rc = pcre2_match_8(
+                                compiled_pattern_pcre2,
+                                subject,
+                                subject_length,
+                                offset,
+                                PCRE2_NO_UTF_CHECK,
+                                match_data_pcre2,
+                                match_context_pcre2
+                            );
+                        if (rc < 0) {
+                            if (rc == PCRE2_ERROR_NOMATCH) break;
+                            PCRE2_UCHAR buffer[256];
+                            pcre2_get_error_message(rc, buffer, sizeof(buffer));
+                            throw std::runtime_error("PCRE2 match error: " + std::string(reinterpret_cast<char*>(buffer)));
+                        }
+                        PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data_pcre2);
+                        PCRE2_SIZE start = ovector[0];
+                        PCRE2_SIZE end = ovector[1];
+                        if (start == end) {
+                            if (offset >= subject_length) break;
+                            offset++;
+                            continue;
+                        }
+                        std::string_view matched_view(reinterpret_cast<const char*>(subject + start), end - start);
+                        text_chunks.push_back(text_to_vector(matched_view));
+                        offset = end;
+                    }
                 }
             } else {
-                // If no split pattern, treat the whole text as a single chunk
-                text_chunks.push_back(text_to_vector(text));
+                // No regex: just convert each split chunk
+                for (const auto& part : split_text) {
+                    text_chunks.push_back(text_to_vector(part));
+                }
             }
-
             // Apply merges to each chunk
             auto encoded_chunks = internal_encode(text_chunks);
-
             // Flatten the encoded chunks into a single token vector
             vector<int> out;
             for(const auto &chunk: encoded_chunks) {
                 out.insert(out.end(), chunk.begin(), chunk.end());
             }
-
             if(verbose) {
                 cout << "Encoded input text (length " << text.length() << ") to " << out.size() << " tokens\n";
             }
