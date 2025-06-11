@@ -517,10 +517,68 @@ namespace MinBpeCC::Tokenizer {
             }
         };
 
+        // Splits input text into a vector of strings, separating regular text and special tokens.
+        // Each special token occurrence is replaced with a string like "\0<id>" (null char + token id as string).
+        // If no special tokens are found, returns a single string in the vector.
+        // Example: "hello <|endoftext|> world" => ["hello ", "\0100257", " world"]
+        // TODO this is a naive implementation, it may be more efficient to use a regex or other method
+        std::vector<std::string> split_on_special(const std::string& text) {
+            std::vector<std::string> result;
+            if (special_tokens.empty()) {
+                result.push_back(text);
+                return result;
+            }
+            size_t pos = 0;
+            size_t last = 0;
+            while (pos < text.size()) {
+                size_t found_pos = std::string::npos;
+                std::string found_token;
+                int found_id = 0;
+                // Find the next special token occurrence
+                for (const auto& kv : special_tokens) {
+                    const std::string& token = kv.first;
+                    size_t p = text.find(token, pos);
+                    if (p != std::string::npos && (found_pos == std::string::npos || p < found_pos)) {
+                        found_pos = p;
+                        found_token = token;
+                        found_id = kv.second;
+                    }
+                }
+                if (found_pos == std::string::npos) {
+                    break;
+                }
+                // Add text before the special token
+                if (found_pos > last) {
+                    result.push_back(text.substr(last, found_pos - last));
+                }
+                // Add the special token marker
+                result.push_back("\0" + std::to_string(found_id));
+                pos = found_pos + found_token.size();
+                last = pos;
+            }
+            // Add any remaining text
+            if (last < text.size()) {
+                result.push_back(text.substr(last));
+            }
+            // If no special tokens were found, return the whole string
+            if (result.empty()) {
+                result.push_back(text);
+            }
+            return result;
+        }
+
         // Encodes input text into a sequence of tokens
         vector<int> encode(const string &text, const bool verbose) {
-            vector<vector<int>> text_chunks;
+            auto split_text = split_on_special(text);
+            if (verbose) {
+                cout << "Splitting input text into " << split_text.size() << " parts\n";
+                for(const auto &part : split_text) {
+                    auto is_special = part.size() > 0 && part[0] == '\0';
+                    cout << "Part: \"" << part << " special: " << is_special << "\n";
+                }
+            }    
 
+            vector<vector<int>> text_chunks;
             if (compiled_pattern_pcre2 != NULL) {
                 // Split the text into chunks using PCRE2, similar to training
                 PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.c_str());
@@ -559,7 +617,7 @@ namespace MinBpeCC::Tokenizer {
 
                   // Use a string_view to avoid allocation
                   std::string_view matched_view(reinterpret_cast<const char*>(subject + start), end - start);
-                  text_chunks.push_back(text_to_vector(matched_view));  // overload text_to_vector for string_view?
+                  text_chunks.push_back(text_to_vector(matched_view));
 
                   offset = end;
                 }
