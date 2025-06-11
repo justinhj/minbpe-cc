@@ -552,7 +552,9 @@ namespace MinBpeCC::Tokenizer {
                     result.push_back(text.substr(last, found_pos - last));
                 }
                 // Add the special token marker
-                result.push_back("\0" + std::to_string(found_id));
+                std::string marker(1, '\0');
+                marker += std::to_string(found_id);
+                result.push_back(marker);
                 pos = found_pos + found_token.size();
                 last = pos;
             }
@@ -574,7 +576,7 @@ namespace MinBpeCC::Tokenizer {
                 cout << "Splitting input text into " << split_text.size() << " parts\n";
                 for(const auto &part : split_text) {
                     auto is_special = part.size() > 0 && part[0] == '\0';
-                    cout << "Part: \"" << part << " special: " << is_special << "\n";
+                    cout << "Part: \"" << part << "\" special: " << is_special << "\n";
                 }
             }    
 
