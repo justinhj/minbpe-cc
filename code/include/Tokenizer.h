@@ -51,6 +51,7 @@ namespace MinBpeCC::Tokenizer {
         static const auto bucket_size = 10;
 
         std::unordered_map<std::string, int> special_tokens;
+        std::unordered_map<int, std::string> special_tokens_reverse_lookup;
 
         pcre2_code_8* compiled_pattern_pcre2;     // Compiled PCRE2 pattern
         pcre2_match_data_8* match_data_pcre2;     // Match data block for results
@@ -441,11 +442,13 @@ namespace MinBpeCC::Tokenizer {
         //   token2 20001
         void set_special_tokens_from_file(const std::string& input_string) {
           special_tokens.clear();
+          special_tokens_reverse_lookup.clear();
           std::istringstream iss(input_string);
           std::string key;
           int value;
           while (iss >> key >> value) {
               special_tokens[key] = value;
+              special_tokens_reverse_lookup[value] = key;
           }
         }
 
@@ -666,6 +669,13 @@ namespace MinBpeCC::Tokenizer {
             }
             string text = "";
             for(int tkn : tokens) {
+
+                // Override special tokens with their string representation
+                if (special_tokens_reverse_lookup.find(tkn) != special_tokens_reverse_lookup.end()) {
+                    text += special_tokens_reverse_lookup[tkn];
+                    continue; // Skip further processing for this token
+                }
+
                 // Ensure token is within valid vocabulary range
                 if (tkn < 0 || tkn >= vocab.size()) {
                     std::cerr << "Warning: Attempted to decode invalid token ID: " << tkn << "\n";
@@ -744,7 +754,7 @@ namespace MinBpeCC::Tokenizer {
                     }
                 }
 
-                // Read special token count (currently always 0)
+                // Read specials token count
                 int num_special;
                 input_file >> num_special;
                 for(int i = 0; i < num_special; i++) {
@@ -752,6 +762,7 @@ namespace MinBpeCC::Tokenizer {
                     int id;
                     input_file >> token >> id;
                     special_tokens[token] = id; // Store special tokens
+                    special_tokens_reverse_lookup[id] = token; // Reverse lookup for decoding
                     if(verbose) {
                         cout << "Loaded special token: " << token << " with ID " << id << "\n";
                     }
