@@ -278,6 +278,18 @@ namespace MinBpeCC::Tokenizer {
                 vector<int> appended{vocab[std::get<0>(mio)]}; // Copy first part of the merge
                 appended.insert(appended.end(),vocab[std::get<1>(mio)].begin(), vocab[std::get<1>(mio)].end()); // Append second part
                 vocab.push_back(appended);
+                // when verbose is true show the vocab element but strip out bytes that are not printable
+                if(verbose) {
+                    cout << "vocab[" << idx << "] = ";
+                    for(auto c: appended) {
+                        if(c >= 32 && c < 127) { // Printable ASCII range
+                            cout << static_cast<char>(c);
+                        } else {
+                            cout << "\\x" << std::hex << c; // Non-printable as hex
+                        }
+                    }
+                    cout << "\n";
+                }
                 idx++;
             }
             if(verbose) {

@@ -86,7 +86,6 @@ expected<vector<int>,string> load_encoding(const path &path) {
     uint32_t number;
     while(file.read(reinterpret_cast<char *>(&number), sizeof(uint32_t))) {
       data.push_back(number);
-      cout << "Read " << number << "\n";
     }
 
     if (file.fail() && !file.eof()) {
