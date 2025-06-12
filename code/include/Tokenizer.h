@@ -506,11 +506,17 @@ namespace MinBpeCC::Tokenizer {
                 // If no split pattern, treat the whole text as a single chunk
                 chunks.push_back(text_to_vector(text));
             }
+            
+            if (verbose) {
+                cout << "Split input text into " << chunks.size() << " chunks\n";
+            }
 
             // Continue with BPE algorithm
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
 
+            int total_merges = vocab_size - 256;
+            int last_percent = -1;
             for(int i = 256; i < vocab_size; i++) {
                 const auto& index_by_count = freqs.get_index_by_count();
                 if(!index_by_count.empty()) {
@@ -518,6 +524,11 @@ namespace MinBpeCC::Tokenizer {
                     auto [p1,p2] = max.pair;
 
                     if(verbose) {
+                        int percent = static_cast<int>(100.0 * (i - 256) / total_merges);
+                        if (percent != last_percent && (percent % 5 == 0 || i == vocab_size - 1)) {
+                            cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
+                            last_percent = percent;
+                        }
                         cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << max.count << "\n";
                     }
 

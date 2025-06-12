@@ -193,8 +193,15 @@ int main(int argc, char *argv[]) {
     auto model_fspath = path(model_path);
     cout << "Training using file " << input_fspath << " encoder " << encoder << " vocab size " << vocab_size << " model path " << model_path << "\n";
 
+
+    if(verbose) {
+        cout << "Loading file " << input_path << "\n";
+    }
     auto input = load_file_to_string(input_path);
     if(input.has_value()) {
+      if(verbose) {
+          cout << "Starting training...\n";
+      }
       rt.train(input.value(), vocab_size, verbose);
       rt.save(model_fspath, write_vocab);
     } else { 
