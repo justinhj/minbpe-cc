@@ -132,20 +132,35 @@ namespace MinBpeCC::Tokenizer {
             return flists;
         }
 
-        // Calculates frequencies of adjacent pairs in the chunks
-        auto calculate_freqs(const vector<std::forward_list<int>> &chunks) {
+        // Calculates frequencies of adjacent pairs in the chunks, tracking first occurrence
+        PairCount calculate_freqs(const vector<std::forward_list<int>> &chunks) {
             PairCount freqs;
+            size_t global_idx = 0;
             for(const auto &chunk: chunks) {
                 auto p1 = chunk.begin();
                 auto p2 = std::next(p1);
                 while(p1 != chunk.end() && p2 != chunk.end()) {
                     auto p = make_pair(*p1, *p2);
-                    freqs.increment_freq_count(p);
+                    freqs.increment_freq_count(p, global_idx);
                     ++p1;
                     ++p2;
+                    ++global_idx;
                 }
             }
             return freqs;
+        }
+
+        // Calculate frequencies and first occurrence of all symbol pairs in the corpus
+        // This version supports first-occurrence tie-breaking
+        void calculate_freqs(const std::vector<std::vector<int>>& corpus, PairCount& pair_count) const {
+            for (const auto& word : corpus) {
+                if (word.size() < 2) continue;
+                for (size_t i = 0; i + 1 < word.size(); ++i) {
+                    int a = word[i];
+                    int b = word[i + 1];
+                    pair_count.add_pair(a, b, 1, i); // Pass i as the first occurrence index
+                }
+            }
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies
@@ -526,29 +541,27 @@ namespace MinBpeCC::Tokenizer {
             // Continue with BPE algorithm
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
-
             int total_merges = vocab_size - 256;
             int last_percent = -1;
             for(int i = 256; i < vocab_size; i++) {
-                const auto& index_by_count = freqs.get_index_by_count();
-                if(!index_by_count.empty()) {
-                    auto max = *index_by_count.begin(); // Get the most frequent pair
-                    auto [p1,p2] = max.pair;
-
+                auto best = freqs.get_top_pair_count_order();
+                if(best.has_value()) {
+                    auto stat = *best;
+                    auto max_pair = stat.pair;
+                    auto [p1, p2] = max_pair;
                     if(verbose) {
                         int percent = static_cast<int>(100.0 * (i - 256) / total_merges);
                         if (percent != last_percent && (percent % 5 == 0 || i == vocab_size - 1)) {
                             cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
                             last_percent = percent;
                         }
-                        cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << max.count << "\n";
+                        cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << stat.count << " first_occurrence " << stat.first_occurrence << "\n";
                     }
-
-                    merges.push_back(max.pair); // Store the merged pair
-                    merges_lookup[max.pair] = i; // Add to lookup table
-                    merge_chunks(flists, max.pair, i, max.count, freqs); // Apply merge to all chunks
+                    merges.push_back(max_pair);
+                    merges_lookup[max_pair] = i;
+                    merge_chunks(flists, max_pair, i, stat.count, freqs);
                 } else {
-                    break; // No more pairs to merge
+                    break;
                 }
             }
 

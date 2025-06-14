@@ -8,6 +8,7 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <limits>
 
 using std::pair;
 using std::optional;
@@ -15,14 +16,17 @@ using std::optional;
 namespace MinBpeCC::Util {
 
 struct PairCountOrder {
-  pair<int,int> pair;
+  ::pair<int,int> pair;
   int count;
+  size_t first_occurrence;
+  PairCountOrder(::pair<int,int> p, int c, size_t fo) : pair(p), count(c), first_occurrence(fo) {}
+  PairCountOrder(::pair<int,int> p, int c) : pair(p), count(c), first_occurrence(std::numeric_limits<size_t>::max()) {}
 };
 
 struct CompareCountOrder {
     bool operator()(const PairCountOrder& a, const PairCountOrder& b) const {
       if(a.count == b.count) {
-        return a.pair < b.pair; // lower pair is greater
+        return a.first_occurrence < b.first_occurrence;
       } else {
         return a.count > b.count; // higher count is greater
       }
@@ -63,14 +67,30 @@ class PairCount {
       }
     }
 
-    void increment_freq_count(pair<int,int> mp) {
+    // Add or increment a pair, tracking first occurrence
+    void add_pair(int a, int b, int freq, size_t first_occurrence) {
+      pair<int,int> mp = {a, b};
+      auto& index_by_key = pcs.get<0>();
+      auto f = index_by_key.find(mp);
+      if(f != pcs.end()) {
+        index_by_key.modify(f, [freq](PairCountOrder& pc) { pc.count += freq; });
+      } else {
+        pcs.insert(PairCountOrder(mp, freq, first_occurrence));
+      }
+    }
+
+    // Overload for incrementing without first occurrence (for legacy code)
+    void increment_freq_count(pair<int,int> mp, size_t first_occurrence) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
         index_by_key.modify(f, [](PairCountOrder& pc) { pc.count++; });
       } else {
-        pcs.insert({mp, 1});
+        pcs.insert(PairCountOrder(mp, 1, first_occurrence));
       }
+    }
+    void increment_freq_count(pair<int,int> mp) {
+      increment_freq_count(mp, std::numeric_limits<size_t>::max());
     }
 
     void decrement_freq_count(pair<int,int> mp) {
@@ -104,4 +124,5 @@ class PairCount {
 };
 
 }
+
 #endif

@@ -32,13 +32,13 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
     PairCount pc;
     auto max = pc.get_top_pair_count_order();
     REQUIRE( !max.has_value() );
-    pc.increment_freq_count(make_pair(1,2));
+    pc.increment_freq_count(make_pair(1,2), 10);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
 
     pc.increment_freq_count(make_pair(1,2));
-    pc.increment_freq_count(make_pair(2,3));
+    pc.increment_freq_count(make_pair(2,3), 15);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
@@ -53,7 +53,7 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
 
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
-    REQUIRE( (max.value().pair == make_pair(1,2) || max.value().pair == make_pair(2,3)) );
+    REQUIRE( (max.value().pair == make_pair(1,2) ) );
 }
 
 class TokenizerTest : public Tokenizer {
