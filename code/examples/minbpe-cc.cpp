@@ -69,7 +69,6 @@ expected<void,string> save_encoding(const path &path, const vector<int> encoded)
       assert(code >= 0);
       assert(code <= UINT32_MAX);
       uint32_t c = static_cast<uint32_t>(code);
-      cout << "writing " << c << "\n";
       file.write(reinterpret_cast<const char *>(&c), sizeof(uint32_t));
     }
     return {};

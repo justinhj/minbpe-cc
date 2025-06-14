@@ -45,19 +45,19 @@ In this example we train a model on the Taylor Swift wiki page and save it.
 
 ```
 mkdir ./models
-minbpe-cc --train --input ./data/taylorswift.txt -m ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4
+minbpe-cc --train --input ./data/taylorswift.txt --model-path ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4
 ```
 
 Then we can encode some text with the model, in this case the same text we trained on.
 
 ```
-minbpe-cc --encode --input ./data/taylorswift.txt -m ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4 --output taylorencoded --verbose
+minbpe-cc --encode --input ./data/taylorswift.txt --model-path ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4 --output taylorencoded --verbose
 ```
 
 Finally we can decode the tokens back to the original text.
 
 ```
-minbpe-cc --decode --input taylorencoded -m ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4 --output taylororiginal.txt --verbose
+minbpe-cc --decode --input taylorencoded --model-path ./models/taylorswift-gpt4.model  --vocab-size 512 --encoder gpt4 --output taylororiginal.txt --verbose
 ```
 
 ## Code style
@@ -115,12 +115,12 @@ shakespeare.txt (train 2)
 
 ## TODO Notes and C++ related
 
-* TODO Add special token support for encoding and decoding
-* WIP Make build files more portable (Converting to zig build)
 * TODO check performance of going back to vector instead of forward_list when training in each mode
 * TODO Warnings when specifying unused arguments. vocab size and encoder only matter for training
 * TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
 * TODO Add end to end test script
+* DONE Add special token support for encoding and decoding
+* DONE Make build files more portable (Converting to zig build)
 * DONE replace tuple with pair
 * DONE Add lexicographic ordering for tie breaking pairs (note this is a bit slower)
 * DONE option to save the vocab

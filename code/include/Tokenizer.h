@@ -318,7 +318,7 @@ namespace MinBpeCC::Tokenizer {
                     auto current_pair = make_pair(text[i], text[i + 1]);
                     auto it = merges_lookup.find(current_pair);
                     if(it != merges_lookup.end()) {
-                        if (true) { // Set to `verbose` if desired
+                        if (false) { // Set to `verbose` if desired
                             cout << "found pair " << std::get<0>(current_pair) << ", " << std::get<1>(current_pair) << " replace with " << it->second << "\n";
                         }
                         out.push_back(it->second); // Add the new merged token
@@ -329,7 +329,7 @@ namespace MinBpeCC::Tokenizer {
                 }
 
                 if (!merged_this_iter) {
-                    if (true) { // Set to `verbose` if desired
+                    if (false) { // Set to `verbose` if desired
                         cout << "no pair " << text[i] << " replace with " << text[i] << "\n";
                     }
                     out.push_back(text[i]); // Add the single element
