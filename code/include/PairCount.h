@@ -9,6 +9,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <limits>
+#include <vector>
 
 using std::pair;
 using std::optional;
@@ -34,7 +35,7 @@ struct CompareCountOrder {
 };
 
 using boost::multi_index::hashed_unique;
-using boost::multi_index::ordered_unique;
+using boost::multi_index::ordered_non_unique;
 using boost::multi_index::indexed_by;
 using boost::multi_index::member;
 using boost::multi_index::identity;
@@ -43,7 +44,7 @@ typedef boost::multi_index_container<
     PairCountOrder,
     indexed_by<
         hashed_unique<member<PairCountOrder, pair<int,int>, &PairCountOrder::pair>>,
-        ordered_unique<identity<PairCountOrder>, CompareCountOrder>
+        ordered_non_unique<identity<PairCountOrder>, CompareCountOrder>
     > 
 > PairCountStore;
 
@@ -119,6 +120,14 @@ class PairCount {
 
     const auto end() {
       return pcs.end();
+    }
+
+    std::vector<std::vector<int>> get_all() {
+      std::vector<std::vector<int>> result;
+      for (const auto& pco : pcs) {
+        result.push_back({pco.pair.first, pco.pair.second, pco.count});
+      }
+      return result;
     }
 };
 
