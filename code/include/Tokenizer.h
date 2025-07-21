@@ -164,7 +164,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies
-        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
+        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount &freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -327,7 +327,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int insert_order, PairCount &freqs) {
+        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int &insert_order, PairCount &freqs) {
             for(auto &chunk: chunks) {
                 merge(chunk, mp, idx, insert_order, freqs);
             }
@@ -600,6 +600,7 @@ namespace MinBpeCC::Tokenizer {
 
             int total_merges = vocab_size - 256;
             int last_percent = -1;
+            int insert_order = 256;
             for(int i = 256; i < vocab_size; i++) {
                 auto best = freqs.get_top_pair_count_order();
                 if(best.has_value()) {
@@ -616,7 +617,7 @@ namespace MinBpeCC::Tokenizer {
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
-                    merge_chunks(flists, max_pair, i, stat.count, freqs);
+                    merge_chunks(flists, max_pair, i, insert_order, freqs);
                 } else {
                     break;
                 }
