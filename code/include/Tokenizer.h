@@ -165,7 +165,7 @@ namespace MinBpeCC::Tokenizer {
 
         // Merges a specific pair within a single forward_list, updating frequencies
         void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int insert_order, PairCount &freqs) {
-            auto verbose = 1; // Control verbosity for debugging
+            auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
                 for(auto c: text) {
@@ -187,7 +187,7 @@ namespace MinBpeCC::Tokenizer {
             auto i3 = std::next(i2);
 
             while(i1 != text.end() && i2 != text.end()) {
-                if(true) {
+                if(false) {
                   const auto& freqs_index = freqs.get_index_by_key();
                   // dump the freqs
                   cout << "Current frequencies:\n";
@@ -284,10 +284,11 @@ namespace MinBpeCC::Tokenizer {
                 cout << "\n";
             }
 
-            PairCount pccheck;
-            pccheck = calculate_freqs({text}); // Recalculate frequencies for the merged text
+            // TODO this should optionally just verify instead of printing
+            if(false) {  //  two spaces before comment
+                PairCount pccheck;
+                pccheck = calculate_freqs({text}); // Recalculate frequencies for the merged text
 
-            if(true) {  //  two spaces before comment
                 cout << "Verify freqs:\n";
                 const auto& pccheck_index = pccheck.get_index_by_key();
                 const auto& freqs_index = freqs.get_index_by_key();
@@ -589,7 +590,7 @@ namespace MinBpeCC::Tokenizer {
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
 
-            if (verbose) {  //  two spaces before comment
+            if (false) { // very verbose
                 cout << "Initial frequency counts:\n";
                 const auto& index_by_key = freqs.get_index_by_key();
                 for (const auto& pco : index_by_key) {
