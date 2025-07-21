@@ -67,7 +67,7 @@ class PairCount {
       }
     }
 
-    // Add or increment a pair, tracking first occurrence
+    // Add or increment/decrement a pair, tracking first occurrence
     void add_pair(int a, int b, int freq, size_t first_occurrence) {
       pair<int,int> mp = {a, b};
       auto& index_by_key = pcs.get<0>();
@@ -79,7 +79,6 @@ class PairCount {
       }
     }
 
-    // Overload for incrementing without first occurrence (for legacy code)
     void increment_freq_count(pair<int,int> mp, size_t first_occurrence) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);

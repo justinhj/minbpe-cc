@@ -85,6 +85,14 @@ size_t getForwardListLength(const std::forward_list<T>& flist) {
     return count;
 }
 
+void print_flist(const char* msg, const std::forward_list<int>& flist) {
+    cout << msg;
+    for (const auto& token : flist) {
+        cout << token << " ";
+    }
+    cout << std::endl;
+}
+
 TEST_CASE("Tokenizer training", "[tokenizer]") {
     TokenizerTest bt;
     vector<vector<int>> chunks;
@@ -100,13 +108,17 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_pair(98,99) );
 
+    print_flist("Before merge 1: ", flists[0]);
     bt.merge_public(flists[0], make_pair(98,99), 256, 1, freqs);
+    print_flist("After merge 1:  ", flists[0]);
     
     max = freqs.get_top_pair_count_order();
 
     REQUIRE( max.has_value() ); 
 
+    print_flist("Before merge 2: ", flists[0]);
     bt.merge_public(flists[0], make_pair(97,256), 257, 1, freqs);
+    print_flist("After merge 2:  ", flists[0]);
 
     max = freqs.get_top_pair_count_order();
 
