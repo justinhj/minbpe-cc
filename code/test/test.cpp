@@ -7,15 +7,6 @@
 
 using MinBpeCC::Tokenizer::Tokenizer;
 
-void debug_pair_count(PairCount &pc) {
-  auto &index_by_count = pc.get_index_by_count();
-  for (auto &f : index_by_count) {
-    auto [p1, p2] = f.pair;
-    cout << "pair: (" << p1 << ", " << p2 << ") count: " << f.count
-         << "   insert " << f.count << "\n";
-  }
-}
-
 TEST_CASE("PairCount allows multiple pairs with the same rank", "[paircount]") {
     PairCount pc;
 

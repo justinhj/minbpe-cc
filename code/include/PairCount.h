@@ -40,26 +40,26 @@ using boost::multi_index::indexed_by;
 using boost::multi_index::member;
 using boost::multi_index::identity;
 
-typedef boost::multi_index_container<
+using PairCountStore = boost::multi_index_container<
     PairCountOrder,
     indexed_by<
         hashed_unique<member<PairCountOrder, pair<int,int>, &PairCountOrder::pair>>,
         ordered_non_unique<identity<PairCountOrder>, CompareCountOrder>
     > 
-> PairCountStore;
+>;
 
 class PairCount {
   private:
     PairCountStore pcs;
-    int next_insert = 0;
+    size_t next_insert = 0;
   public:
     PairCount() {}
 
-    auto get_count() {
+    size_t get_count() {
       return pcs.size();
     }
 
-    optional<int> get_pair(pair<int,int> mp) {
+    [[nodiscard]] optional<int> get_pair(pair<int,int> mp) {
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
@@ -82,10 +82,6 @@ class PairCount {
         pcs.insert(PairCountOrder(mp, freq, next_insert++));
         return true;
       }
-    }
-
-    const auto &get_index_by_count() {
-      return pcs.get<1>();
     }
 
     auto get_top_pair_count_order() {
