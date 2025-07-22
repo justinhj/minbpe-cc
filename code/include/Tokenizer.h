@@ -163,8 +163,92 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
-        // Merges a specific pair within a single forward_list, updating frequencies
+        // Merges a specific pair within a single forward_list then completly update frequencies
         void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount &freqs) {
+            auto verbose = 0; // Control verbosity for debugging
+            if(verbose >= 2) {
+                cout << "before merge\n";
+                for(auto c: text) {
+                    cout << c << " ";
+                }
+                cout << "\n";
+            }
+
+            auto [p1_val, p2_val] = mp; // Deconstruct the pair
+            auto i1 = text.begin();
+            auto i2 = std::next(i1);
+
+            while(i1 != text.end() && i2 != text.end()) {
+                if(*i1 == p1_val && *i2 == p2_val) {
+                    if(verbose >= 1) {
+                        cout << "found pair " << p1_val << ", " << p2_val << " replace with " << new_token << "\n";
+                    }
+
+                    *i1 = new_token; // Replace the first element of the pair with the new token
+                    i2 = text.erase_after(i1); // Erase the second element
+
+
+                } else {
+                    // Advance iterators if no merge occurred
+                    i1 = i2;
+                    i2 = std::next(i2);
+                }
+            }
+            if(verbose >= 2) {
+                cout << "after merge\n";
+                for(auto c: text) {
+                    cout << c << " ";
+                }
+                cout << "\n";
+            }
+
+            // Recalculate frequencies
+            freqs = calculate_freqs({text});
+
+            // TODO this should optionally just verify instead of printing
+            if(false) {  //  two spaces before comment
+                PairCount pccheck;
+                pccheck = calculate_freqs({text}); // Recalculate frequencies for the merged text
+
+                cout << "Verify freqs:\n";
+                const auto& pccheck_index = pccheck.get_index_by_key();
+                const auto& freqs_index = freqs.get_index_by_key();
+
+                std::vector<pair<int, int>> all_pairs;
+                for (const auto& pco : pccheck_index) {
+                    if (pco.count > 0) {
+                        all_pairs.push_back(pco.pair);
+                    }
+                }
+                for (const auto& pco : freqs_index) {
+                    if (pco.count > 0) {
+                        all_pairs.push_back(pco.pair);
+                    }
+                }
+                std::sort(all_pairs.begin(), all_pairs.end());
+                all_pairs.erase(std::unique(all_pairs.begin(), all_pairs.end()), all_pairs.end());
+
+                for (const auto& p : all_pairs) {
+                    auto pccheck_it = pccheck_index.find(p);
+                    auto freqs_it = freqs_index.find(p);
+
+                    int pccheck_count = (pccheck_it != pccheck_index.end()) ? pccheck_it->count : 0;
+                    int freqs_count = (freqs_it != freqs_index.end()) ? freqs_it->count : 0;
+
+                    cout << "  Pair (" << p.first << ", " << p.second << ") pccheck: " << pccheck_count << ", freqs: " << freqs_count;
+
+                    if (pccheck_count > 0 && freqs_count == 0) {
+                        cout << " +";
+                    }
+                    cout << "\n";
+                }
+            }
+
+
+        }
+
+        // Merges a specific pair within a single forward_list, updating frequencies incrementally
+        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount &freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -338,7 +422,7 @@ namespace MinBpeCC::Tokenizer {
 
         // Merges a specific pair across all forward_lists in chunks
         void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int &insert_order, PairCount &freqs) {
-            cout << "merge chunks (insert order " << insert_order << ")\n";
+            // cout << "merge chunks (insert order " << insert_order << ")\n";
             for(auto &chunk: chunks) {
                 merge(chunk, mp, idx, insert_order, freqs);
             }
