@@ -69,14 +69,17 @@ class PairCount {
     }
 
     // Add or increment/decrement a pair, tracking first occurrence
-    void add_pair(int a, int b, int freq, size_t first_occurrence) {
+    // returns true if the pair was added, false if it was incremented
+    bool add_pair(int a, int b, int freq, size_t first_occurrence) {
       pair<int,int> mp = {a, b};
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
       if(f != pcs.end()) {
         index_by_key.modify(f, [freq](PairCountOrder& pc) { pc.count += freq; });
+        return false;
       } else {
         pcs.insert(PairCountOrder(mp, freq, first_occurrence));
+        return true;
       }
     }
 
