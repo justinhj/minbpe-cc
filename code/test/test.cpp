@@ -95,8 +95,8 @@ public:
   };
 
   void merge_public(std::forward_list<int> &text, pair<int, int> mp,
-                    int new_token, int insert_order, PairCount &freqs) {
-    merge(text, mp, new_token, insert_order, freqs);
+                    int new_token, PairCount &freqs) {
+    merge(text, mp, new_token, freqs);
   }
 };
 
@@ -133,7 +133,7 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.value().pair == make_pair(98,99) );
 
     // print_flist("Before merge 1: ", flists[0]);
-    bt.merge_public(flists[0], make_pair(98,99), 256, 1, freqs);
+    bt.merge_public(flists[0], make_pair(98,99), 256, freqs);
     // print_flist("After merge 1:  ", flists[0]);
     
     freqs = bt.calculate_freqs_public(flists);
@@ -143,7 +143,7 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.value().pair == make_pair(97,256) );
 
     // print_flist("Before merge 2: ", flists[0]);
-    bt.merge_public(flists[0], make_pair(97,256), 257, 1, freqs);
+    bt.merge_public(flists[0], make_pair(97,256), 257, freqs);
     // print_flist("After merge 2:  ", flists[0]);
 
     freqs = bt.calculate_freqs_public(flists);

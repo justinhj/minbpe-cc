@@ -162,7 +162,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list then completly update frequencies
-        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount &freqs) {
+        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount &freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -414,10 +414,10 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int &insert_order, PairCount &freqs) {
+        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount &freqs) {
             // cout << "merge chunks (insert order " << insert_order << ")\n";
             for(auto &chunk: chunks) {
-                merge(chunk, mp, idx, insert_order, freqs);
+                merge(chunk, mp, idx, freqs);
             }
         }
 
@@ -708,7 +708,7 @@ namespace MinBpeCC::Tokenizer {
                     merges_lookup[max_pair] = i;
                     // TODO switch on new flag for incremental frequency update optimization
                     if(true) {
-                      merge_chunks(flists, max_pair, i, insert_order, freqs);
+                      merge_chunks(flists, max_pair, i, freqs);
                       freqs = calculate_freqs(flists);
                     } else {
                       // TODO call merge_chunks with incremental flag and do not recalculate frequencies
