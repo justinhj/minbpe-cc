@@ -81,6 +81,11 @@ https://github.com/glample/fastBPE/tree/master
 
 ## Optimization and development notes
 
+Jul 22 2025
+
+Reworked the code so it's fully compatible with Karpathy's example models for training (the model files are exactly the same). Working on a refactor so you can run the slower compatible version or the optimized version with a command line flag.
+
+
 Jul 21 2025
 
 Revisiting the data structures used. I would like to restore the original algorithm of picking "first" inserted as the criteria for tie breaking, instead of the 
