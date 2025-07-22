@@ -9,3 +9,5 @@ models/*
 zig-out
 .zig-cache
 ainotes
+.env
+GEMINI.md
