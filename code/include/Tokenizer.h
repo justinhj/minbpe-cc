@@ -690,10 +690,9 @@ namespace MinBpeCC::Tokenizer {
             int last_percent = -1;
             int insert_order = 256;
             for(int i = 256; i < vocab_size; i++) {
-                auto best = freqs.get_top_pair_count_order();
+                auto best = freqs.get_top_pair_count();
                 if(best.has_value()) {
-                    auto stat = *best;
-                    auto max_pair = stat.pair;
+                    auto max_pair = *best;
                     auto [p1, p2] = max_pair;
                     if(verbose) {
                         int percent = static_cast<int>(100.0 * (i - 256) / total_merges);
@@ -702,7 +701,7 @@ namespace MinBpeCC::Tokenizer {
                         //     cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
                         //     last_percent = percent;
                         // }
-                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " had " << stat.count << " occurences (first_occurrence) " << stat.insert_order << "\n";
+                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << "\n";
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;

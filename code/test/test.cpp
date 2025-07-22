@@ -45,30 +45,30 @@ TEST_CASE("PairCount add and count", "[paircount]") {
 
 TEST_CASE("PairCount get most frequent", "[paircount]") {
     PairCount pc;
-    auto max = pc.get_top_pair_count_order();
+    auto max = pc.get_top_pair_count();
     REQUIRE( !max.has_value() );
     pc.create_or_modify_pair(1,2,1);
-    max = pc.get_top_pair_count_order();
+    max = pc.get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_pair(1,2) );
+    REQUIRE( max.value() == make_pair(1,2) );
 
     pc.create_or_modify_pair(1,2,1);
     pc.create_or_modify_pair(2,3,1);
-    max = pc.get_top_pair_count_order();
+    max = pc.get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_pair(1,2) );
+    REQUIRE( max.value() == make_pair(1,2) );
 
     pc.create_or_modify_pair(2,3,1);
     pc.create_or_modify_pair(2,3,1);
-    max = pc.get_top_pair_count_order();
+    max = pc.get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value().pair == make_pair(2,3) );
+    REQUIRE( max.value() == make_pair(2,3) );
 
     pc.create_or_modify_pair(1,2,1);
 
-    max = pc.get_top_pair_count_order();
+    max = pc.get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( (max.value().pair == make_pair(1,2) ) );
+    REQUIRE( (max.value() == make_pair(1,2) ) );
 }
 
 class TokenizerTest : public Tokenizer {
@@ -119,29 +119,29 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
 
     auto freqs = bt.calculate_freqs_public(flists);
 
-    auto max = freqs.get_top_pair_count_order();
+    auto max = freqs.get_top_pair_count();
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_pair(98,99) );
+    REQUIRE( max.value() == make_pair(98,99) );
 
     // print_flist("Before merge 1: ", flists[0]);
     bt.merge_public(flists[0], make_pair(98,99), 256, freqs);
     // print_flist("After merge 1:  ", flists[0]);
     
     freqs = bt.calculate_freqs_public(flists);
-    max = freqs.get_top_pair_count_order();
+    max = freqs.get_top_pair_count();
 
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_pair(97,256) );
+    REQUIRE( max.value() == make_pair(97,256) );
 
     // print_flist("Before merge 2: ", flists[0]);
     bt.merge_public(flists[0], make_pair(97,256), 257, freqs);
     // print_flist("After merge 2:  ", flists[0]);
 
     freqs = bt.calculate_freqs_public(flists);
-    max = freqs.get_top_pair_count_order();
+    max = freqs.get_top_pair_count();
 
     REQUIRE( max.has_value() ); 
-    REQUIRE( max.value().pair == make_pair(257,256) );
+    REQUIRE( max.value() == make_pair(257,256) );
 
     const auto& freqs_index = freqs.get_index_by_key();
 

@@ -84,12 +84,12 @@ class PairCount {
       }
     }
 
-    auto get_top_pair_count_order() {
+    optional<pair<int,int>> get_top_pair_count() {
       const auto& index_by_count = pcs.get<1>();
       if(!index_by_count.empty()) {
-        return optional<PairCountOrder>(*index_by_count.begin());
+        return optional<pair<int,int>>((*index_by_count.begin()).pair);
       } else {
-        return optional<PairCountOrder>();
+        return optional<pair<int,int>>();
       }
     }
 
