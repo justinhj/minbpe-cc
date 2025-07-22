@@ -202,9 +202,6 @@ namespace MinBpeCC::Tokenizer {
                 cout << "\n";
             }
 
-            // Recalculate frequencies
-            freqs = calculate_freqs({text});
-
             // TODO this should optionally just verify instead of printing
             if(false) {  //  two spaces before comment
                 PairCount pccheck;
@@ -416,8 +413,6 @@ namespace MinBpeCC::Tokenizer {
                     cout << "\n";
                 }
             }
-
-
         }
 
         // Merges a specific pair across all forward_lists in chunks
@@ -713,7 +708,13 @@ namespace MinBpeCC::Tokenizer {
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
-                    merge_chunks(flists, max_pair, i, insert_order, freqs);
+                    // TODO switch on new flag for incremental frequency update optimization
+                    if(true) {
+                      merge_chunks(flists, max_pair, i, insert_order, freqs);
+                      freqs = calculate_freqs(flists);
+                    } else {
+                      // TODO call merge_chunks with incremental flag and do not recalculate frequencies
+                    }
                 } else {
                     break;
                 }
