@@ -680,7 +680,7 @@ namespace MinBpeCC::Tokenizer {
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
 
-            if (true) { // very verbose
+            if (false) { // very verbose if enabled but useful for debugging small samples
                 cout << "Initial frequency counts:\n";
                 const auto& index_by_key = freqs.get_index_by_key();
                 for (const auto& pco : index_by_key) {
