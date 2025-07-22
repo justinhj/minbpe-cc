@@ -338,6 +338,7 @@ namespace MinBpeCC::Tokenizer {
 
         // Merges a specific pair across all forward_lists in chunks
         void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, int &insert_order, PairCount &freqs) {
+            cout << "merge chunks (insert order " << insert_order << ")\n";
             for(auto &chunk: chunks) {
                 merge(chunk, mp, idx, insert_order, freqs);
             }
@@ -600,7 +601,7 @@ namespace MinBpeCC::Tokenizer {
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
 
-            if (false) { // very verbose
+            if (true) { // very verbose
                 cout << "Initial frequency counts:\n";
                 const auto& index_by_key = freqs.get_index_by_key();
                 for (const auto& pco : index_by_key) {
@@ -619,11 +620,12 @@ namespace MinBpeCC::Tokenizer {
                     auto [p1, p2] = max_pair;
                     if(verbose) {
                         int percent = static_cast<int>(100.0 * (i - 256) / total_merges);
-                        if (percent != last_percent && (percent % 5 == 0 || i == vocab_size - 1)) {
-                            cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
-                            last_percent = percent;
-                        }
-                        cout << "merge pair " << p1 << ", " << p2 << " with new token " << i << " count " << stat.count << " first_occurrence " << stat.first_occurrence << "\n";
+                        // useful for long runs
+                        // if (percent != last_percent && (percent % 5 == 0 || i == vocab_size - 1)) {
+                        //     cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
+                        //     last_percent = percent;
+                        // }
+                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " had " << stat.count << " occurences (first_occurrence) " << stat.first_occurrence << "\n";
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
