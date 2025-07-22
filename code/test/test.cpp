@@ -132,9 +132,9 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_pair(98,99) );
 
-    print_flist("Before merge 1: ", flists[0]);
+    // print_flist("Before merge 1: ", flists[0]);
     bt.merge_public(flists[0], make_pair(98,99), 256, 1, freqs);
-    print_flist("After merge 1:  ", flists[0]);
+    // print_flist("After merge 1:  ", flists[0]);
     
     freqs = bt.calculate_freqs_public(flists);
     max = freqs.get_top_pair_count_order();
@@ -142,9 +142,9 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.has_value() ); 
     REQUIRE( max.value().pair == make_pair(97,256) );
 
-    print_flist("Before merge 2: ", flists[0]);
+    // print_flist("Before merge 2: ", flists[0]);
     bt.merge_public(flists[0], make_pair(97,256), 257, 1, freqs);
-    print_flist("After merge 2:  ", flists[0]);
+    // print_flist("After merge 2:  ", flists[0]);
 
     freqs = bt.calculate_freqs_public(flists);
     max = freqs.get_top_pair_count_order();
@@ -154,9 +154,19 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
 
     const auto& freqs_index = freqs.get_index_by_key();
 
-    // TODO verify what is in the freqs matches expectations
-    // the pairs and counts should be as follows
-    // (256, 100): 1
-    // (257, 256): 1
-    // (100, 101): 1
+    // Verify the contents of freqs
+    auto p1 = freqs.get_pair({256, 100});
+    REQUIRE(p1.has_value());
+    REQUIRE(p1.value() == 1);
+
+    auto p2 = freqs.get_pair({257, 256});
+    REQUIRE(p2.has_value());
+    REQUIRE(p2.value() == 1);
+
+    auto p3 = freqs.get_pair({100, 101});
+    REQUIRE(p3.has_value());
+    REQUIRE(p3.value() == 1);
+
+    // Also check that the total number of pairs is 3
+    REQUIRE(freqs.get_count() == 3);
 }
