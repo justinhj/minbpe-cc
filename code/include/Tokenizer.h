@@ -140,7 +140,7 @@ namespace MinBpeCC::Tokenizer {
                 auto p2 = std::next(p1);
                 while(p1 != chunk.end() && p2 != chunk.end()) {
                     auto p = make_pair(*p1, *p2);
-                    freqs.add_pair(*p1, *p2, 1);
+                    freqs.create_or_modify_pair(*p1, *p2, 1);
                     ++p1;
                     ++p2;
                 }
@@ -156,7 +156,7 @@ namespace MinBpeCC::Tokenizer {
                 for (size_t i = 0; i + 1 < word.size(); ++i) {
                     int a = word[i];
                     int b = word[i + 1];
-                    pair_count.add_pair(a, b, 1);
+                    pair_count.create_or_modify_pair(a, b, 1);
                 }
             }
         }
@@ -296,7 +296,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "decrement replaced pair " << std::get<0>(f->pair) << ", " << std::get<1>(f->pair) << "\n";
                         }
-                        if(freqs.add_pair(f->pair.first, f->pair.second, -1)) {
+                        if(freqs.create_or_modify_pair(f->pair.first, f->pair.second, -1)) {
                           insert_order++;
                         }
                     }
@@ -308,14 +308,14 @@ namespace MinBpeCC::Tokenizer {
                             if(verbose >= 1) {
                                 cout << "decrement previous pair " << std::get<0>(prev->pair) << ", " << std::get<1>(prev->pair) << "\n";
                             }
-                            if(freqs.add_pair(prev->pair.first, prev->pair.second, -1)) {
+                            if(freqs.create_or_modify_pair(prev->pair.first, prev->pair.second, -1)) {
                                 insert_order++;
                             }
                         }
                         if(verbose >= 1) {
                             cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
                         }
-                        if(freqs.add_pair(*i0, new_token, 1)) {
+                        if(freqs.create_or_modify_pair(*i0, new_token, 1)) {
                             insert_order++;
                         }
                     }
@@ -327,7 +327,7 @@ namespace MinBpeCC::Tokenizer {
                             if(verbose >= 1) {
                                 cout << "decrement next pair " << std::get<0>(next->pair) << ", " << std::get<1>(next->pair) << "\n";
                             }
-                            if(freqs.add_pair(next->pair.first, next->pair.second, -1)) {
+                            if(freqs.create_or_modify_pair(next->pair.first, next->pair.second, -1)) {
                                 insert_order++;
                             }
                         } else {
@@ -338,7 +338,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "increment new next pair " << new_token << ", " << *i2 << "\n";
                         }
-                        if(freqs.add_pair(new_token, *i2, 1)) {
+                        if(freqs.create_or_modify_pair(new_token, *i2, 1)) {
                             insert_order++;
                         }
                     }

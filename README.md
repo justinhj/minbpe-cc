@@ -85,6 +85,12 @@ Jul 22 2025
 
 Reworked the code so it's fully compatible with Karpathy's example models for training (the model files are exactly the same). Working on a refactor so you can run the slower compatible version or the optimized version with a command line flag.
 
+Time for taylorswitch train. 5.8s
+
+
+Next steps:
+Code cleanup. Rename PairCount. Code tidying.
+Add the flash
 
 Jul 21 2025
 

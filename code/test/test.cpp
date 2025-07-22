@@ -20,12 +20,12 @@ TEST_CASE("PairCount allows multiple pairs with the same rank", "[paircount]") {
     PairCount pc;
 
     // Add a new pair. It will be inserted with count = 1 and first_occurrence = 1.
-    pc.add_pair(10, 20, 1);
+    pc.create_or_modify_pair(10, 20, 1);
     REQUIRE(pc.get_count() == 1);
 
     // Now, add a DIFFERENT pair but with the same initial count and first_occurrence value.
     // With the ordered_unique bug, this insert will fail silently.
-    pc.add_pair(30, 40, 1);
+    pc.create_or_modify_pair(30, 40, 1);
 
     // This assertion will fail with the buggy code, as the count will be 1 instead of 2.
     REQUIRE(pc.get_count() == 2);
@@ -44,11 +44,11 @@ TEST_CASE("PairCount add and count", "[paircount]") {
     PairCount pc;
     REQUIRE( pc.get_count() == 0 );
     int insert_order = 0;
-    pc.add_pair(1, 2, 1); 
+    pc.create_or_modify_pair(1, 2, 1); 
     REQUIRE( pc.get_count() == 1 );
-    pc.add_pair(1, 2, 1); 
+    pc.create_or_modify_pair(1, 2, 1); 
     REQUIRE( pc.get_count() == 1 );
-    pc.add_pair(2, 3, 1); 
+    pc.create_or_modify_pair(2, 3, 1); 
     REQUIRE( pc.get_count() == 2 );
 }
 
@@ -56,24 +56,24 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
     PairCount pc;
     auto max = pc.get_top_pair_count_order();
     REQUIRE( !max.has_value() );
-    pc.add_pair(1,2,1);
+    pc.create_or_modify_pair(1,2,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.add_pair(1,2,1);
-    pc.add_pair(2,3,1);
+    pc.create_or_modify_pair(1,2,1);
+    pc.create_or_modify_pair(2,3,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.add_pair(2,3,1);
-    pc.add_pair(2,3,1);
+    pc.create_or_modify_pair(2,3,1);
+    pc.create_or_modify_pair(2,3,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(2,3) );
 
-    pc.add_pair(1,2,1);
+    pc.create_or_modify_pair(1,2,1);
 
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );

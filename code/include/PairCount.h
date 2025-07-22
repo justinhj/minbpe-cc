@@ -71,8 +71,7 @@ class PairCount {
 
     // Add or increment/decrement a pair, tracking first occurrence
     // returns true if the pair was added, false if it existed
-    // TODO rename to add or modify
-    bool add_pair(int a, int b, int freq) {
+    bool create_or_modify_pair(int a, int b, int freq) {
       pair<int,int> mp = {a, b};
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
