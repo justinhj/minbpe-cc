@@ -19,15 +19,15 @@ namespace MinBpeCC::Util {
 struct PairCountOrder {
   ::pair<int,int> pair;
   int count;
-  size_t first_occurrence;
-  PairCountOrder(::pair<int,int> p, int c, size_t fo) : pair(p), count(c), first_occurrence(fo) {}
-  PairCountOrder(::pair<int,int> p, int c) : pair(p), count(c), first_occurrence(std::numeric_limits<size_t>::max()) {}
+  size_t insert_order;
+  PairCountOrder(::pair<int,int> p, int c, size_t fo) : pair(p), count(c), insert_order(fo) {}
+  PairCountOrder(::pair<int,int> p, int c) : pair(p), count(c), insert_order(std::numeric_limits<size_t>::max()) {}
 };
 
 struct CompareCountOrder {
     bool operator()(const PairCountOrder& a, const PairCountOrder& b) const {
       if(a.count == b.count) {
-        return a.first_occurrence < b.first_occurrence;
+        return a.insert_order < b.insert_order;
       } else {
         return a.count > b.count; // higher count is greater
       }
@@ -51,6 +51,7 @@ typedef boost::multi_index_container<
 class PairCount {
   private:
     PairCountStore pcs;
+    int next_insert = 0;
   public:
     PairCount() {}
 
@@ -69,8 +70,9 @@ class PairCount {
     }
 
     // Add or increment/decrement a pair, tracking first occurrence
-    // returns true if the pair was added, false if it was incremented
-    bool add_pair(int a, int b, int freq, size_t first_occurrence) {
+    // returns true if the pair was added, false if it existed
+    // TODO rename to add or modify
+    bool add_pair(int a, int b, int freq) {
       pair<int,int> mp = {a, b};
       auto& index_by_key = pcs.get<0>();
       auto f = index_by_key.find(mp);
@@ -78,29 +80,8 @@ class PairCount {
         index_by_key.modify(f, [freq](PairCountOrder& pc) { pc.count += freq; });
         return false;
       } else {
-        pcs.insert(PairCountOrder(mp, freq, first_occurrence));
+        pcs.insert(PairCountOrder(mp, freq, next_insert++));
         return true;
-      }
-    }
-
-    void increment_freq_count(pair<int,int> mp, size_t first_occurrence) {
-      auto& index_by_key = pcs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count++; });
-      } else {
-        pcs.insert(PairCountOrder(mp, 1, first_occurrence));
-      }
-    }
-    void increment_freq_count(pair<int,int> mp) {
-      increment_freq_count(mp, std::numeric_limits<size_t>::max());
-    }
-
-    void decrement_freq_count(pair<int,int> mp) {
-      auto& index_by_key = pcs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count--; });
       }
     }
 
@@ -133,7 +114,5 @@ class PairCount {
       return result;
     }
 };
-
 }
-
 #endif

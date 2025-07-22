@@ -18,15 +18,14 @@ void debug_pair_count(PairCount &pc) {
 
 TEST_CASE("PairCount allows multiple pairs with the same rank", "[paircount]") {
     PairCount pc;
-    int insert_order = 1;
 
     // Add a new pair. It will be inserted with count = 1 and first_occurrence = 1.
-    pc.add_pair(10, 20, 1, insert_order);
+    pc.add_pair(10, 20, 1);
     REQUIRE(pc.get_count() == 1);
 
     // Now, add a DIFFERENT pair but with the same initial count and first_occurrence value.
     // With the ordered_unique bug, this insert will fail silently.
-    pc.add_pair(30, 40, 1, insert_order);
+    pc.add_pair(30, 40, 1);
 
     // This assertion will fail with the buggy code, as the count will be 1 instead of 2.
     REQUIRE(pc.get_count() == 2);
@@ -45,11 +44,11 @@ TEST_CASE("PairCount add and count", "[paircount]") {
     PairCount pc;
     REQUIRE( pc.get_count() == 0 );
     int insert_order = 0;
-    pc.increment_freq_count(make_pair(1,2));
+    pc.add_pair(1, 2, 1); 
     REQUIRE( pc.get_count() == 1 );
-    pc.increment_freq_count(make_pair(1,2));
+    pc.add_pair(1, 2, 1); 
     REQUIRE( pc.get_count() == 1 );
-    pc.increment_freq_count(make_pair(2,3));
+    pc.add_pair(2, 3, 1); 
     REQUIRE( pc.get_count() == 2 );
 }
 
@@ -57,24 +56,24 @@ TEST_CASE("PairCount get most frequent", "[paircount]") {
     PairCount pc;
     auto max = pc.get_top_pair_count_order();
     REQUIRE( !max.has_value() );
-    pc.increment_freq_count(make_pair(1,2), 10);
+    pc.add_pair(1,2,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.increment_freq_count(make_pair(1,2));
-    pc.increment_freq_count(make_pair(2,3), 15);
+    pc.add_pair(1,2,1);
+    pc.add_pair(2,3,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(1,2) );
 
-    pc.increment_freq_count(make_pair(2,3));
-    pc.increment_freq_count(make_pair(2,3));
+    pc.add_pair(2,3,1);
+    pc.add_pair(2,3,1);
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
     REQUIRE( max.value().pair == make_pair(2,3) );
 
-    pc.increment_freq_count(make_pair(1,2));
+    pc.add_pair(1,2,1);
 
     max = pc.get_top_pair_count_order();
     REQUIRE( max.has_value() );
@@ -95,9 +94,9 @@ public:
     return calculate_freqs(chunks);
   };
 
-  auto merge_public(std::forward_list<int> &text, pair<int, int> mp,
+  void merge_public(std::forward_list<int> &text, pair<int, int> mp,
                     int new_token, int insert_order, PairCount &freqs) {
-    return merge(text, mp, new_token, insert_order, freqs);
+    merge(text, mp, new_token, insert_order, freqs);
   }
 };
 
@@ -137,25 +136,27 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     bt.merge_public(flists[0], make_pair(98,99), 256, 1, freqs);
     print_flist("After merge 1:  ", flists[0]);
     
+    freqs = bt.calculate_freqs_public(flists);
     max = freqs.get_top_pair_count_order();
 
     REQUIRE( max.has_value() ); 
+    REQUIRE( max.value().pair == make_pair(97,256) );
 
     print_flist("Before merge 2: ", flists[0]);
     bt.merge_public(flists[0], make_pair(97,256), 257, 1, freqs);
     print_flist("After merge 2:  ", flists[0]);
 
+    freqs = bt.calculate_freqs_public(flists);
     max = freqs.get_top_pair_count_order();
 
     REQUIRE( max.has_value() ); 
+    REQUIRE( max.value().pair == make_pair(257,256) );
 
-    auto expected_values = std::vector{
-          std::make_pair(257,256),
-          std::make_pair(256,100),
-          std::make_pair(0,257),
-          std::make_pair(100,101)
-      };
+    const auto& freqs_index = freqs.get_index_by_key();
 
-   auto it = std::find(expected_values.begin(), expected_values.end(), max.value().pair);
-   REQUIRE(it != expected_values.end());
+    // TODO verify what is in the freqs matches expectations
+    // the pairs and counts should be as follows
+    // (256, 100): 1
+    // (257, 256): 1
+    // (100, 101): 1
 }

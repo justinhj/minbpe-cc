@@ -132,19 +132,17 @@ namespace MinBpeCC::Tokenizer {
             return flists;
         }
 
-        // Calculates frequencies of adjacent pairs in the chunks, tracking first occurrence
+        // Calculates frequencies of adjacent pairs in the chunks
         PairCount calculate_freqs(const vector<std::forward_list<int>> &chunks) {
             PairCount freqs;
-            size_t global_idx = 0;
             for(const auto &chunk: chunks) {
                 auto p1 = chunk.begin();
                 auto p2 = std::next(p1);
                 while(p1 != chunk.end() && p2 != chunk.end()) {
                     auto p = make_pair(*p1, *p2);
-                    freqs.increment_freq_count(p, global_idx);
+                    freqs.add_pair(*p1, *p2, 1);
                     ++p1;
                     ++p2;
-                    ++global_idx;
                 }
             }
             return freqs;
@@ -158,7 +156,7 @@ namespace MinBpeCC::Tokenizer {
                 for (size_t i = 0; i + 1 < word.size(); ++i) {
                     int a = word[i];
                     int b = word[i + 1];
-                    pair_count.add_pair(a, b, 1, i); // Pass i as the first occurrence index
+                    pair_count.add_pair(a, b, 1);
                 }
             }
         }
@@ -298,7 +296,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "decrement replaced pair " << std::get<0>(f->pair) << ", " << std::get<1>(f->pair) << "\n";
                         }
-                        if(freqs.add_pair(f->pair.first, f->pair.second, -1, insert_order)) {
+                        if(freqs.add_pair(f->pair.first, f->pair.second, -1)) {
                           insert_order++;
                         }
                     }
@@ -310,14 +308,14 @@ namespace MinBpeCC::Tokenizer {
                             if(verbose >= 1) {
                                 cout << "decrement previous pair " << std::get<0>(prev->pair) << ", " << std::get<1>(prev->pair) << "\n";
                             }
-                            if(freqs.add_pair(prev->pair.first, prev->pair.second, -1, insert_order)) {
+                            if(freqs.add_pair(prev->pair.first, prev->pair.second, -1)) {
                                 insert_order++;
                             }
                         }
                         if(verbose >= 1) {
                             cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
                         }
-                        if(freqs.add_pair(*i0, new_token, 1, insert_order)) {
+                        if(freqs.add_pair(*i0, new_token, 1)) {
                             insert_order++;
                         }
                     }
@@ -329,7 +327,7 @@ namespace MinBpeCC::Tokenizer {
                             if(verbose >= 1) {
                                 cout << "decrement next pair " << std::get<0>(next->pair) << ", " << std::get<1>(next->pair) << "\n";
                             }
-                            if(freqs.add_pair(next->pair.first, next->pair.second, -1, insert_order)) {
+                            if(freqs.add_pair(next->pair.first, next->pair.second, -1)) {
                                 insert_order++;
                             }
                         } else {
@@ -340,7 +338,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "increment new next pair " << new_token << ", " << *i2 << "\n";
                         }
-                        if(freqs.add_pair(new_token, *i2, 1, insert_order)) {
+                        if(freqs.add_pair(new_token, *i2, 1)) {
                             insert_order++;
                         }
                     }
@@ -704,7 +702,7 @@ namespace MinBpeCC::Tokenizer {
                         //     cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
                         //     last_percent = percent;
                         // }
-                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " had " << stat.count << " occurences (first_occurrence) " << stat.first_occurrence << "\n";
+                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " had " << stat.count << " occurences (first_occurrence) " << stat.insert_order << "\n";
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
