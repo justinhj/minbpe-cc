@@ -133,6 +133,10 @@ int main(int argc, char *argv[]) {
   bool verbose = false;
   app.add_flag("-v,--verbose", verbose, "Print more things");
 
+  std::string conflict_resolution_str = "first";  // Default value
+  app.add_option("-c,--conflict-resolution", conflict_resolution_str, "Conflict resolution strategy: 'first' or 'lexical'")
+    ->check(CLI::IsMember({"first", "lexical"}));
+
   CLI11_PARSE(app, argc, argv);
 
   auto input_fspath = path(input_path);
@@ -200,7 +204,13 @@ int main(int argc, char *argv[]) {
       if(verbose) {
           cout << "Starting training...\n";
       }
-      rt.train(input.value(), vocab_size, Tokenizer::CONFLICT_RESOLUTION::LEXICAL, verbose);
+      MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION conflict_resolution;
+      if (conflict_resolution_str == "first") {
+        conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::FIRST;
+      } else {
+        conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::LEXICAL;
+      }
+      rt.train(input.value(), vocab_size, conflict_resolution, verbose);
       rt.save(model_fspath, write_vocab);
     } else { 
        cerr << "Failed to load training input file: " << input.error() << "\n";
