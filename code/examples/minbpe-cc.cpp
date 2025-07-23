@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
       if(verbose) {
           cout << "Starting training...\n";
       }
-      rt.train(input.value(), vocab_size, verbose);
+      rt.train(input.value(), vocab_size, Tokenizer::CONFLICT_RESOLUTION::LEXICAL, verbose);
       rt.save(model_fspath, write_vocab);
     } else { 
        cerr << "Failed to load training input file: " << input.error() << "\n";

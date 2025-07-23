@@ -46,6 +46,11 @@ namespace MinBpeCC::Tokenizer {
 
     class Tokenizer {
     public:
+        enum CONFLICT_RESOLUTION {
+            FIRST,
+            LEXICAL
+        };
+    public:
         inline const static std::string GPT2_SPLIT_PATTERN = "'(?:[sdmt]|ll|ve|re)| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+";
         inline const static std::string GPT4_SPLIT_PATTERN = "'(?i:[sdmt]|ll|ve|re)|[^\\r\\n\\p{L}\\p{N}]?+\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]++[\\r\\n]*|\\s*[\\r\\n]|\\s+(?!\\S)|\\s+";
     protected:
@@ -134,8 +139,12 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks) {
-            auto freqs = std::make_unique<PairCountInsertOrder>();
+        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks, 
+                               CONFLICT_RESOLUTION conflict_resolution) {
+          std::unique_ptr<PairCount> freqs = conflict_resolution == CONFLICT_RESOLUTION::FIRST ?
+                std::make_unique<PairCountInsertOrder>() :
+                std::make_unique<PairCountLexicalOrder>();
+
             for(const auto &chunk: chunks) {
                 auto p1 = chunk.begin();
                 auto p2 = std::next(p1);
@@ -516,7 +525,9 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Trains the tokenizer given input text and desired vocabulary size
-        void train(const string &text, const int vocab_size, const bool verbose) {
+        void train(const string &text, const int vocab_size, const CONFLICT_RESOLUTION conflict_resolution, 
+              const bool verbose) {
+
             assert(vocab_size >= 256); // Must have at least initial byte tokens
 
             merges.clear();
@@ -576,7 +587,7 @@ namespace MinBpeCC::Tokenizer {
 
             // Continue with BPE algorithm
             auto flists = create_lists(chunks);
-            auto freqs = calculate_freqs(flists);
+            auto freqs = calculate_freqs(flists, conflict_resolution);
 
             int total_merges = vocab_size - 256;
             int last_percent = -1;
@@ -597,12 +608,11 @@ namespace MinBpeCC::Tokenizer {
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
-                    // TODO switch on new flag for incremental frequency update optimization
-                    if(true) {
-                      merge_chunks(flists, max_pair, i, freqs.get());
-                      freqs = calculate_freqs(flists);
-                    } else {
-                      // TODO call merge_chunks with incremental flag and do not recalculate frequencies
+                    merge_chunks(flists, max_pair, i, freqs.get());
+                    if(conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
+                      // The lexical conflict resolution primarily gets its speed up from
+                      // not having to recalculate frequencies after each merge.
+                      freqs = calculate_freqs(flists, conflict_resolution);
                     }
                 } else {
                     break;
