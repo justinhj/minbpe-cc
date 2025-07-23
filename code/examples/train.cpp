@@ -1,6 +1,7 @@
 #include "Tokenizer.h"
 #include <fstream>
 #include <iostream>
+#include <CLI/CLI.hpp>
 
 using std::string;
 using std::cout;
@@ -60,16 +61,19 @@ int main(int argc, char *argv[]) {
   using std::chrono::duration_cast;
   using std::chrono::milliseconds;
 
-  long test_index = 0;
-  if (argc > 1) {
-    char *endptr;
-    long number = strtol(argv[1], &endptr, 10);
+  CLI::App app{"Train a tokenizer on a test string"};
+  argv = app.ensure_utf8(argv);
 
-    // If the entire argument was a valid number, print it
-    if (*endptr == '\0') {
-        long num_elements = sizeof(test_strings) / sizeof(test_strings[0]);
-        test_index = number < num_elements ? number : 0;
-    }
+  long test_index = 0;
+  app.add_option("-i,--test-string-index", test_index, "Index of the test string to use")
+     ->required();
+
+  CLI11_PARSE(app, argc, argv);
+
+  long num_elements = sizeof(test_strings) / sizeof(test_strings[0]);
+  if (test_index < 0 || test_index >= num_elements) {
+    std::cerr << "Error: test-string-index out of bounds. Must be between 0 and " << num_elements - 1 << std::endl;
+    return 1;
   }
 
   auto t1 = high_resolution_clock::now(); // Record start time
