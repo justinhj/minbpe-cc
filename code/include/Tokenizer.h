@@ -599,7 +599,7 @@ namespace MinBpeCC::Tokenizer {
                     merges_lookup[max_pair] = i;
                     // TODO switch on new flag for incremental frequency update optimization
                     if(true) {
-                      merge_chunks(flists, max_pair, i, freqs);
+                      merge_chunks(flists, max_pair, i, freqs.get());
                       freqs = calculate_freqs(flists);
                     } else {
                       // TODO call merge_chunks with incremental flag and do not recalculate frequencies
