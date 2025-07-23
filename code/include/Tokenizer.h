@@ -139,11 +139,13 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks, 
-                               CONFLICT_RESOLUTION conflict_resolution) {
-          std::unique_ptr<PairCount> freqs = conflict_resolution == CONFLICT_RESOLUTION::FIRST ?
-                std::make_unique<PairCountInsertOrder>() :
-                std::make_unique<PairCountLexicalOrder>();
+        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+          std::unique_ptr<PairCount> freqs;
+          if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
+              freqs = std::make_unique<PairCountInsertOrder>();
+          } else { // LEXICAL
+              freqs = std::make_unique<PairCountLexicalOrder>();
+          }
 
             for(const auto &chunk: chunks) {
                 auto p1 = chunk.begin();
@@ -212,7 +214,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
-        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount *freqs) {
+        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -270,9 +272,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
                         }
-                        if(freqs->create_or_modify_pair(*i0, new_token, 1)) {
-                            insert_order++;
-                        }
+                        freqs->create_or_modify_pair(*i0, new_token, 1);
                     }
 
                     if(i2 != text.end()) { // Check if i2 is a valid element (not end())
@@ -291,9 +291,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "increment new next pair " << new_token << ", " << *i2 << "\n";
                         }
-                        if(freqs->create_or_modify_pair(new_token, *i2, 1)) {
-                            insert_order++;
-                        }
+                        freqs->create_or_modify_pair(new_token, *i2, 1);
                     }
 
                     // Iterators are already adjusted by erase_after,
@@ -323,10 +321,16 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount *freqs) {
-            // cout << "merge chunks (insert order " << insert_order << ")\n";
+        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount *freqs,
+              CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
-                merge(chunk, mp, idx, freqs);
+              if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
+                  merge(chunk, mp, idx, freqs);
+              } else if(conflict_resolution == CONFLICT_RESOLUTION::LEXICAL) {
+                  merge_incremental(chunk, mp, idx, freqs);
+              } else {
+                  throw std::runtime_error("Unknown conflict resolution strategy");
+              }
             }
         }
 
@@ -608,11 +612,11 @@ namespace MinBpeCC::Tokenizer {
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
-                    merge_chunks(flists, max_pair, i, freqs.get());
+                    merge_chunks(flists, max_pair, i, freqs.get(), conflict_resolution);
                     if(conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
                       // The lexical conflict resolution primarily gets its speed up from
                       // not having to recalculate frequencies after each merge.
-                      freqs = calculate_freqs(flists, conflict_resolution);
+                      freqs = std::move(calculate_freqs(flists, conflict_resolution));
                     }
                 } else {
                     break;

@@ -121,8 +121,8 @@ public:
         return text_to_vector(text);
     };
 
-    auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks) {
-        return calculate_freqs(chunks);
+    auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+        return calculate_freqs(chunks, conflict_resolution);
     };
 
     void merge_public(std::forward_list<int> &text, pair<int, int> mp,
@@ -148,7 +148,7 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( getForwardListLength(flists[0]) == test_string.size());
 
     // FIX: `freqs` is now a std::unique_ptr, so we use it like a pointer.
-    auto freqs = bt.calculate_freqs_public(flists);
+    auto freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
 
     // FIX: Use the -> operator to access members of the object managed by unique_ptr.
     auto max = freqs->get_top_pair_count();
@@ -159,14 +159,14 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     bt.merge_public(flists[0], make_pair((int)'b', (int)'c'), 256, freqs.get());
 
     // Recalculate frequencies and re-assign the unique_ptr.
-    freqs = bt.calculate_freqs_public(flists);
+    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair((int)'a', 256) ); // 97, 256
 
     bt.merge_public(flists[0], make_pair((int)'a', 256), 257, freqs.get());
 
-    freqs = bt.calculate_freqs_public(flists);
+    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair(257, 256) );
