@@ -1,5 +1,5 @@
-#include <catch_amalgamated.hpp>
 #include "Tokenizer.h"
+#include <catch_amalgamated.hpp>
 #include <utility>
 
 using MinBpeCC::Tokenizer::Tokenizer;
