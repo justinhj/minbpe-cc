@@ -1,11 +1,6 @@
-#include <catch2/matchers/catch_matchers_quantifiers.hpp>
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_all.hpp>
-
-#include "Tokenizer.h" // Use .hpp extension
-
-#include <utility> // For std::make_pair
+#include <catch_amalgamated.hpp>
+#include "Tokenizer.h"
+#include <utility>
 
 using MinBpeCC::Tokenizer::Tokenizer;
 using MinBpeCC::Util::PairCount;

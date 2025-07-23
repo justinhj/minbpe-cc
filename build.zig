@@ -77,15 +77,6 @@ pub fn build(b: *std.Build) void {
         std.log.err("Failed to get CLI11_INCLUDE: {any}", .{err});
         @panic("Build configuration error: CLI11_INCLUDE");
     };
-    const catch2_include = getPath(b, "CATCH2_INCLUDE", false, default_lib_path, default_include_path) catch |err| {
-        std.log.err("Failed to get CATCH2_INCLUDE: {any}", .{err});
-        @panic("Build configuration error: CATCH2_INCLUDE");
-    };
-    const catch2_lib = getPath(b, "CATCH2_LIB", true, default_lib_path, default_include_path) catch |err| {
-        std.log.err("Failed to get CATCH2_LIB: {any}", .{err});
-        @panic("Build configuration error: CATCH2_LIB");
-    };
-
     // Executable: minbpe-cc
     const minbpe_cc = b.addExecutable(.{
         .name = "minbpe-cc",
@@ -131,15 +122,15 @@ pub fn build(b: *std.Build) void {
         .file = b.path("code/test/test.cpp"),
         .flags = &.{"-std=c++23"},
     });
+    test_exe.addCSourceFile(.{
+        .file = b.path("code/catch2/catch_amalgamated.cpp"),
+        .flags = &.{"-std=c++23"},
+    });
     test_exe.addIncludePath(b.path(boost_include));
     test_exe.addIncludePath(b.path(pcre2_include));
-    test_exe.addIncludePath(b.path(catch2_include));
     test_exe.addIncludePath(b.path("code/include"));
-    test_exe.addLibraryPath(b.path(catch2_lib));
-    test_exe.linkSystemLibrary("Catch2");
-    test_exe.linkSystemLibrary("Catch2Main");
-    test_exe.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
-    test_exe.linkSystemLibrary("stdc++");
+    test_exe.addIncludePath(b.path("code/catch2"));
+    test_exe.linkSystemLibrary("pcre2-8");
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 
