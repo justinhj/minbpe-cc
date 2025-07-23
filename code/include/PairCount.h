@@ -15,7 +15,6 @@ using std::pair;
 using std::optional;
 
 namespace MinBpeCC::Util {
-
 /**
  * @class PairCount
  * @brief An abstract base class defining the interface for a pair counting container.
@@ -174,44 +173,97 @@ public:
     }
 };
 
+
+// Struct to hold the pair and its count for lexical ordering.
+struct PairCountLexical {
+    ::pair<int,int> pair;
+    int count;
+
+    PairCountLexical(::pair<int,int> p, int c) : pair(p), count(c) {}
+};
+
+// Comparison struct for sorting. Sorts by count (descending), then by pair (lexical ascending).
+struct CompareLexicalOrder {
+    bool operator()(const PairCountLexical& a, const PairCountLexical& b) const {
+        if(a.count == b.count) {
+            if (a.pair.first == b.pair.first) {
+                return a.pair.second < b.pair.second;
+            } else {
+                return a.pair.first < b.pair.first;
+            }
+        } else {
+            return a.count > b.count; // higher count is greater
+        }
+    }
+};
+
+// The underlying data store using Boost.MultiIndex for PairCountLexicalOrder
+using PairCountLexicalStore = boost::multi_index_container<
+    PairCountLexical,
+    indexed_by<
+        // Index 0: Hashed unique index on the 'pair' member for fast lookups.
+        hashed_unique<member<PairCountLexical, pair<int,int>, &PairCountLexical::pair>>,
+        // Index 1: Ordered non-unique index for sorting by count and lexical order.
+        ordered_non_unique<identity<PairCountLexical>, CompareLexicalOrder>
+    >
+>;
+
 /**
  * @class PairCountLexicalOrder
- * @brief A stubbed implementation of PairCount that will track frequency and break ties with lexical order.
+ * @brief An implementation of PairCount that will track frequency and break ties with lexical order.
  *
  * NOTE: This is a stub implementation and is not yet functional.
  */
 class PairCountLexicalOrder : public PairCount {
+private:
+    PairCountLexicalStore pcs;
+
 public:
     PairCountLexicalOrder() {}
 
     size_t get_count() override {
-        // Not implemented
-        throw std::logic_error("Function not implemented.");
-        return 0;
+        return pcs.size();
     }
 
     [[nodiscard]] optional<int> get_pair(pair<int,int> mp) override {
-        // Not implemented
-        throw std::logic_error("Function not implemented.");
-        return {};
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            return (*f).count;
+        } else {
+            return {};
+        }
     }
 
     bool create_or_modify_pair(int a, int b, int freq) override {
-        // Not implemented
-        throw std::logic_error("Function not implemented.");
-        return false;
+        pair<int,int> mp = {a, b};
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            index_by_key.modify(f, [freq](PairCountLexical& pc) { pc.count += freq; });
+            return false;
+        } else {
+            pcs.insert(PairCountLexical(mp, freq));
+            return true;
+        }
     }
 
     optional<pair<int,int>> get_top_pair_count() override {
-        // Not implemented
-        throw std::logic_error("Function not implemented.");
-        return {};
+        const auto& index_by_count = pcs.get<1>();
+        if(!index_by_count.empty()) {
+            return optional<pair<int,int>>((*index_by_count.begin()).pair);
+        } else {
+            return optional<pair<int,int>>();
+        }
     }
 
     std::vector<std::vector<int>> get_all() override {
-        // Not implemented
-        throw std::logic_error("Function not implemented.");
-        return {};
+        std::vector<std::vector<int>> result;
+        result.reserve(pcs.size());
+        for (const auto& pco : pcs) {
+            result.push_back({pco.pair.first, pco.pair.second, pco.count});
+        }
+        return result;
     }
 };
 

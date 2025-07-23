@@ -99,20 +99,14 @@ TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair(1,2) );
 
-    pc.create_or_modify_pair(2,3,1); // count(1,2) is 2, count(2,3) is 2. (1,2) was inserted first.
-    pc.create_or_modify_pair(2,3,1); // count(1,2) is 2, count(2,3) is 3.
+    pc.create_or_modify_pair(2,3,1); // count(1,2) is 2, count(2,3) is 2. (1,2) is smaller
     max = pc.get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value() == make_pair(2,3) );
-
-    pc.create_or_modify_pair(1,2,1); // count(1,2) is 3, count(2,3) is 3. (1,2) was still inserted first.
-    max = pc.get_top_pair_count();
-    REQUIRE( max.has_value() );
-    // Tie-breaking rule: the one inserted first wins. (1,2) was inserted before (2,3).
-    // Let's re-add to (1,2) to make it win again.
-    pc.create_or_modify_pair(1,2,1); // count(1,2) is 4, count(2,3) is 3.
-    max = pc.get_top_pair_count();
     REQUIRE( max.value() == make_pair(1,2) );
+
+    pc.create_or_modify_pair(0,1,3); // count(1,2) is 2, count(2,3) is 3, count(0,1) is 3.
+    max = pc.get_top_pair_count();
+    REQUIRE( max.value() == make_pair(0,1) );
 }
 
 
