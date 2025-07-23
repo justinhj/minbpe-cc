@@ -1,6 +1,7 @@
 #include "Tokenizer.h"
 #include <fstream>
 #include <iostream>
+#include <CLI/CLI.hpp>
 
 using std::string;
 using std::cout;
@@ -60,16 +61,23 @@ int main(int argc, char *argv[]) {
   using std::chrono::duration_cast;
   using std::chrono::milliseconds;
 
-  long test_index = 0;
-  if (argc > 1) {
-    char *endptr;
-    long number = strtol(argv[1], &endptr, 10);
+  CLI::App app{"Train a tokenizer on a test string"};
+  argv = app.ensure_utf8(argv);
 
-    // If the entire argument was a valid number, print it
-    if (*endptr == '\0') {
-        long num_elements = sizeof(test_strings) / sizeof(test_strings[0]);
-        test_index = number < num_elements ? number : 0;
-    }
+  long test_index = 0;
+  app.add_option("-i,--test-string-index", test_index, "Index of the test string to use")
+     ->required();
+
+  std::string conflict_resolution_str = "first"; // Default value
+  app.add_option("-c,--conflict-resolution", conflict_resolution_str, "Conflict resolution strategy: 'first' or 'lexical'")
+     ->check(CLI::IsMember({"first", "lexical"}));
+
+  CLI11_PARSE(app, argc, argv);
+
+  long num_elements = sizeof(test_strings) / sizeof(test_strings[0]);
+  if (test_index < 0 || test_index >= num_elements) {
+    std::cerr << "Error: test-string-index out of bounds. Must be between 0 and " << num_elements - 1 << std::endl;
+    return 1;
   }
 
   auto t1 = high_resolution_clock::now(); // Record start time
@@ -78,11 +86,19 @@ int main(int argc, char *argv[]) {
 
   int num_tokens = 512;
 
-  Tokenizer bt;
-  bt.train(input, num_tokens, verbose);
+  MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION conflict_resolution;
+  if (conflict_resolution_str == "first") {
+    conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::FIRST;
+  } else {
+    conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::LEXICAL;
+  }
 
-  Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
-  rt.train(input, num_tokens, verbose);
+  Tokenizer bt;
+  bt.train(input, num_tokens, conflict_resolution, verbose);
+
+  // Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
+  // rt.train(input, num_tokens, Tokenizer::CONFLICT_RESOLUTION::FIRST, verbose);
+  // rt.train(input, num_tokens, Tokenizer::CONFLICT_RESOLUTION::LEXICAL, verbose);
 
   auto t2 = high_resolution_clock::now(); // Record end time
   auto duration = t2 - t1;

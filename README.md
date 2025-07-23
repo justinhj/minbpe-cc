@@ -13,9 +13,17 @@ This was originally a direct port of the Python code, which was quite a bit fast
 However, after making some data structure changes and other optimizations, it is now faster by a factor of 50x, or almost 2 orders of magniture.
 
 ## References on BPE for NLP
+### Paper referenced in Kaparthy's video
 [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/pdf/1508.07909)
 
+Mentions this optimization:
 "In practice, we increase efficiency by indexing all ppairs, and updating data structures incrementally".
+
+Implementation from the authors:
+<https://github.com/rsennrich/subword-nmt>
+
+## Chat gpt2 encoder
+<https://github.com/openai/gpt-2/blob/master/src/encoder.py>
 
 ## On choosing the next pair to merge
 
@@ -72,6 +80,22 @@ https://github.com/karpathy/minbpe
 https://github.com/glample/fastBPE/tree/master
 
 ## Optimization and development notes
+
+Jul 22 2025
+
+Reworked the code so it's fully compatible with Karpathy's example models for training (the model files are exactly the same). Working on a refactor so you can run the slower compatible version or the optimized version with a command line flag.
+
+Time for taylorswitch train. 5.8s
+
+
+Next steps:
+Code cleanup. Rename PairCount. Code tidying.
+Add the flash
+
+Jul 21 2025
+
+Revisiting the data structures used. I would like to restore the original algorithm of picking "first" inserted as the criteria for tie breaking, instead of the 
+
 
 Jun 9th 2025
 

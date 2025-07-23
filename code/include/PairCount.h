@@ -8,100 +8,265 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include <limits>
+#include <vector>
 
 using std::pair;
 using std::optional;
 
 namespace MinBpeCC::Util {
+/**
+ * @class PairCount
+ * @brief An abstract base class defining the interface for a pair counting container.
+ *
+ * This class provides a contract for different implementations of pair frequency counters.
+ * It allows for querying counts, modifying pairs, and retrieving the most frequent pair.
+ */
+class PairCount {
+public:
+    // Virtual destructor to ensure proper cleanup of derived classes.
+    virtual ~PairCount() = default;
 
-struct PairCountOrder {
-  pair<int,int> pair;
-  int count;
+    // Gets the total number of unique pairs stored.
+    virtual size_t get_count() = 0;
+
+    // Retrieves the count for a specific pair.
+    virtual optional<int> get_pair(pair<int,int> mp) = 0;
+
+    // Creates a new pair or modifies the frequency of an existing one.
+    virtual bool create_or_modify_pair(int a, int b, int freq) = 0;
+
+    // Gets the pair with the highest count.
+    virtual optional<pair<int,int>> get_top_pair_count() = 0;
+
+    // Retrieves all pairs and their counts.
+    virtual std::vector<std::vector<int>> get_all() = 0;
 };
 
+
+// --- Implementation: PairCountInsertOrder ---
+// This implementation breaks ties based on the insertion order.
+
+// Struct to hold the pair, its count, and its insertion order.
+struct PairCountOrder {
+    ::pair<int,int> pair;
+    int count;
+    size_t insert_order;
+
+    PairCountOrder(::pair<int,int> p, int c, size_t fo) : pair(p), count(c), insert_order(fo) {}
+    PairCountOrder(::pair<int,int> p, int c) : pair(p), count(c), insert_order(std::numeric_limits<size_t>::max()) {}
+};
+
+// Comparison struct for sorting. Sorts by count (descending), then by insertion order (ascending).
 struct CompareCountOrder {
     bool operator()(const PairCountOrder& a, const PairCountOrder& b) const {
-      if(a.count == b.count) {
-        return a.pair < b.pair; // lower pair is greater
-      } else {
-        return a.count > b.count; // higher count is greater
-      }
+        if(a.count == b.count) {
+            return a.insert_order < b.insert_order;
+        } else {
+            return a.count > b.count; // higher count is greater
+        }
     }
 };
 
 using boost::multi_index::hashed_unique;
-using boost::multi_index::ordered_unique;
+using boost::multi_index::ordered_non_unique;
 using boost::multi_index::indexed_by;
 using boost::multi_index::member;
 using boost::multi_index::identity;
 
-typedef boost::multi_index_container<
+// The underlying data store using Boost.MultiIndex
+using PairCountStore = boost::multi_index_container<
     PairCountOrder,
     indexed_by<
+        // Index 0: Hashed unique index on the 'pair' member for fast lookups.
         hashed_unique<member<PairCountOrder, pair<int,int>, &PairCountOrder::pair>>,
-        ordered_unique<identity<PairCountOrder>, CompareCountOrder>
-    > 
-> PairCountStore;
+        // Index 1: Ordered non-unique index for sorting by count and insertion order.
+        ordered_non_unique<identity<PairCountOrder>, CompareCountOrder>
+    >
+>;
 
-class PairCount {
-  private:
+/**
+ * @class PairCountInsertOrder
+ * @brief An implementation of PairCount that tracks frequency and breaks ties with insertion order.
+ *
+ * This class uses a Boost.MultiIndex container to efficiently store and retrieve
+ * pairs, sorted primarily by their frequency count and secondarily by when they were first added.
+ */
+class PairCountInsertOrder : public PairCount {
+private:
     PairCountStore pcs;
-  public:
-    PairCount() {}
+    size_t next_insert = 0;
 
-    auto get_count() {
-      return pcs.size();
+public:
+    PairCountInsertOrder() {}
+
+    /**
+     * @brief Gets the total number of unique pairs.
+     * @return The number of pairs.
+     */
+    size_t get_count() override {
+        return pcs.size();
     }
 
-    optional<int> get_pair(pair<int,int> mp) {
-      auto& index_by_key = pcs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != pcs.end()) {
-        return (*f).count;
-      } else {
-        return {};
-      }
+    /**
+     * @brief Gets the frequency count of a given pair.
+     * @param mp The pair to look up.
+     * @return An optional containing the count if the pair exists, otherwise an empty optional.
+     */
+    [[nodiscard]] optional<int> get_pair(pair<int,int> mp) override {
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            return (*f).count;
+        } else {
+            return {};
+        }
     }
 
-    void increment_freq_count(pair<int,int> mp) {
-      auto& index_by_key = pcs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count++; });
-      } else {
-        pcs.insert({mp, 1});
-      }
+    /**
+     * @brief Adds a new pair or modifies the count of an existing pair.
+     * If a pair is new, its insertion order is recorded.
+     * @param a The first element of the pair.
+     * @param b The second element of the pair.
+     * @param freq The value to add to the pair's count (can be negative).
+     * @return True if the pair was newly created, false if it already existed.
+     */
+    bool create_or_modify_pair(int a, int b, int freq) override {
+        pair<int,int> mp = {a, b};
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            index_by_key.modify(f, [freq](PairCountOrder& pc) { pc.count += freq; });
+            return false;
+        } else {
+            pcs.insert(PairCountOrder(mp, freq, next_insert++));
+            return true;
+        }
     }
 
-    void decrement_freq_count(pair<int,int> mp) {
-      auto& index_by_key = pcs.get<0>();
-      auto f = index_by_key.find(mp);
-      if(f != pcs.end()) {
-        index_by_key.modify(f, [](PairCountOrder& pc) { pc.count--; });
-      }
+    /**
+     * @brief Retrieves the pair with the highest frequency count.
+     * Ties are broken by the earliest insertion order.
+     * @return An optional containing the top pair if the container is not empty, otherwise an empty optional.
+     */
+    optional<pair<int,int>> get_top_pair_count() override {
+        const auto& index_by_count = pcs.get<1>();
+        if(!index_by_count.empty()) {
+            return optional<pair<int,int>>((*index_by_count.begin()).pair);
+        } else {
+            return optional<pair<int,int>>();
+        }
     }
 
-    const auto &get_index_by_count() {
-      return pcs.get<1>();
-    }
-
-    auto get_top_pair_count_order() {
-      const auto& index_by_count = pcs.get<1>();
-      if(!index_by_count.empty()) {
-        return optional<PairCountOrder>(*index_by_count.begin());
-      } else {
-        return optional<PairCountOrder>();
-      }
-    }
-
-    const auto &get_index_by_key() {
-      return pcs.get<0>();
-    }
-
-    const auto end() {
-      return pcs.end();
+    /**
+     * @brief Retrieves all stored pairs along with their counts.
+     * The order is not guaranteed.
+     * @return A vector of vectors, where each inner vector is {pair.first, pair.second, count}.
+     */
+    std::vector<std::vector<int>> get_all() override {
+        std::vector<std::vector<int>> result;
+        result.reserve(pcs.size());
+        for (const auto& pco : pcs) {
+            result.push_back({pco.pair.first, pco.pair.second, pco.count});
+        }
+        return result;
     }
 };
 
-}
-#endif
+
+// Struct to hold the pair and its count for lexical ordering.
+struct PairCountLexical {
+    ::pair<int,int> pair;
+    int count;
+
+    PairCountLexical(::pair<int,int> p, int c) : pair(p), count(c) {}
+};
+
+// Comparison struct for sorting. Sorts by count (descending), then by pair (lexical ascending).
+struct CompareLexicalOrder {
+    bool operator()(const PairCountLexical& a, const PairCountLexical& b) const {
+        if(a.count == b.count) {
+            if (a.pair.first == b.pair.first) {
+                return a.pair.second < b.pair.second;
+            } else {
+                return a.pair.first < b.pair.first;
+            }
+        } else {
+            return a.count > b.count; // higher count is greater
+        }
+    }
+};
+
+// The underlying data store using Boost.MultiIndex for PairCountLexicalOrder
+using PairCountLexicalStore = boost::multi_index_container<
+    PairCountLexical,
+    indexed_by<
+        // Index 0: Hashed unique index on the 'pair' member for fast lookups.
+        hashed_unique<member<PairCountLexical, pair<int,int>, &PairCountLexical::pair>>,
+        // Index 1: Ordered non-unique index for sorting by count and lexical order.
+        ordered_non_unique<identity<PairCountLexical>, CompareLexicalOrder>
+    >
+>;
+
+/**
+ * @class PairCountLexicalOrder
+ * @brief An implementation of PairCount that will track frequency and break ties with lexical order.
+ *
+ * NOTE: This is a stub implementation and is not yet functional.
+ */
+class PairCountLexicalOrder : public PairCount {
+private:
+    PairCountLexicalStore pcs;
+
+public:
+    PairCountLexicalOrder() {}
+
+    size_t get_count() override {
+        return pcs.size();
+    }
+
+    [[nodiscard]] optional<int> get_pair(pair<int,int> mp) override {
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            return (*f).count;
+        } else {
+            return {};
+        }
+    }
+
+    bool create_or_modify_pair(int a, int b, int freq) override {
+        pair<int,int> mp = {a, b};
+        auto& index_by_key = pcs.get<0>();
+        auto f = index_by_key.find(mp);
+        if(f != pcs.end()) {
+            index_by_key.modify(f, [freq](PairCountLexical& pc) { pc.count += freq; });
+            return false;
+        } else {
+            pcs.insert(PairCountLexical(mp, freq));
+            return true;
+        }
+    }
+
+    optional<pair<int,int>> get_top_pair_count() override {
+        const auto& index_by_count = pcs.get<1>();
+        if(!index_by_count.empty()) {
+            return optional<pair<int,int>>((*index_by_count.begin()).pair);
+        } else {
+            return optional<pair<int,int>>();
+        }
+    }
+
+    std::vector<std::vector<int>> get_all() override {
+        std::vector<std::vector<int>> result;
+        result.reserve(pcs.size());
+        for (const auto& pco : pcs) {
+            result.push_back({pco.pair.first, pco.pair.second, pco.count});
+        }
+        return result;
+    }
+};
+
+} // namespace MinBpeCC::Util
+
+#endif // MINBPE_PAIRCOUNT_HPP
