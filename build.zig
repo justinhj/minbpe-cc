@@ -139,6 +139,7 @@ pub fn build(b: *std.Build) void {
     test_exe.linkSystemLibrary("Catch2");
     test_exe.linkSystemLibrary("Catch2Main");
     test_exe.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
+    test_exe.linkSystemLibrary("stdc++");
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 
