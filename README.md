@@ -95,9 +95,10 @@ Completed refactor so we can choose between completely different implementations
 
 Timings for train.cpp on shakespeare.txt
 (Taken on a Macbook Pro with 16Gb and M1 Pro 10-core CPU)
-- Python train.py: 76.91 seconds
-- C++ train.cpp with lexicographic ordering: 1.48 seconds
-- C++ train.cpp with first occurrence: 36.31 seconds
+
+ Python train.py         : ████████████████████████████████████████ (76.91s)
+ C++ (first occurrence)  : ███████████████████ (36.31s)
+ C++ (lexicographical)   : █ (1.48s)
 
 Jul 22 2025
 
