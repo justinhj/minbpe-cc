@@ -6,6 +6,7 @@
 #include <string>
 #include <functional>
 #include <forward_list>
+#include <memory>
 #include <vector>
 #include <cassert>
 #include <iostream>
@@ -133,14 +134,14 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        PairCount calculate_freqs(const vector<std::forward_list<int>> &chunks) {
-            PairCount freqs;
+        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks) {
+            auto freqs = std::make_unique<PairCountInsertOrder>();
             for(const auto &chunk: chunks) {
                 auto p1 = chunk.begin();
                 auto p2 = std::next(p1);
                 while(p1 != chunk.end() && p2 != chunk.end()) {
                     auto p = make_pair(*p1, *p2);
-                    freqs.create_or_modify_pair(*p1, *p2, 1);
+                    freqs->create_or_modify_pair(*p1, *p2, 1);
                     ++p1;
                     ++p2;
                 }
@@ -162,7 +163,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list then completly update frequencies
-        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount &freqs) {
+        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -199,51 +200,10 @@ namespace MinBpeCC::Tokenizer {
                 }
                 cout << "\n";
             }
-
-            // TODO this should optionally just verify instead of printing
-            if(false) {  //  two spaces before comment
-                PairCount pccheck;
-                pccheck = calculate_freqs({text}); // Recalculate frequencies for the merged text
-
-                cout << "Verify freqs:\n";
-                const auto& pccheck_index = pccheck.get_index_by_key();
-                const auto& freqs_index = freqs.get_index_by_key();
-
-                std::vector<pair<int, int>> all_pairs;
-                for (const auto& pco : pccheck_index) {
-                    if (pco.count > 0) {
-                        all_pairs.push_back(pco.pair);
-                    }
-                }
-                for (const auto& pco : freqs_index) {
-                    if (pco.count > 0) {
-                        all_pairs.push_back(pco.pair);
-                    }
-                }
-                std::sort(all_pairs.begin(), all_pairs.end());
-                all_pairs.erase(std::unique(all_pairs.begin(), all_pairs.end()), all_pairs.end());
-
-                for (const auto& p : all_pairs) {
-                    auto pccheck_it = pccheck_index.find(p);
-                    auto freqs_it = freqs_index.find(p);
-
-                    int pccheck_count = (pccheck_it != pccheck_index.end()) ? pccheck_it->count : 0;
-                    int freqs_count = (freqs_it != freqs_index.end()) ? freqs_it->count : 0;
-
-                    cout << "  Pair (" << p.first << ", " << p.second << ") pccheck: " << pccheck_count << ", freqs: " << freqs_count;
-
-                    if (pccheck_count > 0 && freqs_count == 0) {
-                        cout << " +";
-                    }
-                    cout << "\n";
-                }
-            }
-
-
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
-        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount &freqs) {
+        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, int &insert_order, PairCount *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -266,15 +226,6 @@ namespace MinBpeCC::Tokenizer {
             auto i3 = std::next(i2);
 
             while(i1 != text.end() && i2 != text.end()) {
-                if(false) {
-                  const auto& freqs_index = freqs.get_index_by_key();
-                  // dump the freqs
-                  cout << "Current frequencies:\n";
-                  for (const auto& pco : freqs_index) {
-                      cout << "  (" << pco.pair.first << ", " << pco.pair.second << "): " << pco.count << "\n";
-                  }
-                }
-
                 if(false) { // verbose >= 1) {
                     cout << "i0 " << (i0 != text.before_begin() ? std::to_string(*i0) : "B_BEGIN")
                          << " i1 " << *i1 << " i2 " << *i2
@@ -290,46 +241,39 @@ namespace MinBpeCC::Tokenizer {
                     i2 = text.erase_after(i1); // Erase the second element
 
                     // Update frequencies: decrement old pairs, increment new ones
-                    auto& index_by_key = freqs.get_index_by_key();
-                    auto f = index_by_key.find(mp);
-                    if(f != index_by_key.end()) {
+                    auto f = freqs->get_pair(mp);
+                    if(f.has_value()) {
                         if(verbose >= 1) {
-                            cout << "decrement replaced pair " << std::get<0>(f->pair) << ", " << std::get<1>(f->pair) << "\n";
+                            cout << "decrement replaced pair " << mp.first << ", " << mp.second << "\n";
                         }
-                        if(freqs.create_or_modify_pair(f->pair.first, f->pair.second, -1)) {
-                          insert_order++;
-                        }
+                        freqs->create_or_modify_pair(mp.first, mp.second, -1);
                     }
 
                     if(i0 != text.before_begin()) { // Check if i0 is a valid element (not before_begin())
                         auto prev_pair = make_pair(*i0, p1_val);
-                        auto prev = index_by_key.find(prev_pair);
-                        if(prev != index_by_key.end()) {
+                        auto prev = freqs->get_pair(prev_pair);
+                        if(prev.has_value()) {
                             if(verbose >= 1) {
-                                cout << "decrement previous pair " << std::get<0>(prev->pair) << ", " << std::get<1>(prev->pair) << "\n";
+                                cout << "decrement previous pair " << *i0 << ", " << p1_val << "\n";
                             }
-                            if(freqs.create_or_modify_pair(prev->pair.first, prev->pair.second, -1)) {
-                                insert_order++;
-                            }
+                            freqs->create_or_modify_pair(*i0, p1_val, -1);
                         }
                         if(verbose >= 1) {
                             cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
                         }
-                        if(freqs.create_or_modify_pair(*i0, new_token, 1)) {
+                        if(freqs->create_or_modify_pair(*i0, new_token, 1)) {
                             insert_order++;
                         }
                     }
 
                     if(i2 != text.end()) { // Check if i2 is a valid element (not end())
                         auto next_pair = make_pair(p2_val, *i2); // Original p2_val, not new_token
-                        auto next = index_by_key.find(next_pair);
-                        if(next != index_by_key.end()) {
+                        auto next = freqs->get_pair(next_pair);
+                        if(next.has_value()) {
                             if(verbose >= 1) {
-                                cout << "decrement next pair " << std::get<0>(next->pair) << ", " << std::get<1>(next->pair) << "\n";
+                                cout << "decrement next pair " << p2_val << ", " << *i2 << "\n";
                             }
-                            if(freqs.create_or_modify_pair(next->pair.first, next->pair.second, -1)) {
-                                insert_order++;
-                            }
+                            freqs->create_or_modify_pair(p2_val, *i2, -1);
                         } else {
                             if(verbose >= 1) {
                                 cout << "next pair not found " << p2_val << ", " << *i2 << "\n";
@@ -338,7 +282,7 @@ namespace MinBpeCC::Tokenizer {
                         if(verbose >= 1) {
                             cout << "increment new next pair " << new_token << ", " << *i2 << "\n";
                         }
-                        if(freqs.create_or_modify_pair(new_token, *i2, 1)) {
+                        if(freqs->create_or_modify_pair(new_token, *i2, 1)) {
                             insert_order++;
                         }
                     }
@@ -350,11 +294,6 @@ namespace MinBpeCC::Tokenizer {
                     } else {
                         i3 = text.end(); // If i2 is now end, i3 is also end
                     }
-
-                    // if(verbose >= 1 && i3 == text.end()) {
-                    //     cout << "i3 end\n";
-                    // }
-
                 } else {
                     // Advance iterators if no merge occurred
                     i0 = i1;
@@ -372,49 +311,10 @@ namespace MinBpeCC::Tokenizer {
                 }
                 cout << "\n";
             }
-
-            // TODO this should optionally just verify instead of printing
-            if(false) {  //  two spaces before comment
-                PairCount pccheck;
-                pccheck = calculate_freqs({text}); // Recalculate frequencies for the merged text
-
-                cout << "Verify freqs:\n";
-                const auto& pccheck_index = pccheck.get_index_by_key();
-                const auto& freqs_index = freqs.get_index_by_key();
-
-                std::vector<pair<int, int>> all_pairs;
-                for (const auto& pco : pccheck_index) {
-                    if (pco.count > 0) {
-                        all_pairs.push_back(pco.pair);
-                    }
-                }
-                for (const auto& pco : freqs_index) {
-                    if (pco.count > 0) {
-                        all_pairs.push_back(pco.pair);
-                    }
-                }
-                std::sort(all_pairs.begin(), all_pairs.end());
-                all_pairs.erase(std::unique(all_pairs.begin(), all_pairs.end()), all_pairs.end());
-
-                for (const auto& p : all_pairs) {
-                    auto pccheck_it = pccheck_index.find(p);
-                    auto freqs_it = freqs_index.find(p);
-
-                    int pccheck_count = (pccheck_it != pccheck_index.end()) ? pccheck_it->count : 0;
-                    int freqs_count = (freqs_it != freqs_index.end()) ? freqs_it->count : 0;
-
-                    cout << "  Pair (" << p.first << ", " << p.second << ") pccheck: " << pccheck_count << ", freqs: " << freqs_count;
-
-                    if (pccheck_count > 0 && freqs_count == 0) {
-                        cout << " +";
-                    }
-                    cout << "\n";
-                }
-            }
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount &freqs) {
+        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount *freqs) {
             // cout << "merge chunks (insert order " << insert_order << ")\n";
             for(auto &chunk: chunks) {
                 merge(chunk, mp, idx, freqs);
@@ -678,19 +578,11 @@ namespace MinBpeCC::Tokenizer {
             auto flists = create_lists(chunks);
             auto freqs = calculate_freqs(flists);
 
-            if (false) { // very verbose if enabled but useful for debugging small samples
-                cout << "Initial frequency counts:\n";
-                const auto& index_by_key = freqs.get_index_by_key();
-                for (const auto& pco : index_by_key) {
-                    cout << "  (" << pco.pair.first << ", " << pco.pair.second << "): " << pco.count << "\n";
-                }
-            }
-
             int total_merges = vocab_size - 256;
             int last_percent = -1;
             int insert_order = 256;
             for(int i = 256; i < vocab_size; i++) {
-                auto best = freqs.get_top_pair_count();
+                auto best = freqs->get_top_pair_count();
                 if(best.has_value()) {
                     auto max_pair = *best;
                     auto [p1, p2] = max_pair;
