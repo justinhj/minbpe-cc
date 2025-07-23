@@ -29,13 +29,18 @@ Implementation from the authors:
 
 To decide which pair to merge next when multiple pairs have the same frequency in BPE (Byte Pair Encoding) tokenization, there are a few common approaches:
 
-1. Lexicographic order: Choose the pair that comes first alphabetically.
+1. Lexicographic order: Choose the pair that comes first alphabetically (numerically really).
 2. First occurrence: Select the pair that appears earliest in the text.
 3. Length of subwords: Prefer merging shorter subwords over longer ones.
 4. Random selection: Randomly choose among the tied pairs.
 5. Tie-breaking heuristics: Use additional criteria like the frequency of individual tokens in the pair.
 
 The choice often depends on the specific implementation and the goals of the tokenization process.
+
+In my case I have two implementations for this conflict resolution which you can choose from when running the bpe process.
+
+- **First Occurence**: This is the default and matches Karpathy's original implementation. It chooses the conflicting pairs based which was first added to the Python dictionary. This is simple to implement because it is the default behaviour of Python dictionaries since Raymond Hettinger's implementation in Python 3.6+.
+- **Lexicographic Order**: By using lexicographic ordering I can optimize the training process by incrementally updating the frequency counts and still give deterministic results. This is the greatest speedup in this implementation.
 
 ## Building
 
@@ -70,16 +75,23 @@ minbpe-cc --decode --input taylorencoded --model-path ./models/taylorswift-gpt4.
 
 ## Code style
 
+The implementation is C++23 and follows a modern C++ style with a focus on readability and maintainability, avoiding new and delete where possible, and using smart pointers for memory management.
+
 For naming I am using `PascalCase` for class names and constructors. `snake_case` for everything else.
 
 Source file names should use `PascalCase` apart from executables or test which can be `snake-case`.
 
 ## References
 
-https://github.com/karpathy/minbpe
-https://github.com/glample/fastBPE/tree/master
+<https://github.com/karpathy/minbpe>
+<https://github.com/glample/fastBPE>
+<https://github.com/rsennrich/subword-nmt>
 
 ## Optimization and development notes
+
+Jul 23 2025
+
+Completed refactor so we can choose between completely different implementations of frequency counting based on the conflict resolution chosen.
 
 Jul 22 2025
 

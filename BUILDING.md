@@ -10,6 +10,9 @@ The libraries required are:
 Boost (regex component) - Used for regular expression functionality.
 RE-flex - A regex library (linked as libreflex.a).
 CLI11 - A command-line parsing library, used by the minbpe-cc executable.
+
+I have included Catch2 using the "two file" distribution as I had trouble getting to work on x86_64.
+
 Catch2 - A testing framework, used by the test executable (specifically Catch2WithMain for test entry point).
 
 Recommended configuration:
