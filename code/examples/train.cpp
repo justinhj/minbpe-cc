@@ -68,6 +68,10 @@ int main(int argc, char *argv[]) {
   app.add_option("-i,--test-string-index", test_index, "Index of the test string to use")
      ->required();
 
+  std::string conflict_resolution_str = "first"; // Default value
+  app.add_option("-c,--conflict-resolution", conflict_resolution_str, "Conflict resolution strategy: 'first' or 'lexical'")
+     ->check(CLI::IsMember({"first", "lexical"}));
+
   CLI11_PARSE(app, argc, argv);
 
   long num_elements = sizeof(test_strings) / sizeof(test_strings[0]);
@@ -82,9 +86,15 @@ int main(int argc, char *argv[]) {
 
   int num_tokens = 512;
 
+  MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION conflict_resolution;
+  if (conflict_resolution_str == "first") {
+    conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::FIRST;
+  } else {
+    conflict_resolution = MinBpeCC::Tokenizer::Tokenizer::CONFLICT_RESOLUTION::LEXICAL;
+  }
+
   Tokenizer bt;
-  // bt.train(input, num_tokens, Tokenizer::CONFLICT_RESOLUTION::FIRST, verbose);
-  bt.train(input, num_tokens, Tokenizer::CONFLICT_RESOLUTION::LEXICAL, verbose);
+  bt.train(input, num_tokens, conflict_resolution, verbose);
 
   // Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
   // rt.train(input, num_tokens, Tokenizer::CONFLICT_RESOLUTION::FIRST, verbose);
