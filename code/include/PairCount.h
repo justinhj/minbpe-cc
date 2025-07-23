@@ -174,6 +174,47 @@ public:
     }
 };
 
+/**
+ * @class PairCountLexicalOrder
+ * @brief A stubbed implementation of PairCount that will track frequency and break ties with lexical order.
+ *
+ * NOTE: This is a stub implementation and is not yet functional.
+ */
+class PairCountLexicalOrder : public PairCount {
+public:
+    PairCountLexicalOrder() {}
+
+    size_t get_count() override {
+        // Not implemented
+        throw std::logic_error("Function not implemented.");
+        return 0;
+    }
+
+    [[nodiscard]] optional<int> get_pair(pair<int,int> mp) override {
+        // Not implemented
+        throw std::logic_error("Function not implemented.");
+        return {};
+    }
+
+    bool create_or_modify_pair(int a, int b, int freq) override {
+        // Not implemented
+        throw std::logic_error("Function not implemented.");
+        return false;
+    }
+
+    optional<pair<int,int>> get_top_pair_count() override {
+        // Not implemented
+        throw std::logic_error("Function not implemented.");
+        return {};
+    }
+
+    std::vector<std::vector<int>> get_all() override {
+        // Not implemented
+        throw std::logic_error("Function not implemented.");
+        return {};
+    }
+};
+
 } // namespace MinBpeCC::Util
 
 #endif // MINBPE_PAIRCOUNT_HPP

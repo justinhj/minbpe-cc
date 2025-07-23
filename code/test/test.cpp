@@ -83,6 +83,38 @@ TEST_CASE("PairCountInsertOrder get most frequent", "[paircount]") {
     REQUIRE( max.value() == make_pair(1,2) );
 }
 
+TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
+    PairCountLexicalOrder pc;
+    auto max = pc.get_top_pair_count();
+    REQUIRE( !max.has_value() );
+
+    pc.create_or_modify_pair(1,2,1);
+    max = pc.get_top_pair_count();
+    REQUIRE( max.has_value() );
+    REQUIRE( max.value() == make_pair(1,2) );
+
+    pc.create_or_modify_pair(1,2,1); // count(1,2) is 2
+    pc.create_or_modify_pair(2,3,1); // count(2,3) is 1
+    max = pc.get_top_pair_count();
+    REQUIRE( max.has_value() );
+    REQUIRE( max.value() == make_pair(1,2) );
+
+    pc.create_or_modify_pair(2,3,1); // count(1,2) is 2, count(2,3) is 2. (1,2) was inserted first.
+    pc.create_or_modify_pair(2,3,1); // count(1,2) is 2, count(2,3) is 3.
+    max = pc.get_top_pair_count();
+    REQUIRE( max.has_value() );
+    REQUIRE( max.value() == make_pair(2,3) );
+
+    pc.create_or_modify_pair(1,2,1); // count(1,2) is 3, count(2,3) is 3. (1,2) was still inserted first.
+    max = pc.get_top_pair_count();
+    REQUIRE( max.has_value() );
+    // Tie-breaking rule: the one inserted first wins. (1,2) was inserted before (2,3).
+    // Let's re-add to (1,2) to make it win again.
+    pc.create_or_modify_pair(1,2,1); // count(1,2) is 4, count(2,3) is 3.
+    max = pc.get_top_pair_count();
+    REQUIRE( max.value() == make_pair(1,2) );
+}
+
 
 // Test helper class to expose protected members of Tokenizer
 class TokenizerTest : public Tokenizer {
@@ -99,7 +131,6 @@ public:
         return calculate_freqs(chunks);
     };
 
-    // FIX: The signature now correctly takes a raw pointer to match the base class method.
     void merge_public(std::forward_list<int> &text, pair<int, int> mp,
                       int new_token, PairCount *freqs) {
         merge(text, mp, new_token, freqs);
