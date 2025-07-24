@@ -93,6 +93,13 @@ Jul 23 2025
 
 Completed refactor so we can choose between completely different implementations of frequency counting based on the conflict resolution chosen.
 
+### Timings for train.cpp on shakespeare.txt
+__(Taken on a Macbook Pro with 16Gb and M1 Pro 10-core CPU)__
+
+- Python train.py (76.91s)
+- C++ (first occurrence) (36.31s)
+- C++ (lexicographical) (1.48s)
+
 Jul 22 2025
 
 Reworked the code so it's fully compatible with Karpathy's example models for training (the model files are exactly the same). Working on a refactor so you can run the slower compatible version or the optimized version with a command line flag.
