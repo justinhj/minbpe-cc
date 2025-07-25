@@ -158,10 +158,10 @@ shakespeare.txt (train 2)
 
 ## TODO Notes and C++ related
 
-* TODO check performance of going back to vector instead of forward_list when training in each mode
-* TODO Warnings when specifying unused arguments. vocab size and encoder only matter for training
-* TODO Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
-* TODO Add end to end test script
+* TODO :Performance: check performance of going back to vector instead of forward_list when training in each mode
+* TODO :Ergonomics: Warnings when specifying unused arguments. vocab size and encoder only matter for training
+* TODO :Fun: Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
+* TODO :Verification: Add end to end test script comparing to Karpathy's train.py
 * DONE Add special token support for encoding and decoding
 * DONE Make build files more portable (Converting to zig build)
 * DONE replace tuple with pair
