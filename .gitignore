@@ -12,3 +12,4 @@ ainotes
 .env
 GEMINI.md
 karpathy-models/
+tests/

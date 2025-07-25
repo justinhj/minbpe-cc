@@ -5,6 +5,7 @@
 using MinBpeCC::Tokenizer::Tokenizer;
 using MinBpeCC::Util::PairCount;
 using MinBpeCC::Util::PairCountInsertOrder;
+using MinBpeCC::Util::PairCountLexicalOrder;
 using std::vector;
 using std::string;
 using std::pair;
@@ -13,7 +14,7 @@ using std::make_pair;
 // Test cases for the PairCountInsertOrder concrete class
 TEST_CASE("PairCountInsertOrder allows multiple pairs with the same rank", "[paircount]") {
     // Instantiate the concrete class, not the abstract base class.
-    PairCountInsertOrder pc;
+    PairCountInsertOrder<int> pc;
 
     // Add a new pair.
     pc.create_or_modify_pair(10, 20, 1);
@@ -36,7 +37,7 @@ TEST_CASE("PairCountInsertOrder allows multiple pairs with the same rank", "[pai
 }
 
 TEST_CASE("PairCountInsertOrder add and count", "[paircount]") {
-    PairCountInsertOrder pc;
+    PairCountInsertOrder<int> pc;
     REQUIRE( pc.get_count() == 0 );
     pc.create_or_modify_pair(1, 2, 1);
     REQUIRE( pc.get_count() == 1 );
@@ -47,7 +48,7 @@ TEST_CASE("PairCountInsertOrder add and count", "[paircount]") {
 }
 
 TEST_CASE("PairCountInsertOrder get most frequent", "[paircount]") {
-    PairCountInsertOrder pc;
+    PairCountInsertOrder<int> pc;
     auto max = pc.get_top_pair_count();
     REQUIRE( !max.has_value() );
 
@@ -79,7 +80,7 @@ TEST_CASE("PairCountInsertOrder get most frequent", "[paircount]") {
 }
 
 TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
-    PairCountLexicalOrder pc;
+    PairCountLexicalOrder<int> pc;
     auto max = pc.get_top_pair_count();
     REQUIRE( !max.has_value() );
 
@@ -108,7 +109,7 @@ TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
 // Test helper class to expose protected members of Tokenizer
 class TokenizerTest : public Tokenizer {
 public:
-    auto create_lists_public(const vector<vector<int>> &chunks) {
+    auto create_lists_public(const vector<vector<MinBpeCC::Tokenizer::Token>> &chunks) {
         return create_lists(chunks);
     };
 
@@ -116,12 +117,12 @@ public:
         return text_to_vector(text);
     };
 
-    auto calculate_freqs_public(const vector<std::forward_list<int>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+    auto calculate_freqs_public(const vector<std::forward_list<MinBpeCC::Tokenizer::Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
         return calculate_freqs(chunks, conflict_resolution);
     };
 
-    void merge_public(std::forward_list<int> &text, pair<int, int> mp,
-                      int new_token, PairCount *freqs) {
+    void merge_public(std::forward_list<MinBpeCC::Tokenizer::Token> &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
+                      MinBpeCC::Tokenizer::Token new_token, PairCount<MinBpeCC::Tokenizer::Token> *freqs) {
         merge(text, mp, new_token, freqs);
     }
 };
@@ -134,7 +135,7 @@ size_t getForwardListLength(const std::forward_list<T>& flist) {
 
 TEST_CASE("Tokenizer training", "[tokenizer]") {
     TokenizerTest bt;
-    vector<vector<int>> chunks;
+    vector<vector<MinBpeCC::Tokenizer::Token>> chunks;
     const auto test_string = string("abcbcde");
     chunks.push_back(bt.text_to_vector_public(test_string));
 
@@ -148,27 +149,27 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     // FIX: Use the -> operator to access members of the object managed by unique_ptr.
     auto max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value() == make_pair((int)'b', (int)'c') ); // 98, 99
+    REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c') ); // 98, 99
 
     // FIX: Pass the raw pointer using .get() to the merge function.
-    bt.merge_public(flists[0], make_pair((int)'b', (int)'c'), 256, freqs.get());
+    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c'), 256, freqs.get());
 
     // Recalculate frequencies and re-assign the unique_ptr.
     freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value() == make_pair((int)'a', 256) ); // 97, 256
+    REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256) ); // 97, 256
 
-    bt.merge_public(flists[0], make_pair((int)'a', 256), 257, freqs.get());
+    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256), 257, freqs.get());
 
     freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
-    REQUIRE( max.value() == make_pair(257, 256) );
+    REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)257, (MinBpeCC::Tokenizer::Token)256) );
 
     // FIX: The get_index_by_key() method is no longer public.
     // We can verify the state using the public get_pair() and get_count() methods.
-    auto p1 = freqs->get_pair({256, (int)'d'}); // 256, 100
+    auto p1 = freqs->get_pair({256, (MinBpeCC::Tokenizer::Token)'d'}); // 256, 100
     REQUIRE(p1.has_value());
     REQUIRE(p1.value() == 1);
 
@@ -176,7 +177,7 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE(p2.has_value());
     REQUIRE(p2.value() == 1);
 
-    auto p3 = freqs->get_pair({(int)'d', (int)'e'}); // 100, 101
+    auto p3 = freqs->get_pair({(MinBpeCC::Tokenizer::Token)'d', (MinBpeCC::Tokenizer::Token)'e'}); // 100, 101
     REQUIRE(p3.has_value());
     REQUIRE(p3.value() == 1);
 
