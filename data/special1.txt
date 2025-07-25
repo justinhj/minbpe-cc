@@ -1,5 +1,5 @@
-<|endoftext|> 100257
-<|fim_prefix|> 100258
-<|fim_middle|> 100259
-<|fim_suffix|> 100260
-<|endofprompt|> 100276
+<|endoftext|> 60000
+<|fim_prefix|> 60001
+<|fim_middle|> 60002
+<|fim_suffix|> 60003
+<|endofprompt|> 60004
