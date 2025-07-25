@@ -55,10 +55,6 @@ expected<void,string> write_string_to_file(const path &path, const string &data)
   return {};
 }
 
-// Write out as 32 bit unsigned integers, this could be configurable. Requires thought,
-// it is based on the size of the vocabulary, but we could have a larger vocabulary.
-// Maybe a variable length encoding would be better.
-// I guess there is always variable length encoding
 expected<void,string> save_encoding(const path &path, const vector<MinBpeCC::Tokenizer::Token> encoded) {
   std::ofstream file(path, std::ios::binary);
   if(!file) {
@@ -66,10 +62,7 @@ expected<void,string> save_encoding(const path &path, const vector<MinBpeCC::Tok
     return unexpected(ec.message());
   } else {
     for (const auto& code : encoded) {
-      assert(code >= 0);
-      assert(code <= UINT32_MAX);
-      uint32_t c = static_cast<uint32_t>(code);
-      file.write(reinterpret_cast<const char *>(&c), sizeof(uint32_t));
+      file.write(reinterpret_cast<const char *>(&code), sizeof(MinBpeCC::Tokenizer::Token));
     }
     return {};
   }
@@ -82,8 +75,8 @@ expected<vector<MinBpeCC::Tokenizer::Token>,string> load_encoding(const path &pa
       return unexpected(ec.message());
     }
     vector<MinBpeCC::Tokenizer::Token> data;
-    uint32_t number;
-    while(file.read(reinterpret_cast<char *>(&number), sizeof(uint32_t))) {
+    MinBpeCC::Tokenizer::Token number;
+    while(file.read(reinterpret_cast<char *>(&number), sizeof(MinBpeCC::Tokenizer::Token))) {
       data.push_back(number);
     }
 
