@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
   Tokenizer bt;
   bt.train(input, num_tokens, conflict_resolution, verbose);
 
-  Tokenizer rt = Tokenizer(Tokenizer::GPT4_SPLIT_PATTERN);
+  Tokenizer rt(Tokenizer::GPT4_SPLIT_PATTERN);
   rt.train(input, num_tokens, conflict_resolution, verbose);
 
   auto t2 = high_resolution_clock::now(); // Record end time

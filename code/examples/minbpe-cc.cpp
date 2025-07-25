@@ -59,7 +59,7 @@ expected<void,string> write_string_to_file(const path &path, const string &data)
 // it is based on the size of the vocabulary, but we could have a larger vocabulary.
 // Maybe a variable length encoding would be better.
 // I guess there is always variable length encoding
-expected<void,string> save_encoding(const path &path, const vector<int> encoded) {
+expected<void,string> save_encoding(const path &path, const vector<MinBpeCC::Tokenizer::Token> encoded) {
   std::ofstream file(path, std::ios::binary);
   if(!file) {
     std::error_code ec(errno, std::generic_category());
@@ -75,13 +75,13 @@ expected<void,string> save_encoding(const path &path, const vector<int> encoded)
   }
 }
 
-expected<vector<int>,string> load_encoding(const path &path) {
+expected<vector<MinBpeCC::Tokenizer::Token>,string> load_encoding(const path &path) {
     std::ifstream file(path, ios::binary);
     if (!file.is_open()) {
       std::error_code ec(errno, std::generic_category());
       return unexpected(ec.message());
     }
-    vector<int> data;
+    vector<MinBpeCC::Tokenizer::Token> data;
     uint32_t number;
     while(file.read(reinterpret_cast<char *>(&number), sizeof(uint32_t))) {
       data.push_back(number);

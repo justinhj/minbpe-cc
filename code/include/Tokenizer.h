@@ -15,6 +15,7 @@
 #include <utility>
 #include <optional> // Using std::optional
 #include <stdexcept> // For std::runtime_error
+#include <cstdint>
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h> // Main PCRE2 header
@@ -34,11 +35,14 @@ using std::make_pair;
 using namespace MinBpeCC::Util; // Assuming this namespace contains PairCount
 
 namespace MinBpeCC::Tokenizer {
+    using Token = uint16_t;
+    using TokenPair = std::pair<Token, Token>;
+
     // Hash function for std::pair<int,int>
-    inline std::function<std::size_t(const pair<int,int>&)> pair_int_int_hash =
-        [](const pair<int,int>& k) -> std::size_t {
+    inline std::function<std::size_t(const TokenPair&)> pair_token_hash =
+        [](const TokenPair& k) -> std::size_t {
             std::size_t seed = 0;
-            std::hash<int> hasher;
+            std::hash<Token> hasher;
             seed ^= hasher(std::get<0>(k)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
             seed ^= hasher(std::get<1>(k)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
             return seed;
@@ -56,8 +60,8 @@ namespace MinBpeCC::Tokenizer {
     protected:
         static const auto bucket_size = 10;
 
-        std::unordered_map<std::string, int> special_tokens;
-        std::unordered_map<int, std::string> special_tokens_reverse_lookup;
+        std::unordered_map<std::string, Token> special_tokens;
+        std::unordered_map<Token, std::string> special_tokens_reverse_lookup;
 
         pcre2_code_8* compiled_pattern_pcre2;     // Compiled PCRE2 pattern
         pcre2_match_data_8* match_data_pcre2;     // Match data block for results
@@ -66,50 +70,30 @@ namespace MinBpeCC::Tokenizer {
         pcre2_compile_context_8* compile_context_pcre2;
         pcre2_match_context_8* match_context_pcre2;
 
-        unordered_map<pair<int,int>, int, decltype(pair_int_int_hash)> merges_lookup;
-        vector<pair<int,int>> merges;
-        vector<vector<int>> vocab;
+        unordered_map<TokenPair, Token, decltype(pair_token_hash)> merges_lookup;
+        vector<TokenPair> merges;
+        vector<vector<Token>> vocab;
         string pattern; // The string representation of the regex pattern
 
         // Helper to convert char to int, handling negative char values
-        int char_to_int(char c) {
+        Token char_to_token(char c) {
             return c < 0 ? c + 256 : c;
         }
 
-        // Converts a string to a vector of ints (byte representation)
-        std::vector<int> text_to_vector(const string &text) {
-            // Handle special token marker: starts with '\0' followed by an int
-            // TODO Can make this a helper that both overloads use later
-            if (!text.empty() && text[0] == '\0') {
-                try {
-                    int id = std::stoi(text.substr(1));
-                    return std::vector<int>{id};
-                } catch (...) {
-                    // Fallback: treat as normal text if parsing fails
-                }
-            }
-            std::vector<int> text_converted;
-            text_converted.reserve(text.length()); // Reserve space to prevent reallocations
-            for(char c : text) {
-                text_converted.push_back(static_cast<int>(char_to_int(c)));
-            }
-            return text_converted;
-        }
-
         // Same as above but uses string views for performance
-        std::vector<int> text_to_vector(std::string_view text) {
+        std::vector<Token> text_to_vector(std::string_view text) {
             if (!text.empty() && text[0] == '\0') {
                 try {
                     int id = std::stoi(std::string(text.substr(1)));
-                    return std::vector<int>{id};
+                    return std::vector<Token>{static_cast<Token>(id)};
                 } catch (...) {
                     // Fallback: treat as normal text if parsing fails
                 }
             }
-            std::vector<int> text_converted;
+            std::vector<Token> text_converted;
             text_converted.reserve(text.length()); // Reserve space to prevent reallocations
             for (char c : text) {
-                text_converted.push_back(static_cast<int>(char_to_int(c)));
+                text_converted.push_back(static_cast<Token>(char_to_token(c)));
             }
             return text_converted;
         }
@@ -119,18 +103,18 @@ namespace MinBpeCC::Tokenizer {
             vocab.clear();
             vocab.reserve(256); // Reserve space for initial bytes
             for(int i = 0; i < 256; i++) {
-                vector<int> s;
+                vector<Token> s;
                 s.push_back(i);
                 vocab.push_back(s);
             }
         }
 
         // Converts a vector of vector of ints (chunks) to a vector of forward_list of ints
-        auto create_lists(const vector<vector<int>> &chunks) {
-            vector<std::forward_list<int>> flists;
+        auto create_lists(const vector<vector<Token>> &chunks) {
+            vector<std::forward_list<Token>> flists;
             flists.reserve(chunks.size()); // Reserve space
             for(const auto &chunk: chunks) {
-                std::forward_list<int> flist;
+                std::forward_list<Token> flist;
                 // Copy in reverse to use front_inserter efficiently
                 std::copy(chunk.rbegin(), chunk.rend(), std::front_inserter(flist));
                 flists.push_back(flist);
@@ -139,12 +123,12 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        std::unique_ptr<PairCount> calculate_freqs(const vector<std::forward_list<int>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
-          std::unique_ptr<PairCount> freqs;
+        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+          std::unique_ptr<PairCount<Token>> freqs;
           if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
-              freqs = std::make_unique<PairCountInsertOrder>();
+              freqs = std::make_unique<PairCountInsertOrder<Token>>();
           } else { // LEXICAL
-              freqs = std::make_unique<PairCountLexicalOrder>();
+              freqs = std::make_unique<PairCountLexicalOrder<Token>>();
           }
 
             for(const auto &chunk: chunks) {
@@ -162,19 +146,19 @@ namespace MinBpeCC::Tokenizer {
 
         // Calculate frequencies and first occurrence of all symbol pairs in the corpus
         // This version supports first-occurrence tie-breaking
-        void calculate_freqs(const std::vector<std::vector<int>>& corpus, PairCount& pair_count) const {
+        void calculate_freqs(const std::vector<std::vector<Token>>& corpus, PairCount<Token>& pair_count) const {
             for (const auto& word : corpus) {
                 if (word.size() < 2) continue;
                 for (size_t i = 0; i + 1 < word.size(); ++i) {
-                    int a = word[i];
-                    int b = word[i + 1];
+                    Token a = word[i];
+                    Token b = word[i + 1];
                     pair_count.create_or_modify_pair(a, b, 1);
                 }
             }
         }
 
         // Merges a specific pair within a single forward_list then completly update frequencies
-        void merge(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount *freqs) {
+        void merge(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -214,7 +198,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
-        void merge_incremental(std::forward_list<int> &text, pair<int,int> mp, int new_token, PairCount *freqs) {
+        void merge_incremental(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -321,7 +305,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<int>> &chunks, pair<int,int> mp, int idx, PairCount *freqs,
+        void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs,
               CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
               if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
@@ -337,9 +321,9 @@ namespace MinBpeCC::Tokenizer {
         // Builds the vocabulary based on merges
         void build_vocab(bool verbose) {
             assert(vocab.size() == 256); // Initial vocab must contain 256 byte tokens
-            int idx = 256;
+            Token idx = 256;
             for(auto mio: merges) {
-                vector<int> appended{vocab[std::get<0>(mio)]}; // Copy first part of the merge
+                vector<Token> appended{vocab[std::get<0>(mio)]}; // Copy first part of the merge
                 appended.insert(appended.end(),vocab[std::get<1>(mio)].begin(), vocab[std::get<1>(mio)].end()); // Append second part
                 vocab.push_back(appended);
                 // when verbose is true show the vocab element but strip out bytes that are not printable
@@ -359,18 +343,17 @@ namespace MinBpeCC::Tokenizer {
             if(verbose) {
                 cout << "Loaded vocab with " << merges.size() << " merges, vocab size is " << vocab.size() << "\n";
             }
-            // TODO: Special token handling would go here
         }
 
         // Internal encoding function that applies merges recursively
         // NOTE: This version was directly called in the original encode,
         // but now `encode` will first split with regex, then use this.
-        vector<int> internal_internal_encode(const vector<int> &text) {
+        vector<Token> internal_internal_encode(const vector<Token> &text) {
             if (text.size() < 2) { // Nothing to merge if less than 2 elements
                 return text;
             }
 
-            vector<int> out;
+            vector<Token> out;
             out.reserve(text.size()); // Pre-allocate for efficiency
             int i = 0;
             int merge_count = 0;
@@ -410,8 +393,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Applies internal encoding to a vector of chunks
-        vector<vector<int>> internal_encode(const vector<vector<int>> &chunks) {
-            vector<vector<int>> encoded_chunks;
+        vector<vector<Token>> internal_encode(const vector<vector<Token>> &chunks) {
+            vector<vector<Token>> encoded_chunks;
             encoded_chunks.reserve(chunks.size()); // Pre-allocate
             for(const auto &chunk: chunks) {
                 encoded_chunks.push_back(internal_internal_encode(chunk));
@@ -421,7 +404,7 @@ namespace MinBpeCC::Tokenizer {
 
     public:
         // Default constructor
-        Tokenizer() : merges_lookup(bucket_size, pair_int_int_hash),
+        Tokenizer() : merges_lookup(bucket_size, pair_token_hash),
                       compiled_pattern_pcre2(NULL),
                       match_data_pcre2(NULL) {
             // Initialize PCRE2 context objects once
@@ -431,7 +414,7 @@ namespace MinBpeCC::Tokenizer {
         };
 
         // Constructor with a specific pattern
-        Tokenizer(const string &pattern) : merges_lookup(bucket_size, pair_int_int_hash),
+        Tokenizer(const string &pattern) : merges_lookup(bucket_size, pair_token_hash),
                                             pattern(pattern),
                                             compiled_pattern_pcre2(NULL),
                                             match_data_pcre2(NULL) {
@@ -521,7 +504,7 @@ namespace MinBpeCC::Tokenizer {
           special_tokens_reverse_lookup.clear();
           std::istringstream iss(input_string);
           std::string key;
-          int value;
+          Token value;
           while (iss >> key >> value) {
               special_tokens[key] = value;
               special_tokens_reverse_lookup[value] = key;
@@ -537,7 +520,7 @@ namespace MinBpeCC::Tokenizer {
             merges.clear();
             merges.reserve(vocab_size - 256); // Pre-allocate space for merges
 
-            vector<vector<int>> chunks;
+            vector<vector<Token>> chunks;
 
             if (compiled_pattern_pcre2 != NULL) {
               PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.data());
@@ -595,8 +578,8 @@ namespace MinBpeCC::Tokenizer {
 
             int total_merges = vocab_size - 256;
             int last_percent = -1;
-            int insert_order = 256;
-            for(int i = 256; i < vocab_size; i++) {
+            
+            for(Token i = 256; i < vocab_size; i++) {
                 auto best = freqs->get_top_pair_count();
                 if(best.has_value()) {
                     auto max_pair = *best;
@@ -648,7 +631,7 @@ namespace MinBpeCC::Tokenizer {
             while (pos < text.size()) {
                 size_t found_pos = std::string::npos;
                 std::string found_token;
-                int found_id = 0;
+                Token found_id = 0;
                 // Find the next special token occurrence
                 for (const auto& kv : special_tokens) {
                     const std::string& token = kv.first;
@@ -685,7 +668,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Encodes input text into a sequence of tokens
-        vector<int> encode(const string &text, const bool verbose) {
+        vector<Token> encode(const string &text, const bool verbose) {
             auto split_text = split_on_special(text);
             if (verbose) {
                 cout << "Splitting input text into " << split_text.size() << " parts\n";
@@ -695,7 +678,7 @@ namespace MinBpeCC::Tokenizer {
                 }
             }
 
-            vector<vector<int>> text_chunks;
+            vector<vector<Token>> text_chunks;
             if (compiled_pattern_pcre2 != NULL) {
                 // For each split part, apply regex splitting if not a special token
                 for (const auto& part : split_text) {
@@ -746,7 +729,7 @@ namespace MinBpeCC::Tokenizer {
             // Apply merges to each chunk
             auto encoded_chunks = internal_encode(text_chunks);
             // Flatten the encoded chunks into a single token vector
-            vector<int> out;
+            vector<Token> out;
             for(const auto &chunk: encoded_chunks) {
                 out.insert(out.end(), chunk.begin(), chunk.end());
             }
@@ -757,12 +740,12 @@ namespace MinBpeCC::Tokenizer {
         };
 
         // Decodes a sequence of tokens back into a string
-        string decode(const vector<int> &tokens, const bool verbose) {
+        string decode(const vector<Token> &tokens, const bool verbose) {
             if(verbose) {
                 cout << "Decoding " << tokens.size() << " tokens\n";
             }
             string text = "";
-            for(int tkn : tokens) {
+            for(Token tkn : tokens) {
 
                 // Override special tokens with their string representation
                 if (special_tokens_reverse_lookup.find(tkn) != special_tokens_reverse_lookup.end()) {
@@ -777,7 +760,7 @@ namespace MinBpeCC::Tokenizer {
                 }
 
                 // cout << "token " << tkn << "\n"; // Debugging
-                for(int c_int : vocab[tkn]) {
+                for(Token c_int : vocab[tkn]) {
                     // Convert integer back to character, ensuring it's in byte range
                     text.push_back(static_cast<char>(c_int));
                 }
@@ -853,7 +836,7 @@ namespace MinBpeCC::Tokenizer {
                 input_file >> num_special;
                 for(int i = 0; i < num_special; i++) {
                     string token;
-                    int id;
+                    Token id;
                     input_file >> token >> id;
                     special_tokens[token] = id; // Store special tokens
                     special_tokens_reverse_lookup[id] = token; // Reverse lookup for decoding
@@ -863,8 +846,8 @@ namespace MinBpeCC::Tokenizer {
                 }
 
                 // Read merges
-                int idx1, idx2;
-                int current_token_idx = 256; // Merged tokens start from 256
+                Token idx1, idx2;
+                Token current_token_idx = 256; // Merged tokens start from 256
                 while(input_file >> idx1 >> idx2) {
                     merges.push_back(make_pair(idx1, idx2));
                     merges_lookup[make_pair(idx1, idx2)] = current_token_idx;
@@ -917,14 +900,14 @@ namespace MinBpeCC::Tokenizer {
                     }
 
                     // Write the tokens to the .vocab file
-                    int token_id = 0; // Token IDs start from 0 for byte tokens
+                    Token token_id = 0; // Token IDs start from 0 for byte tokens
                     for (const auto &v : vocab) {
                         vocab_file << std::setw(6) << std::left << token_id << ": \""; // Use left alignment for token ID
-                        for (int c_int : v) {
+                        for (Token c_int : v) {
                             if (c_int >= 32 && c_int <= 126) { // Printable ASCII characters
                                 vocab_file << (char)c_int;
                             } else {
-                                vocab_file << "�"; // Replacement character for non-printable/non-ASCII
+                                vocab_file << "\ufffd"; // Replacement character for non-printable/non-ASCII
                             }
                         }
                         vocab_file << "\"\n";
