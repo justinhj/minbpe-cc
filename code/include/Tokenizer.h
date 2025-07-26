@@ -35,7 +35,8 @@ using std::make_pair;
 using namespace MinBpeCC::Util; // Assuming this namespace contains PairCount
 
 namespace MinBpeCC::Tokenizer {
-    using Token = uint16_t;
+    using Token = uint32_t; // Here it is safe to change to uint16_t and other types as needed, 
+                            // but be sure to not have any special tokens that exceed the range.
     using TokenPair = std::pair<Token, Token>;
 
     // Hash function for std::pair<int,int>
