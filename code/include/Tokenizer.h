@@ -35,7 +35,8 @@ using std::make_pair;
 using namespace MinBpeCC::Util; // Assuming this namespace contains PairCount
 
 namespace MinBpeCC::Tokenizer {
-    using Token = uint16_t;
+    using Token = uint32_t; // Here it is safe to change to uint16_t and other types as needed, 
+                            // but be sure to not have any special tokens that exceed the range.
     using TokenPair = std::pair<Token, Token>;
 
     // Hash function for std::pair<int,int>
@@ -318,33 +319,6 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
-        // Builds the vocabulary based on merges
-        void build_vocab(bool verbose) {
-            assert(vocab.size() == 256); // Initial vocab must contain 256 byte tokens
-            Token idx = 256;
-            for(auto mio: merges) {
-                vector<Token> appended{vocab[std::get<0>(mio)]}; // Copy first part of the merge
-                appended.insert(appended.end(),vocab[std::get<1>(mio)].begin(), vocab[std::get<1>(mio)].end()); // Append second part
-                vocab.push_back(appended);
-                // when verbose is true show the vocab element but strip out bytes that are not printable
-                if(verbose) {
-                    cout << "vocab[" << idx << "] = ";
-                    for(auto c: appended) {
-                        if(c >= 32 && c < 127) { // Printable ASCII range
-                            cout << static_cast<char>(c);
-                        } else {
-                            cout << "\\x" << std::hex << c; // Non-printable as hex
-                        }
-                    }
-                    cout << "\n";
-                }
-                idx++;
-            }
-            if(verbose) {
-                cout << "Loaded vocab with " << merges.size() << " merges, vocab size is " << vocab.size() << "\n";
-            }
-        }
-
         // Internal encoding function that applies merges recursively
         // NOTE: This version was directly called in the original encode,
         // but now `encode` will first split with regex, then use this.
@@ -519,6 +493,7 @@ namespace MinBpeCC::Tokenizer {
 
             merges.clear();
             merges.reserve(vocab_size - 256); // Pre-allocate space for merges
+            initialize_vocab();
 
             vector<vector<Token>> chunks;
 
@@ -584,14 +559,21 @@ namespace MinBpeCC::Tokenizer {
                 if(best.has_value()) {
                     auto max_pair = *best;
                     auto [p1, p2] = max_pair;
+                    vector<Token> appended{vocab[p1]};
+                    appended.insert(appended.end(), vocab[p2].begin(), vocab[p2].end());
+                    vocab.push_back(appended);
                     if(verbose) {
-                        int percent = static_cast<int>(100.0 * (i - 256) / total_merges);
-                        // useful for long runs
-                        // if (percent != last_percent && (percent % 5 == 0 || i == vocab_size - 1)) {
-                        //     cout << "[train] Progress: " << percent << "% (" << (i - 256) << "/" << total_merges << ")\n";
-                        //     last_percent = percent;
-                        // }
-                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << "\n";
+                        auto freq = freqs->get_pair(max_pair);
+                        string new_vocab_str;
+                        new_vocab_str.reserve(appended.size());
+                        for(auto c: appended) {
+                            if(c >= 32 && c < 127) { // Printable ASCII range
+                                new_vocab_str += static_cast<char>(c);
+                            } else {
+                                new_vocab_str += ' ';
+                            }
+                        }
+                        cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " (b'" << new_vocab_str << "') had " << (freq.has_value() ? std::to_string(freq.value()) : "0") << " occurrences\n";
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
@@ -857,7 +839,30 @@ namespace MinBpeCC::Tokenizer {
                 if(verbose) {
                     cout << "Read input model from " << path << "\n";
                 }
-                build_vocab(verbose); // Rebuild vocab based on loaded merges
+
+                // Rebuild vocab from loaded merges
+                Token idx = 256;
+                for(auto mio: merges) {
+                    vector<Token> appended{vocab[std::get<0>(mio)]}; // Copy first part of the merge
+                    appended.insert(appended.end(),vocab[std::get<1>(mio)].begin(), vocab[std::get<1>(mio)].end()); // Append second part
+                    vocab.push_back(appended);
+                    if(verbose) {
+                        cout << "vocab[" << idx << "] = ";
+                        for(auto c: appended) {
+                            if(c >= 32 && c < 127) { // Printable ASCII range
+                                cout << static_cast<char>(c);
+                            } else {
+                                cout << "\\x" << std::hex << c; // Non-printable as hex
+                            }
+                        }
+                        cout << "\n";
+                    }
+                    idx++;
+                }
+                if(verbose) {
+                    cout << "Loaded vocab with " << merges.size() << " merges, vocab size is " << vocab.size() << "\n";
+                }
+
                 input_file.close();
                 return true;
             } else {
@@ -887,9 +892,6 @@ namespace MinBpeCC::Tokenizer {
                 output_file.close();
 
                 if (write_vocab) {
-                    initialize_vocab(); // Ensure vocab is fresh
-                    build_vocab(false); // Build vocab without verbose output for saving
-
                     // Create the .vocab file path
                     std::string vocab_path_str = path.string() + ".vocab";
                     std::ofstream vocab_file(vocab_path_str, std::ios::out);
