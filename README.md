@@ -104,11 +104,13 @@ The results are based on several runs and the average is rounded to the nearest 
 
 ### Timings for train.cpp on bible.txt
 
-The results are based on several runs and the average is rounded to the nearest 0.5 seconds.
-
 - Python train.py (298.5s)
 - C++ (first occurrence) (107.0s)
 - C++ (lexicographical) (5.5s)
+
+### Timings for train.cpp on wikitext 
+
+1198.28s C++ Lexical
 
 Jul 22 2025
 
