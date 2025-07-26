@@ -93,12 +93,22 @@ Jul 23 2025
 
 Completed refactor so we can choose between completely different implementations of frequency counting based on the conflict resolution chosen.
 
-### Timings for train.cpp on shakespeare.txt
 __(Taken on a Macbook Pro with 16Gb and M1 Pro 10-core CPU)__
+The results are based on several runs and the average is rounded to the nearest 0.5 seconds.
 
-- Python train.py (76.91s)
-- C++ (first occurrence) (36.31s)
-- C++ (lexicographical) (1.48s)
+### Timings for train.cpp on shakespeare.txt
+
+- Python train.py (77.5s)
+- C++ (first occurrence) (36.5s)
+- C++ (lexicographical) (1.50s)
+
+### Timings for train.cpp on bible.txt
+
+The results are based on several runs and the average is rounded to the nearest 0.5 seconds.
+
+- Python train.py (298.5s)
+- C++ (first occurrence) (107.0s)
+- C++ (lexicographical) (5.5s)
 
 Jul 22 2025
 
