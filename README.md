@@ -8,6 +8,8 @@
 
 A C++ implementation of bpe tokenization, based on Karpathy's [minbpe](https://github.com/karpathy/minbpe).
 
+For more information please check out the [blog post](https://justinhj.github.io/2025/07/30/journey-in-optimizing-a-bpe-tokenizer.html).
+
 This was originally a direct port of the Python code, which was quite a bit faster. Compared to the Python `train.py` example it is roughy 5x faster.
 
 However, after making some data structure changes and other optimizations, it is now faster by a factor of 50x, or almost 2 orders of magniture.
