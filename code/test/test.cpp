@@ -193,7 +193,7 @@ TEST_CASE("skipping_list creation and size", "[skipping_list]") {
     std::vector<int> data(20);
     std::iota(data.begin(), data.end(), 1);
 
-        skipping_list<int> sl(data, 5);
+        skipping_list<int> sl(data);
 
     REQUIRE(sl.size() == 20);
 }
@@ -213,7 +213,7 @@ TEST_CASE("skipping_list advanced functionality", "[skipping_list]") {
     SECTION("Simple erase") {
         std::vector<unsigned int> data = {10, 20, 30, 40};
         // Use 4 bits for skip count, max_skip = 15
-        skipping_list<unsigned int> sl(data, 4);
+        skipping_list<unsigned int> sl(data);
 
         // Erase '20'
         auto it = sl.begin(); // points to 10
@@ -226,7 +226,7 @@ TEST_CASE("skipping_list advanced functionality", "[skipping_list]") {
 
     SECTION("Consecutive erasures from head") {
         std::vector<unsigned int> data = {10, 20, 30, 40, 50};
-        skipping_list<unsigned int> sl(data, 4);
+        skipping_list<unsigned int> sl(data);
 
         auto it = sl.begin(); // points to 10
         sl.erase_after(it); // Erase 20. List is now logically {10, 30, 40, 50}
@@ -246,7 +246,7 @@ TEST_CASE("skipping_list advanced functionality", "[skipping_list]") {
     SECTION("Daisy-chain erase") {
         // Use only 1 bit for skip count, so max_skip is 1.
         std::vector<unsigned int> data = {10, 20, 30, 40, 50};
-        skipping_list<unsigned int> sl(data, 1);
+        skipping_list<unsigned int> sl(data);
 
         auto it = sl.begin(); // points to 10
 

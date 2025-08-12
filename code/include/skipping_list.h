@@ -4,51 +4,40 @@
 #include <vector>
 #include <iterator>
 #include <concepts>
-#include <algorithm> // For std::min
-#include <cassert>   // For assert
+#include <cassert> // For assert
 
 namespace MinBpeCC::Util {
 
 template<std::integral T>
 class skipping_list {
 private:
-    // The number of high bits in T to use for the skip count.
-    int max_skips_;
-    // The maximum value the skip count can hold (2^max_skips - 1).
-    T max_skip_val_;
-    // Bitmasks for separating the value and the skip count.
-    T value_mask_;
-    T skip_mask_;
-    int skip_shift_;
+    // We use the most significant bit (MSB) as a "deleted" flag.
+    // 1 means deleted/skipped, 0 means active.
+    static constexpr int skip_shift_ = sizeof(T) * 8 - 1;
+    static constexpr T skip_mask_ = T(1) << skip_shift_;
+    static constexpr T value_mask_ = ~skip_mask_;
 
-    // Sets up the bitmasks based on max_skips_.
-    void setup_masks() {
-        assert(max_skips_ > 0 && max_skips_ < sizeof(T) * 8);
-        skip_shift_ = sizeof(T) * 8 - max_skips_;
-        max_skip_val_ = (T(1) << max_skips_) - 1;
-        skip_mask_ = max_skip_val_ << skip_shift_;
-        value_mask_ = ~skip_mask_;
-    }
-
-    // Gets the user-facing value from an element, excluding skip bits.
+    // Gets the user-facing value from an element, excluding the deleted flag.
     T get_value(const T& element) const {
         return element & value_mask_;
     }
 
-    // Gets the skip count from an element's high bits.
-    T get_skip(const T& element) const {
-        return (element & skip_mask_) >> skip_shift_;
+    // Checks if an element is marked as deleted.
+    bool is_deleted(const T& element) const {
+        return (element & skip_mask_) != 0;
     }
 
-    // Sets the skip count on an element, preserving its value.
-    void set_skip(T& element, T count) {
-        element = (element & value_mask_) | (count << skip_shift_);
+    // Marks an element as deleted by setting its MSB.
+    void set_deleted(T& element) {
+        element |= skip_mask_;
     }
 
 public:
     class iterator;
     class const_iterator;
 
+    // ## Iterator
+    // The iterator is responsible for transparently skipping over deleted elements.
     class iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -57,21 +46,23 @@ public:
         using pointer = T*;
         using reference = T&;
 
-        iterator(skipping_list* parent, typename std::vector<T>::iterator it) : parent_(parent), current_(it) {}
+        iterator(skipping_list* parent, typename std::vector<T>::iterator it) : parent_(parent), current_(it) {
+            // Ensure the iterator starts on a valid (non-deleted) element, or at the end.
+            while (current_ != parent_->list_.end() && parent_->is_deleted(*current_)) {
+                ++current_;
+            }
+        }
 
         // Dereferencing returns the masked value, not the raw stored value.
         value_type operator*() const { return parent_->get_value(*current_); }
 
-        // Prefix increment - this is where the daisy-chain skipping happens.
+        // Prefix increment: advances to the next non-deleted element.
         iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-                T skip_val = parent_->get_skip(*current_);
-                current_ += (1 + skip_val); // Perform the initial jump
-
-                // Continue jumping only if we land on a node that is ALSO a max-skip node
-                while (current_ < parent_->list_.end() && parent_->get_skip(*current_) == parent_->max_skip_val_) {
-                    skip_val = parent_->get_skip(*current_);
-                    current_ += (1 + skip_val);
+                ++current_; // Move to the next physical element
+                // Scan forward to find the next valid (non-deleted) element.
+                while (current_ != parent_->list_.end() && parent_->is_deleted(*current_)) {
+                    ++current_;
                 }
             }
             return *this;
@@ -88,7 +79,9 @@ public:
         skipping_list* parent_;
         typename std::vector<T>::iterator current_;
     };
-
+    
+    // ## Const Iterator
+    // A read-only version of the iterator.
     class const_iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -97,21 +90,24 @@ public:
         using pointer = const T*;
         using reference = const T&;
 
-        const_iterator(const skipping_list* parent, typename std::vector<T>::const_iterator it) : parent_(parent), current_(it) {}
+        const_iterator(const skipping_list* parent, typename std::vector<T>::const_iterator it) : parent_(parent), current_(it) {
+            // Ensure the iterator starts on a valid element.
+            while (current_ != parent_->list_.end() && parent_->is_deleted(*current_)) {
+                ++current_;
+            }
+        }
         const_iterator(const iterator& it) : parent_(it.parent_), current_(it.current_) {}
 
         value_type operator*() const { return parent_->get_value(*current_); }
 
+        // Prefix increment: advances to the next non-deleted element.
         const_iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-              T skip_val = parent_->get_skip(*current_);
-              current_ += (1 + skip_val); // Perform the initial jump
-
-              // Continue jumping only if we land on a node that is ALSO a max-skip node
-              while (current_ < parent_->list_.end() && parent_->get_skip(*current_) == parent_->max_skip_val_) {
-                  skip_val = parent_->get_skip(*current_);
-                  current_ += (1 + skip_val);
-              }
+                ++current_; // Move to the next physical element
+                // Scan forward to find the next valid element.
+                while (current_ != parent_->list_.end() && parent_->is_deleted(*current_)) {
+                    ++current_;
+                }
             }
             return *this;
         }
@@ -127,12 +123,13 @@ public:
         typename std::vector<T>::const_iterator current_;
     };
 
-    explicit skipping_list(const std::vector<T>& values, int max_skips) : max_skips_(max_skips) {
-        setup_masks();
+    // Constructor no longer needs max_skips.
+    explicit skipping_list(const std::vector<T>& values) {
         list_.reserve(values.size());
         for (const auto& val : values) {
-            // Ensure skip bits are zeroed out on initial insertion.
-            list_.push_back(val & value_mask_);
+            // The user-provided value should not have the MSB set, as it's reserved for our flag.
+            assert((val & skip_mask_) == 0 && "Initial values must not have the top bit set.");
+            list_.push_back(val); // The value is already clean.
         }
     }
 
@@ -141,56 +138,31 @@ public:
     iterator end() { return iterator(this, list_.end()); }
     const_iterator end() const { return const_iterator(this, list_.cend()); }
 
+    // ## Erase After
+    // Deletes the logical element *after* the one at `position`.
     iterator erase_after(const_iterator position) {
-        // Find the element to delete, which is the logical next one.
+        // Find the logical next element to delete using the iterator's skipping logic.
         auto it_to_erase_const = position;
-        ++it_to_erase_const; // This uses the skipping logic.
+        ++it_to_erase_const;
 
         if (it_to_erase_const == end()) {
             return end(); // Nothing to erase.
         }
 
-        // Get non-const iterators to the elements we need to modify.
-        auto dist_current = std::distance(list_.cbegin(), position.current_);
-        auto current_node_it = list_.begin() + dist_current;
-
+        // Get a non-const iterator to the physical element we need to modify.
         auto dist_erase = std::distance(list_.cbegin(), it_to_erase_const.current_);
         auto element_to_delete_it = list_.begin() + dist_erase;
 
-        // The total number of skips to add is 1 (for the deleted element) plus any skips
-        // the deleted element was already responsible for.
-        T skips_to_add = 1 + get_skip(*element_to_delete_it);
-        
-        // The deleted element's skips are now absorbed, so clear them.
-        set_skip(*element_to_delete_it, 0);
+        // Mark the element as deleted by setting its top bit. No complex chain logic needed.
+        set_deleted(*element_to_delete_it);
 
-        // This loop implements the "daisy-chaining". If the current node can't hold all
-        // the new skips, it's filled to capacity, and the remainder is passed to the
-        // next node in the chain.
-        while (skips_to_add > 0) {
-            assert(current_node_it < list_.end() && "Daisy chain ran off the end of the list");
-
-            T current_skips = get_skip(*current_node_it);
-            T available_capacity = max_skip_val_ - current_skips;
-            T can_add = std::min(skips_to_add, available_capacity);
-
-            set_skip(*current_node_it, current_skips + can_add);
-            skips_to_add -= can_add;
-
-            if (skips_to_add > 0) {
-                if (can_add == 0) {
-                    set_skip(*current_node_it, 0);
-                    skips_to_add += current_skips;
-                }
-                current_node_it += 1;
-            }
-        }
-        
-        // Return an iterator to the element that logically follows the erased one.
+        // To find the new next valid iterator, we simply increment the original position's iterator again.
+        // `operator++` will now correctly skip over the element we just marked as deleted.
         auto next_valid_it = position;
-        ++next_valid_it; // This uses the new skipping logic.
+        ++next_valid_it;
         
         // We have a const_iterator but need to return a non-const one.
+        // We can construct it from the underlying physical iterator.
         auto final_dist = std::distance(list_.cbegin(), next_valid_it.current_);
         return iterator(this, list_.begin() + final_dist);
     }
@@ -198,6 +170,7 @@ public:
     // Returns the number of "active" (not deleted) elements. This is slow (O(N)).
     size_t size() const {
         size_t count = 0;
+        // The iterators correctly handle skipping, so this logic remains correct.
         for (auto it = begin(); it != end(); ++it) {
             count++;
         }
