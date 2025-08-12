@@ -22,6 +22,7 @@
 #include <pcre2.h> // Main PCRE2 header
 
 #include "PairCount.h" // Assuming this is a local header
+#include "skipping_list.h"
 
 using std::string;
 using std::unordered_map;
