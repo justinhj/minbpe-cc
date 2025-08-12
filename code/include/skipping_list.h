@@ -62,11 +62,14 @@ public:
         // Dereferencing returns the masked value, not the raw stored value.
         value_type operator*() const { return parent_->get_value(*current_); }
 
-        // Prefix increment - this is where the skipping happens.
+        // Prefix increment - this is where the daisy-chain skipping happens.
         iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-                T skip_count = parent_->get_skip(*current_);
-                current_ += (1 + skip_count);
+                T skip_val = 0;
+                do {
+                    skip_val = parent_->get_skip(*current_);
+                    current_ += (1 + skip_val);
+                } while (skip_val == parent_->max_skip_val_ && current_ < parent_->list_.end());
             }
             return *this;
         }
@@ -98,8 +101,11 @@ public:
 
         const_iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-                T skip_count = parent_->get_skip(*current_);
-                current_ += (1 + skip_count);
+                T skip_val = 0;
+                do {
+                    skip_val = parent_->get_skip(*current_);
+                    current_ += (1 + skip_val);
+                } while (skip_val == parent_->max_skip_val_ && current_ < parent_->list_.end());
             }
             return *this;
         }
@@ -131,15 +137,20 @@ public:
 
     // Efficiently "deletes" an element by incrementing the skip count of the preceding element.
     iterator erase_after(const_iterator position) {
-        // We need a non-const iterator to modify the list.
-        auto dist = std::distance(list_.cbegin(), position.current_);
-        auto current_node_it = list_.begin() + dist;
+        // Find the element to delete, which is the logical next one.
+        auto it_to_erase_const = position;
+        ++it_to_erase_const; // This uses the skipping logic.
 
-        auto element_to_delete_it = std::next(current_node_it);
-
-        if (element_to_delete_it == list_.end()) {
-            return end(); // Nothing to erase after the given position.
+        if (it_to_erase_const == end()) {
+            return end(); // Nothing to erase.
         }
+
+        // Get non-const iterators to the elements we need to modify.
+        auto dist_current = std::distance(list_.cbegin(), position.current_);
+        auto current_node_it = list_.begin() + dist_current;
+
+        auto dist_erase = std::distance(list_.cbegin(), it_to_erase_const.current_);
+        auto element_to_delete_it = list_.begin() + dist_erase;
 
         // The total number of skips to add is 1 (for the deleted element) plus any skips
         // the deleted element was already responsible for.
@@ -162,9 +173,11 @@ public:
             skips_to_add -= can_add;
 
             if (skips_to_add > 0) {
-                // We maxed out the current node, so we find the next node in the chain
-                // to offload the remaining skips to.
-                current_node_it += (1 + current_skips); // Jump over the original skip block.
+                // We maxed out the current node, so we find the node at the end of its original
+                // skip chain to offload the remaining skips to.
+                // We maxed out the current node, so we find the node at the end of its original
+                // skip chain to offload the remaining skips to.
+                current_node_it += current_skips; // Jump to the end of the current skip block.
             }
         }
         

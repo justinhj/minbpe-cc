@@ -197,3 +197,77 @@ TEST_CASE("skipping_list creation and size", "[skipping_list]") {
 
     REQUIRE(sl.size() == 20);
 }
+
+// Helper to collect values from a skipping_list
+template<typename T>
+static std::vector<T> collect_values(const MinBpeCC::Util::skipping_list<T>& sl) {
+    std::vector<T> values;
+    for (const auto& val : sl) {
+        values.push_back(val);
+    }
+    return values;
+}
+
+TEST_CASE("skipping_list advanced functionality", "[skipping_list]") {
+    
+    SECTION("Simple erase") {
+        std::vector<unsigned int> data = {10, 20, 30, 40};
+        // Use 4 bits for skip count, max_skip = 15
+        skipping_list<unsigned int> sl(data, 4);
+
+        // Erase '20'
+        auto it = sl.begin(); // points to 10
+        sl.erase_after(it);
+
+        REQUIRE(sl.size() == 3);
+        std::vector<unsigned int> expected = {10, 30, 40};
+        REQUIRE(collect_values(sl) == expected);
+    }
+
+    SECTION("Consecutive erasures from head") {
+        std::vector<unsigned int> data = {10, 20, 30, 40, 50};
+        skipping_list<unsigned int> sl(data, 4);
+
+        auto it = sl.begin(); // points to 10
+        sl.erase_after(it); // Erase 20. List is now logically {10, 30, 40, 50}
+        
+        REQUIRE(sl.size() == 4);
+        std::vector<unsigned int> expected1 = {10, 30, 40, 50};
+        REQUIRE(collect_values(sl) == expected1);
+
+        // it still points to 10. The next element is 30. Let's erase that.
+        sl.erase_after(it); // Erase 30. List is now logically {10, 40, 50}
+
+        REQUIRE(sl.size() == 3);
+        std::vector<unsigned int> expected2 = {10, 40, 50};
+        REQUIRE(collect_values(sl) == expected2);
+    }
+
+    SECTION("Daisy-chain erase") {
+        // Use only 1 bit for skip count, so max_skip is 1.
+        std::vector<unsigned int> data = {10, 20, 30, 40, 50};
+        skipping_list<unsigned int> sl(data, 1);
+
+        auto it = sl.begin(); // points to 10
+
+        // Erase 20. 10's skip becomes 1.
+        sl.erase_after(it);
+        REQUIRE(sl.size() == 4);
+        std::vector<unsigned int> expected1 = {10, 30, 40, 50};
+        REQUIRE(collect_values(sl) == expected1);
+
+        // Erase 30. 10's skip is already maxed out (1).
+        // This should trigger daisy-chaining.
+        sl.erase_after(it);
+        
+        REQUIRE(sl.size() == 3);
+        std::vector<unsigned int> expected2 = {10, 40, 50};
+        REQUIRE(collect_values(sl) == expected2);
+
+        // Erase 40. This should also daisy-chain.
+        sl.erase_after(it);
+        REQUIRE(sl.size() == 2);
+        std::vector<unsigned int> expected3 = {10, 50};
+        REQUIRE(collect_values(sl) == expected3);
+    }
+}
