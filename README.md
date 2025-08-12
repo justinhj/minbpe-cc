@@ -98,26 +98,39 @@ Completed refactor so we can choose between completely different implementations
 __(Taken on a Macbook Pro with 16Gb and M1 Pro 10-core CPU)__
 The results are based on several runs and the average is rounded to the nearest 0.5 seconds.
 
+### Timings for train.cpp on taylorswift.txt
+
+- Python train.py (11.0s) 
+- C++ (first occurrence) (5.5s)
+- C++ (lexicographical) (0.0s) 
+
+### Timings for train.cpp on bible.txt
+
+- Python train.py (298.5s)
+- C++ (first occurrence) (107.0s)
+- C++ (lexicographical) (5.5s)
+
 ### Timings for train.cpp on shakespeare.txt
 
 - Python train.py (77.5s)
 - C++ (first occurrence) (36.5s)
 - C++ (lexicographical) (1.50s)
 
-### Timings for train.cpp on bible.txt
+### Timings for train.cpp on wikitext 
 
-The results are based on several runs and the average is rounded to the nearest 0.5 seconds.
+- Python train.py (project 46080.0s, 768m)
+- C++ (first) (projected 13500.0s, 225m)
+- C++ (lexicographical) (2217.5s, 37m)
 
-- Python train.py (298.5s)
-- C++ (first occurrence) (107.0s)
-- C++ (lexicographical) (5.5s)
+Each step takes 26 seconds. 
+First iteration was 98 seconds and subsequently 90 seconds on average.
+Initial frequency count took 21 seconds. First few iterations are 6 seconds, dropping quickly to 4 seconds.
 
 Jul 22 2025
 
 Reworked the code so it's fully compatible with Karpathy's example models for training (the model files are exactly the same). Working on a refactor so you can run the slower compatible version or the optimized version with a command line flag.
 
 Time for taylorswitch train. 5.8s
-
 
 Next steps:
 Code cleanup. Rename PairCount. Code tidying.
@@ -132,7 +145,7 @@ Jun 9th 2025
 
 Realized in Debug mode I was hitting an assert when using the GPT4 regex. Whilst tracking it down I found that internationalization (ICU) was not working even though boost was built with it.
 
-Turned out the best solution was to use the pcre2 regex library instead of boost. This matches up with the synatx used in Karpathy's original code, since he used the regex module as used in Tiktoken, which is Perl compatible.
+Turned out the best solution was to use the pcre2 regex library instead of boost. This matches up with the syntax used in Karpathy's original code, since he used the regex module as used in Tiktoken, which is Perl compatible.
 
 Jun 6th 2025
 
@@ -173,7 +186,7 @@ shakespeare.txt (train 2)
 * TODO :Performance: check performance of going back to vector instead of forward_list when training in each mode
 * TODO :Ergonomics: Warnings when specifying unused arguments. vocab size and encoder only matter for training
 * TODO :Fun: Use zip/tail to simplify the tricky pair iterator logic and see if it impairs performance
-* TODO :Verification: Add end to end test script comparing to Karpathy's train.py
+* DONE :Verification: Add end to end test script comparing to Karpathy's train.py
 * DONE Add special token support for encoding and decoding
 * DONE Make build files more portable (Converting to zig build)
 * DONE replace tuple with pair

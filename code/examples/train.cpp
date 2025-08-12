@@ -27,6 +27,7 @@ const string test_strings[] = {
   "안 👋 hello", // also from the youtube video
   "hello world!!!? (안녕하세요!) lol123 😉", // fun small string
   "But Unicode can be abstruse plus we know we are still finding the whole thing mysterious",
+  "FILE:../wikitextpy/wikitext_103_all.txt", // Requires download and run wikitextpy to generate this file
 };
 
 string getTestString(int index) {

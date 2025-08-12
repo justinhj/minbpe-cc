@@ -16,6 +16,7 @@
 #include <optional> // Using std::optional
 #include <stdexcept> // For std::runtime_error
 #include <cstdint>
+#include <chrono>
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h> // Main PCRE2 header
@@ -549,12 +550,30 @@ namespace MinBpeCC::Tokenizer {
 
             // Continue with BPE algorithm
             auto flists = create_lists(chunks);
-            auto freqs = calculate_freqs(flists, conflict_resolution);
+            std::unique_ptr<PairCount<Token>> freqs;
+            if (verbose) {
+                using std::chrono::high_resolution_clock;
+                using std::chrono::duration_cast;
+                using std::chrono::milliseconds;
+                auto t1 = high_resolution_clock::now();
+                freqs = calculate_freqs(flists, conflict_resolution);
+                auto t2 = high_resolution_clock::now();
+                auto duration = t2 - t1;
+                auto ms_int = duration_cast<milliseconds>(duration).count();
+                cout << "Calculated frequencies in " << ms_int / 1000.0 << " (s)\n";
+            } else {
+                freqs = calculate_freqs(flists, conflict_resolution);
+            }
 
             int total_merges = vocab_size - 256;
             int last_percent = -1;
             
             for(Token i = 256; i < vocab_size; i++) {
+                using std::chrono::high_resolution_clock;
+                using std::chrono::duration_cast;
+                using std::chrono::milliseconds;
+                auto iteration_start_time = high_resolution_clock::now();
+
                 auto best = freqs->get_top_pair_count();
                 if(best.has_value()) {
                     auto max_pair = *best;
@@ -573,6 +592,7 @@ namespace MinBpeCC::Tokenizer {
                                 new_vocab_str += ' ';
                             }
                         }
+
                         cout << "merge " << (i - 256) + 1 << "/" << total_merges << ": (" <<  p1 << ", " << p2 << ") -> " << i << " (b'" << new_vocab_str << "') had " << (freq.has_value() ? std::to_string(freq.value()) : "0") << " occurrences\n";
                     }
                     merges.push_back(max_pair);
@@ -582,6 +602,12 @@ namespace MinBpeCC::Tokenizer {
                       // The lexical conflict resolution primarily gets its speed up from
                       // not having to recalculate frequencies after each merge.
                       freqs = std::move(calculate_freqs(flists, conflict_resolution));
+                    }
+                    auto iteration_end_time = high_resolution_clock::now();
+                    auto iteration_duration = iteration_end_time - iteration_start_time;
+                    auto ms_int = duration_cast<milliseconds>(iteration_duration).count();
+                    if(verbose) {
+                      cout << "merge step took " << ms_int / 1000.0 << "s\n";
                     }
                 } else {
                     break;
