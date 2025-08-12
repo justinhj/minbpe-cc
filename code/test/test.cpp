@@ -193,7 +193,7 @@ TEST_CASE("skipping_list creation and size", "[skipping_list]") {
     std::vector<int> data(20);
     std::iota(data.begin(), data.end(), 1);
 
-    skipping_list<int> sl(data);
+        skipping_list<int> sl(data, 5);
 
     REQUIRE(sl.size() == 20);
 }
