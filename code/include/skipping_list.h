@@ -65,11 +65,14 @@ public:
         // Prefix increment - this is where the daisy-chain skipping happens.
         iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-                T skip_val = 0;
-                do {
+                T skip_val = parent_->get_skip(*current_);
+                current_ += (1 + skip_val); // Perform the initial jump
+
+                // Continue jumping only if we land on a node that is ALSO a max-skip node
+                while (current_ < parent_->list_.end() && parent_->get_skip(*current_) == parent_->max_skip_val_) {
                     skip_val = parent_->get_skip(*current_);
                     current_ += (1 + skip_val);
-                } while (skip_val == parent_->max_skip_val_ && current_ < parent_->list_.end());
+}
             }
             return *this;
         }
@@ -101,11 +104,14 @@ public:
 
         const_iterator& operator++() {
             if (current_ != parent_->list_.end()) {
-                T skip_val = 0;
-                do {
-                    skip_val = parent_->get_skip(*current_);
-                    current_ += (1 + skip_val);
-                } while (skip_val == parent_->max_skip_val_ && current_ < parent_->list_.end());
+              T skip_val = parent_->get_skip(*current_);
+              current_ += (1 + skip_val); // Perform the initial jump
+
+              // Continue jumping only if we land on a node that is ALSO a max-skip node
+              while (current_ < parent_->list_.end() && parent_->get_skip(*current_) == parent_->max_skip_val_) {
+                  skip_val = parent_->get_skip(*current_);
+                  current_ += (1 + skip_val);
+              }
             }
             return *this;
         }
@@ -135,61 +141,51 @@ public:
     iterator end() { return iterator(this, list_.end()); }
     const_iterator end() const { return const_iterator(this, list_.cend()); }
 
-    // Efficiently "deletes" an element by incrementing the skip count of the preceding element.
     iterator erase_after(const_iterator position) {
-        // Find the element to delete, which is the logical next one.
-        auto it_to_erase_const = position;
-        ++it_to_erase_const; // This uses the skipping logic.
+      // 1. Find the physical node 'p_it' (at the given position) and 'e_it' (the logical node to be erased).
+      auto it_to_erase = position;
+      ++it_to_erase;
+      if (it_to_erase == end()) {
+          return end(); // Nothing to erase.
+      }
 
-        if (it_to_erase_const == end()) {
-            return end(); // Nothing to erase.
-        }
+      auto p_it = list_.begin() + std::distance(list_.cbegin(), position.current_);
+      auto e_it = list_.begin() + std::distance(list_.cbegin(), it_to_erase.current_);
 
-        // Get non-const iterators to the elements we need to modify.
-        auto dist_current = std::distance(list_.cbegin(), position.current_);
-        auto current_node_it = list_.begin() + dist_current;
+      // 2. Calculate the total number of physical nodes that 'p_it' must now skip.
+      // This is the physical distance from 'p_it' to 'e_it', plus any nodes 'e_it' was already skipping.
+      T total_skips_needed = std::distance(p_it, e_it) + get_skip(*e_it);
+      
+      // 3. The skips from the deleted node are now accounted for, so clear them from the original location.
+      set_skip(*e_it, 0);
 
-        auto dist_erase = std::distance(list_.cbegin(), it_to_erase_const.current_);
-        auto element_to_delete_it = list_.begin() + dist_erase;
+      // 4. Starting from 'p_it', "pave" a new, correct daisy-chain by overwriting skip values
+      //    until all 'total_skips_needed' are distributed.
+      auto current_link_it = p_it;
+      T remaining_skips = total_skips_needed;
 
-        // The total number of skips to add is 1 (for the deleted element) plus any skips
-        // the deleted element was already responsible for.
-        T skips_to_add = 1 + get_skip(*element_to_delete_it);
-        
-        // The deleted element's skips are now absorbed, so clear them.
-        set_skip(*element_to_delete_it, 0);
+      while (remaining_skips > 0) {
+          assert(current_link_it < list_.end() && "Daisy chain ran off the end of the list");
 
-        // This loop implements the "daisy-chaining". If the current node can't hold all
-        // the new skips, it's filled to capacity, and the remainder is passed to the
-        // next node in the chain.
-        while (skips_to_add > 0) {
-            assert(current_node_it < list_.end() && "Daisy chain ran off the end of the list");
-
-            T current_skips = get_skip(*current_node_it);
-            T available_capacity = max_skip_val_ - current_skips;
-            T can_add = std::min(skips_to_add, available_capacity);
-
-            set_skip(*current_node_it, current_skips + can_add);
-            skips_to_add -= can_add;
-
-            if (skips_to_add > 0) {
-                // We maxed out the current node, so we find the node at the end of its original
-                // skip chain to offload the remaining skips to.
-                // We maxed out the current node, so we find the node at the end of its original
-                // skip chain to offload the remaining skips to.
-                current_node_it += current_skips; // Jump to the end of the current skip block.
-            }
-        }
-        
-        // Return an iterator to the element that logically follows the erased one.
-        auto next_valid_it = position;
-        ++next_valid_it; // This uses the new skipping logic.
-        
-        // We have a const_iterator but need to return a non-const one.
-        auto final_dist = std::distance(list_.cbegin(), next_valid_it.current_);
-        return iterator(this, list_.begin() + final_dist);
-    }
-
+          // Determine how many skips this current node can hold.
+          T skips_for_this_node = std::min(remaining_skips, max_skip_val_);
+          set_skip(*current_link_it, skips_for_this_node);
+          
+          remaining_skips -= skips_for_this_node;
+          
+          if (remaining_skips > 0) {
+              // We maxed out this node. Jump to the node *after* the physical block
+              // we just created to place the next link of the daisy chain.
+              current_link_it += (1 + skips_for_this_node);
+          }
+      }
+      
+      // 5. Return an iterator to the element that now logically follows the original position.
+      auto next_valid_it = position;
+      ++next_valid_it; // This uses the newly created skipping logic.
+      auto final_dist = std::distance(list_.cbegin(), next_valid_it.current_);
+      return iterator(this, list_.begin() + final_dist);
+  }
     // Returns the number of "active" (not deleted) elements. This is slow (O(N)).
     size_t size() const {
         size_t count = 0;
