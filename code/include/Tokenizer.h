@@ -606,7 +606,9 @@ namespace MinBpeCC::Tokenizer {
                     auto iteration_end_time = high_resolution_clock::now();
                     auto iteration_duration = iteration_end_time - iteration_start_time;
                     auto ms_int = duration_cast<milliseconds>(iteration_duration).count();
-                    cout << "merge step took " << ms_int / 1000.0 << "s\n";
+                    if(verbose) {
+                      cout << "merge step took " << ms_int / 1000.0 << "s\n";
+                    }
                 } else {
                     break;
                 }
