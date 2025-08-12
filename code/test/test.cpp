@@ -1,11 +1,15 @@
 #include "Tokenizer.h"
+#include "skipping_list.h"
 #include <catch_amalgamated.hpp>
 #include <utility>
+#include <vector>
+#include <numeric>
 
 using MinBpeCC::Tokenizer::Tokenizer;
 using MinBpeCC::Util::PairCount;
 using MinBpeCC::Util::PairCountInsertOrder;
 using MinBpeCC::Util::PairCountLexicalOrder;
+using MinBpeCC::Util::skipping_list;
 using std::vector;
 using std::string;
 using std::pair;
@@ -183,4 +187,13 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
 
     // Also check that the total number of pairs is 3
     REQUIRE(freqs->get_count() == 3);
+}
+
+TEST_CASE("skipping_list creation and size", "[skipping_list]") {
+    std::vector<int> data(20);
+    std::iota(data.begin(), data.end(), 1);
+
+    skipping_list<int> sl(data);
+
+    REQUIRE(sl.size() == 20);
 }

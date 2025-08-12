@@ -9,12 +9,12 @@
 namespace MinBpeCC::Util {
 
 template<typename T>
-class SkippingList {
+class skipping_list {
 public:
     using iterator = typename std::forward_list<T>::iterator;
     using const_iterator = typename std::forward_list<T>::const_iterator;
 
-    explicit SkippingList(const std::vector<T>& values) {
+    explicit skipping_list(const std::vector<T>& values) {
         // To mimic forward_list creation from a vector in existing code
         std::copy(values.rbegin(), values.rend(), std::front_inserter(list_));
     }
