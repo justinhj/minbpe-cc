@@ -3,10 +3,11 @@
 
 #include <vector>
 #include <iterator>
+#include <concepts>
 
 namespace MinBpeCC::Util {
 
-template<typename T>
+template<std::integral T>
 class skipping_list {
 public:
     class iterator;
