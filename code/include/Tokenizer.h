@@ -161,7 +161,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list then completly update frequencies
-        void merge(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
+        template<typename Container>
+        void merge(Container &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -201,7 +202,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
-        void merge_incremental(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
+        template<typename Container>
+        void merge_incremental(Container &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -212,7 +214,13 @@ namespace MinBpeCC::Tokenizer {
             }
 
             auto [p1_val, p2_val] = mp; // Deconstruct the pair
-            auto i0 = text.before_begin();
+            // For forward_list, i0 is before_begin(). For other containers, it might be begin() or not applicable.
+            // We need to handle the "previous" element logic carefully.
+            // Let's use a generic approach that works for both forward_list and skipping_list.
+            // We'll keep track of the iterator to the element *before* i1.
+            typename Container::iterator i0_prev_element; // This will hold the iterator to the element before i1
+            bool i0_is_valid = false; // Flag to indicate if i0_prev_element is valid
+
             auto i1 = text.begin();
             auto i2 = std::next(i1);
 
@@ -225,7 +233,7 @@ namespace MinBpeCC::Tokenizer {
 
             while(i1 != text.end() && i2 != text.end()) {
                 if(false) { // verbose >= 1) {
-                    cout << "i0 " << (i0 != text.before_begin() ? std::to_string(*i0) : "B_BEGIN")
+                    cout << "i0 " << (i0_is_valid ? std::to_string(*i0_prev_element) : "INVALID")
                          << " i1 " << *i1 << " i2 " << *i2
                          << " i3 " << (i3 == text.end() ? "?" : std::to_string(*i3)) << "\n";
                 }
@@ -247,19 +255,19 @@ namespace MinBpeCC::Tokenizer {
                         freqs->create_or_modify_pair(mp.first, mp.second, -1);
                     }
 
-                    if(i0 != text.before_begin()) { // Check if i0 is a valid element (not before_begin())
-                        auto prev_pair = make_pair(*i0, p1_val);
+                    if(i0_is_valid) { // Check if i0_prev_element is a valid element
+                        auto prev_pair = make_pair(*i0_prev_element, p1_val);
                         auto prev = freqs->get_pair(prev_pair);
                         if(prev.has_value()) {
                             if(verbose >= 1) {
-                                cout << "decrement previous pair " << *i0 << ", " << p1_val << "\n";
+                                cout << "decrement previous pair " << *i0_prev_element << ", " << p1_val << "\n";
                             }
-                            freqs->create_or_modify_pair(*i0, p1_val, -1);
+                            freqs->create_or_modify_pair(*i0_prev_element, p1_val, -1);
                         }
                         if(verbose >= 1) {
-                            cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
+                            cout << "increment new previous pair " << *i0_prev_element << ", " << new_token << "\n";
                         }
-                        freqs->create_or_modify_pair(*i0, new_token, 1);
+                        freqs->create_or_modify_pair(*i0_prev_element, new_token, 1);
                     }
 
                     if(i2 != text.end()) { // Check if i2 is a valid element (not end())
@@ -290,7 +298,8 @@ namespace MinBpeCC::Tokenizer {
                     }
                 } else {
                     // Advance iterators if no merge occurred
-                    i0 = i1;
+                    i0_prev_element = i1; // i1 becomes the new previous element
+                    i0_is_valid = true;
                     i1 = i2;
                     i2 = i3;
                     if (i3 != text.end()) {
@@ -308,7 +317,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs,
+        template<typename Container>
+        void merge_chunks(vector<Container> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs,
               CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
               if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
