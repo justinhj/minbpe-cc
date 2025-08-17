@@ -161,7 +161,7 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
-        // Merges a specific pair within a single forward_list then completly update frequencies
+        // Merges a specific pair within a single container then completly update frequencies
         template<typename Container>
         void merge(Container &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
@@ -174,25 +174,22 @@ namespace MinBpeCC::Tokenizer {
             }
 
             auto [p1_val, p2_val] = mp; // Deconstruct the pair
+            
             auto i1 = text.begin();
-            auto i2 = std::next(i1);
+            while (i1 != text.end()) {
+                auto i2 = std::next(i1);
+                if (i2 == text.end()) {
+                    break;
+                }
 
-            while(i1 != text.end() && i2 != text.end()) {
-                if(*i1 == p1_val && *i2 == p2_val) {
-                    if(verbose >= 1) {
-                        cout << "found pair " << p1_val << ", " << p2_val << " replace with " << new_token << "\n";
-                    }
-
-                    *i1 = new_token; // Replace the first element of the pair with the new token
-                    i2 = text.erase_after(i1); // Erase the second element
-
-
+                if (*i1 == p1_val && *i2 == p2_val) {
+                    *i1 = new_token;
+                    i1 = text.erase(i2);
                 } else {
-                    // Advance iterators if no merge occurred
-                    i1 = i2;
-                    i2 = std::next(i2);
+                    ++i1;
                 }
             }
+
             if(verbose >= 2) {
                 cout << "after merge\n";
                 for(auto c: text) {
@@ -202,7 +199,7 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
-        // Merges a specific pair within a single forward_list, updating frequencies incrementally
+        // Merges a specific pair within a single container, updating frequencies incrementally
         template<typename Container>
         void merge_incremental(Container &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
             auto verbose = 0; // Control verbosity for debugging
@@ -215,39 +212,30 @@ namespace MinBpeCC::Tokenizer {
             }
 
             auto [p1_val, p2_val] = mp; // Deconstruct the pair
-            // For forward_list, i0 is before_begin(). For other containers, it might be begin() or not applicable.
-            // We need to handle the "previous" element logic carefully.
-            // Let's use a generic approach that works for both forward_list and skipping_list.
-            // We'll keep track of the iterator to the element *before* i1.
-            typename Container::iterator i0_prev_element; // This will hold the iterator to the element before i1
-            bool i0_is_valid = false; // Flag to indicate if i0_prev_element is valid
-
-            auto i1 = text.begin();
-            auto i2 = std::next(i1);
-
-            if(i2 == text.end()) {
-                // No pairs to merge
+            
+            if (text.size() < 2) {
                 return;
             }
 
-            auto i3 = std::next(i2);
-
-            while(i1 != text.end() && i2 != text.end()) {
-                if(false) { // verbose >= 1) {
-                    cout << "i0 " << (i0_is_valid ? std::to_string(*i0_prev_element) : "INVALID")
-                         << " i1 " << *i1 << " i2 " << *i2
-                         << " i3 " << (i3 == text.end() ? "?" : std::to_string(*i3)) << "\n";
+            auto i1 = text.begin();
+            while (i1 != text.end()) {
+                auto i2 = std::next(i1);
+                if (i2 == text.end()) {
+                    break;
                 }
 
-                if(*i1 == p1_val && *i2 == p2_val) {
+                if (*i1 == p1_val && *i2 == p2_val) {
                     if(verbose >= 1) {
                         cout << "found pair " << p1_val << ", " << p2_val << " replace with " << new_token << "\n";
                     }
 
-                    *i1 = new_token; // Replace the first element of the pair with the new token
-                    i2 = text.erase_after(i1); // Erase the second element
+                    // The new token that will replace the pair
+                    *i1 = new_token;
+                    
+                    // Erase the second element and get iterator to the next element
+                    auto i_next = text.erase(i2);
 
-                    // Update frequencies: decrement old pairs, increment new ones
+                    // Update frequencies
                     auto f = freqs->get_pair(mp);
                     if(f.has_value()) {
                         if(verbose >= 1) {
@@ -256,7 +244,8 @@ namespace MinBpeCC::Tokenizer {
                         freqs->create_or_modify_pair(mp.first, mp.second, -1);
                     }
 
-                    if(i0_is_valid) { // Check if i0_prev_element is a valid element
+                    if(i1 != text.begin()) { // Check if there is a previous element
+                        auto i0_prev_element = std::prev(i1);
                         auto prev_pair = make_pair(*i0_prev_element, p1_val);
                         auto prev = freqs->get_pair(prev_pair);
                         if(prev.has_value()) {
@@ -271,41 +260,28 @@ namespace MinBpeCC::Tokenizer {
                         freqs->create_or_modify_pair(*i0_prev_element, new_token, 1);
                     }
 
-                    if(i2 != text.end()) { // Check if i2 is a valid element (not end())
-                        auto next_pair = make_pair(p2_val, *i2); // Original p2_val, not new_token
+                    if(i_next != text.end()) { // Check if there is a next element
+                        auto next_pair = make_pair(p2_val, *i_next); // Original p2_val, not new_token
                         auto next = freqs->get_pair(next_pair);
                         if(next.has_value()) {
                             if(verbose >= 1) {
-                                cout << "decrement next pair " << p2_val << ", " << *i2 << "\n";
+                                cout << "decrement next pair " << p2_val << ", " << *i_next << "\n";
                             }
-                            freqs->create_or_modify_pair(p2_val, *i2, -1);
+                            freqs->create_or_modify_pair(p2_val, *i_next, -1);
                         } else {
                             if(verbose >= 1) {
-                                cout << "next pair not found " << p2_val << ", " << *i2 << "\n";
+                                cout << "next pair not found " << p2_val << ", " << *i_next << "\n";
                             }
                         }
                         if(verbose >= 1) {
-                            cout << "increment new next pair " << new_token << ", " << *i2 << "\n";
+                            cout << "increment new next pair " << new_token << ", " << *i_next << "\n";
                         }
-                        freqs->create_or_modify_pair(new_token, *i2, 1);
+                        freqs->create_or_modify_pair(new_token, *i_next, 1);
                     }
 
-                    // Iterators are already adjusted by erase_after,
-                    // just make sure i3 points correctly if it's not end()
-                    if (i2 != text.end()) {
-                        i3 = std::next(i2);
-                    } else {
-                        i3 = text.end(); // If i2 is now end, i3 is also end
-                    }
+                    i1 = i_next;
                 } else {
-                    // Advance iterators if no merge occurred
-                    i0_prev_element = i1; // i1 becomes the new previous element
-                    i0_is_valid = true;
-                    i1 = i2;
-                    i2 = i3;
-                    if (i3 != text.end()) {
-                        i3 = std::next(i3);
-                    }
+                    ++i1;
                 }
             }
             if(verbose >= 2) {
@@ -561,7 +537,7 @@ namespace MinBpeCC::Tokenizer {
             }
 
             // Continue with BPE algorithm
-            auto flists = create_forward_lists(chunks);
+            auto flists = vector(chunks);
             std::unique_ptr<PairCount<Token>> freqs;
             if (verbose) {
                 using std::chrono::high_resolution_clock;
