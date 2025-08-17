@@ -5,8 +5,8 @@ pub fn SkippingList(comptime T: type, skip_bits: T) type {
 
     comptime {
         const T_info = @typeInfo(T);
-        if (T_info != .Int or T_info.int.signedness != .Unsigned or T_info.int.bits < 32) {
-            @compileError("SkippingList(T) requires T to be a numeric (integer or float) type 32 bits and up.");
+        if (!(T_info == .int and T_info.int.signedness == .unsigned and T_info.int.bits >= 32)) {
+            @compileError("SkippingList(T) requires T to be a numeric integer type 32 bits and up.");
         }
         if (skip_bits == 0 or skip_bits > MAX_SKIP_BITS) {
             @compileError("SkippingList: skip_bits must be between 1 and " ++ std.fmt.bufPrint("{d}", .{MAX_SKIP_BITS}) ++ ".");
@@ -17,29 +17,36 @@ pub fn SkippingList(comptime T: type, skip_bits: T) type {
     return struct {
         const Self = @This();
 
+        allocator: std.mem.Allocator,
+        data: []T,
+
         pub fn init(
             allocator: std.mem.Allocator,
-            initialCapacity: usize,
             sourceData: []const T
         ) !Self {
+            const data = try allocator.alloc(T, sourceData.len);
+            errdefer allocator.free(data);
+            @memcpy(data, sourceData);
+            return Self{
+                .allocator = allocator,
+                .data = data,
+            };
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.allocator.free(self.data);
         }
     };
 }
 
 const testing = std.testing;
 
-// // A simple comparison function for i32, required by SkippingList.
-// fn i32LessThan(a: i32, b: i32) bool {
-//     return a < b;
-// }
+test "init and deinit" {
+    const allocator = testing.allocator;
+    const source_data = [_]u32{ 1, 2, 3, 4, 5 };
+    var list = try SkippingList(u32, 8).init(allocator, &source_data);
+    defer list.deinit();
 
-// test "init and deinit" {
-//     var list = try SkippingList(i32).initCapacity(testing.allocator, 10, i32LessThan);
-//     defer list.deinit();
+    try testing.expectEqualSlices(u32, &source_data, list.data);
+}
 
-//     // The test passes if init succeeds and deinit completes without errors.
-//     // The testing.allocator will automatically detect any memory leaks.
-//     try testing.expect(list.level == 0);
-//     try testing.expect(list.header.level == MAX_LEVEL);
-//     try testing.expect(list.header.forward[0] == null);
-// }
