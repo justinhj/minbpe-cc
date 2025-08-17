@@ -227,7 +227,8 @@ namespace MinBpeCC::Tokenizer {
                 return;
             }
 
-            auto i1 = text.begin();
+            typename Container::iterator i0 = text.end(); // Previous element
+            auto i1 = text.begin(); // Current element
             while (i1 != text.end()) {
                 auto i2 = std::next(i1);
                 if (i2 == text.end()) {
@@ -260,20 +261,19 @@ namespace MinBpeCC::Tokenizer {
                         freqs->create_or_modify_pair(mp.first, mp.second, -1);
                     }
 
-                    if(i1 != text.begin()) { // Check if there is a previous element
-                        auto i0_prev_element = std::prev(i1);
-                        auto prev_pair = make_pair(*i0_prev_element, p1_val);
+                    if(i0 != text.end()) { // Check if there is a previous element
+                        auto prev_pair = make_pair(*i0, p1_val);
                         auto prev = freqs->get_pair(prev_pair);
                         if(prev.has_value()) {
                             if(verbose >= 1) {
-                                cout << "decrement previous pair " << *i0_prev_element << ", " << p1_val << "\n";
+                                cout << "decrement previous pair " << *i0 << ", " << p1_val << "\n";
                             }
-                            freqs->create_or_modify_pair(*i0_prev_element, p1_val, -1);
+                            freqs->create_or_modify_pair(*i0, p1_val, -1);
                         }
                         if(verbose >= 1) {
-                            cout << "increment new previous pair " << *i0_prev_element << ", " << new_token << "\n";
+                            cout << "increment new previous pair " << *i0 << ", " << new_token << "\n";
                         }
-                        freqs->create_or_modify_pair(*i0_prev_element, new_token, 1);
+                        freqs->create_or_modify_pair(*i0, new_token, 1);
                     }
 
                     if(i_next != text.end()) { // Check if there is a next element
@@ -294,9 +294,10 @@ namespace MinBpeCC::Tokenizer {
                         }
                         freqs->create_or_modify_pair(new_token, *i_next, 1);
                     }
-
+                    i0 = i1;
                     i1 = i_next;
                 } else {
+                    i0 = i1;
                     ++i1;
                 }
             }
