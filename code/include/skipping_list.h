@@ -199,6 +199,27 @@ public:
         return count;
     }
 
+    std::pair<size_t, size_t> get_skip_stats() const {
+        size_t total_skips = 0;
+        size_t consecutive_skips = 0;
+        size_t current_consecutive = 0;
+        for (const auto& element : list_) {
+            if (is_deleted(element)) {
+                total_skips++;
+                current_consecutive++;
+            } else {
+                if (current_consecutive > 1) {
+                    consecutive_skips += current_consecutive;
+                }
+                current_consecutive = 0;
+            }
+        }
+        if (current_consecutive > 1) {
+            consecutive_skips += current_consecutive;
+        }
+        return {total_skips, consecutive_skips};
+    }
+
 private:
     std::vector<T> list_;
 };

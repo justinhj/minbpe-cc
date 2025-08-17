@@ -628,6 +628,18 @@ namespace MinBpeCC::Tokenizer {
                     size += std::distance(fl.begin(), fl.end());
                 }
                 cout << "Length of training text " << text.length() << ". After merges " << size << ".\n";
+
+                size_t total_skips = 0;
+                size_t consecutive_skips = 0;
+                if constexpr (is_skipping_list<typename decltype(flists)::value_type>::value) {
+                    for (const auto& slist : flists) {
+                        auto stats = slist.get_skip_stats();
+                        total_skips += stats.first;
+                        consecutive_skips += stats.second;
+                    }
+                    cout << "Total skips: " << total_skips << "\n";
+                    cout << "Consecutive skips: " << consecutive_skips << "\n";
+                }
             }
         };
 
