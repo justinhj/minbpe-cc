@@ -77,6 +77,13 @@ pub fn build(b: *std.Build) void {
         std.log.err("Failed to get CLI11_INCLUDE: {any}", .{err});
         @panic("Build configuration error: CLI11_INCLUDE");
     };
+
+    const skipping_list_lib = b.addStaticLibrary(.{
+        .name = "skipping_list",
+        .root_source_file = b.path("code/zig/skipping_list.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
     // Executable: minbpe-cc
     const minbpe_cc = b.addExecutable(.{
         .name = "minbpe-cc",
@@ -91,6 +98,7 @@ pub fn build(b: *std.Build) void {
     minbpe_cc.addIncludePath(b.path(pcre2_include));
     minbpe_cc.addIncludePath(b.path(cli11_include));
     minbpe_cc.addIncludePath(b.path("code/include"));
+    minbpe_cc.linkLibrary(skipping_list_lib);
     minbpe_cc.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     minbpe_cc.linkLibCpp();
     b.installArtifact(minbpe_cc);
@@ -108,6 +116,7 @@ pub fn build(b: *std.Build) void {
     train.addIncludePath(b.path(boost_include));
     train.addIncludePath(b.path(pcre2_include));
     train.addIncludePath(b.path("code/include"));
+    train.linkLibrary(skipping_list_lib);
     train.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
     train.linkLibCpp();
     b.installArtifact(train);
@@ -130,6 +139,7 @@ pub fn build(b: *std.Build) void {
     test_exe.addIncludePath(b.path(pcre2_include));
     test_exe.addIncludePath(b.path("code/include"));
     test_exe.addIncludePath(b.path("code/catch2"));
+    test_exe.linkLibrary(skipping_list_lib);
     test_exe.linkSystemLibrary("pcre2-8");
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
