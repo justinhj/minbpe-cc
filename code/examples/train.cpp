@@ -4,19 +4,19 @@
 #include <string_view> // Include for std::string_view
 #include <CLI/CLI.hpp>
 
-// Define the struct to match Zig's CStringResult
-// This allows us to pass string data (pointer + length) across the boundary.
-struct CStringResult {
-    char* ptr;
-    size_t len;
-};
+// // Define the struct to match Zig's CStringResult
+// // This allows us to pass string data (pointer + length) across the boundary.
+// struct CStringResult {
+//     char* ptr;
+//     size_t len;
+// };
 
-// Declare the C functions from the Zig library using extern "C"
-// to prevent C++ name mangling.
-extern "C" {
-    CStringResult hello_from_zig(const char* name);
-    void free_zig_string(CStringResult result);
-}
+// // Declare the C functions from the Zig library using extern "C"
+// // to prevent C++ name mangling.
+// extern "C" {
+//     CStringResult hello_from_zig(const char* name);
+//     void free_zig_string(CStringResult result);
+// }
 
 using std::string;
 using std::cout;
@@ -119,21 +119,21 @@ int main(int argc, char *argv[]) {
   auto duration = t2 - t1;
   auto ms_int = duration_cast<milliseconds>(duration).count();
 
-  std::cout << "\n--- Calling Zig function ---\n";
-  const char* name_to_greet = "C++";
-  CStringResult zig_result = hello_from_zig(name_to_greet);
+  // std::cout << "\n--- Calling Zig function ---\n";
+  // const char* name_to_greet = "C++";
+  // CStringResult zig_result = hello_from_zig(name_to_greet);
 
-  if (zig_result.ptr) {
-      // Use std::string_view for safe handling of the raw pointer and length
-      std::string_view result_view(zig_result.ptr, zig_result.len);
-      std::cout << "Zig says: " << result_view << std::endl;
+  // if (zig_result.ptr) {
+  //     // Use std::string_view for safe handling of the raw pointer and length
+  //     std::string_view result_view(zig_result.ptr, zig_result.len);
+  //     std::cout << "Zig says: " << result_view << std::endl;
 
-      // Call the Zig-exported function to free the memory
-      free_zig_string(zig_result);
-  } else {
-      std::cout << "Zig function returned a null pointer." << std::endl;
-  }
-  std::cout << "--- End of Zig call ---" << std::endl;
+  //     // Call the Zig-exported function to free the memory
+  //     free_zig_string(zig_result);
+  // } else {
+  //     std::cout << "Zig function returned a null pointer." << std::endl;
+  // }
+  // std::cout << "--- End of Zig call ---" << std::endl;
 
   std::cout << "Execution time: " << ms_int / 1000.0 << " seconds" << std::endl;
 }

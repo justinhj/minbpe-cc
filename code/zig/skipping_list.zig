@@ -1,50 +1,45 @@
 const std = @import("std");
 
-// This struct will be used to return a string (pointer + length) to C/C++.
-// It's important that it has a C-compatible layout.
-pub const CStringResult = extern struct {
-    ptr: [*c]u8,
-    len: usize,
-};
+pub fn SkippingList(comptime T: type, skip_bits: T) type {
+    const MAX_SKIP_BITS = 16;
 
-// This function is exported to be callable from C/C++.
-// It takes a C string (null-terminated pointer) and returns a CStringResult.
-pub export fn hello_from_zig(name: [*c]const u8) CStringResult {
-    // Use the C allocator (malloc/free) so the C++ side can manage memory if needed,
-    // though we provide a free function.
-    const allocator = std.heap.c_allocator;
+    comptime {
+        const T_info = @typeInfo(T);
+        if (T_info != .Int or T_info.int.signedness != .Unsigned or T_info.int.bits < 32) {
+            @compileError("SkippingList(T) requires T to be a numeric (integer or float) type 32 bits and up.");
+        }
+        if (skip_bits == 0 or skip_bits > MAX_SKIP_BITS) {
+            @compileError("SkippingList: skip_bits must be between 1 and " ++ std.fmt.bufPrint("{d}", .{MAX_SKIP_BITS}) ++ ".");
+        }
+    }
 
-    // Convert the C string to a Zig slice.
-    const zig_name = std.mem.span(name);
 
-    // Create the "hello, " string.
-    const result_slice = std.fmt.allocPrint(allocator, "hello, {s}", .{zig_name}) catch |err| {
-        // On error, print to stderr and return a null pointer.
-        std.debug.print("Failed to allocate or format string: {any}\n", .{err});
-        return CStringResult{ .ptr = null, .len = 0 };
+    return struct {
+        const Self = @This();
+
+        pub fn init(
+            allocator: std.mem.Allocator,
+            initialCapacity: usize,
+            sourceData: []const T
+        ) !Self {
+        }
     };
-
-    // Return the result as a pointer and length.
-    return CStringResult{ .ptr = result_slice.ptr, .len = result_slice.len };
 }
 
-// This function is exported to allow the C/C++ side to free the memory
-// allocated by `hello_from_zig`.
-pub export fn free_zig_string(result: CStringResult) void {
-    const allocator = std.heap.c_allocator;
-    allocator.free(result.ptr[0..result.len]);
-}
+const testing = std.testing;
 
-// The original test can be adapted or kept to test the internal logic.
-test "hello function C interop" {
-    const allocator = std.testing.allocator;
-    const name = "C++";
-    const c_name = allocator.dupeZ(u8, name) catch @panic("oom");
-    defer allocator.free(c_name);
+// // A simple comparison function for i32, required by SkippingList.
+// fn i32LessThan(a: i32, b: i32) bool {
+//     return a < b;
+// }
 
-    const result = hello_from_zig(c_name.ptr);
-    defer free_zig_string(result);
+// test "init and deinit" {
+//     var list = try SkippingList(i32).initCapacity(testing.allocator, 10, i32LessThan);
+//     defer list.deinit();
 
-    const result_slice = result.ptr[0..result.len];
-    try std.testing.expectEqualStrings("hello, C++", result_slice);
-}
+//     // The test passes if init succeeds and deinit completes without errors.
+//     // The testing.allocator will automatically detect any memory leaks.
+//     try testing.expect(list.level == 0);
+//     try testing.expect(list.header.level == MAX_LEVEL);
+//     try testing.expect(list.header.forward[0] == null);
+// }
