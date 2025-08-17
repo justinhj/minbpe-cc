@@ -114,7 +114,7 @@ TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
 class TokenizerTest : public Tokenizer {
 public:
     auto create_lists_public(const vector<vector<MinBpeCC::Tokenizer::Token>> &chunks) {
-        return create_lists(chunks);
+        return create_forward_lists(chunks);
     };
 
     auto text_to_vector_public(const string &text) {

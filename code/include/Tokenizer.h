@@ -113,7 +113,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Converts a vector of vector of ints (chunks) to a vector of forward_list of ints
-        auto create_lists(const vector<vector<Token>> &chunks) {
+        auto create_forward_lists(const vector<vector<Token>> &chunks) {
             vector<std::forward_list<Token>> flists;
             flists.reserve(chunks.size()); // Reserve space
             for(const auto &chunk: chunks) {
@@ -126,7 +126,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+        template<typename Container>
+        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<Container> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
           std::unique_ptr<PairCount<Token>> freqs;
           if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
               freqs = std::make_unique<PairCountInsertOrder<Token>>();
@@ -560,7 +561,7 @@ namespace MinBpeCC::Tokenizer {
             }
 
             // Continue with BPE algorithm
-            auto flists = create_lists(chunks);
+            auto flists = create_forward_lists(chunks);
             std::unique_ptr<PairCount<Token>> freqs;
             if (verbose) {
                 using std::chrono::high_resolution_clock;
