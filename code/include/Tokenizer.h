@@ -37,6 +37,11 @@ using std::make_pair;
 using namespace MinBpeCC::Util; // Assuming this namespace contains PairCount
 
 namespace MinBpeCC::Tokenizer {
+    template<typename T>
+    struct is_skipping_list : std::false_type {};
+
+    template<typename T>
+    struct is_skipping_list<skipping_list<T>> : std::true_type {};
     using Token = uint32_t; // Here it is safe to change to uint16_t and other types as needed, 
                             // but be sure to not have any special tokens that exceed the range.
     using TokenPair = std::pair<Token, Token>;
@@ -183,8 +188,13 @@ namespace MinBpeCC::Tokenizer {
                 }
 
                 if (*i1 == p1_val && *i2 == p2_val) {
-                    *i1 = new_token;
-                    i1 = text.erase(i2);
+                    if constexpr (is_skipping_list<Container>::value) {
+                        text.replace(i1, new_token);
+                        i1 = text.erase_after(i1);
+                    } else {
+                        *i1 = new_token;
+                        i1 = text.erase(i2);
+                    }
                 } else {
                     ++i1;
                 }
@@ -229,11 +239,17 @@ namespace MinBpeCC::Tokenizer {
                         cout << "found pair " << p1_val << ", " << p2_val << " replace with " << new_token << "\n";
                     }
 
-                    // The new token that will replace the pair
-                    *i1 = new_token;
-                    
-                    // Erase the second element and get iterator to the next element
-                    auto i_next = text.erase(i2);
+                    typename Container::iterator i_next = text.end();
+                    if constexpr (is_skipping_list<Container>::value) {
+                        text.replace(i1, new_token);
+                        i_next = text.erase_after(i1);
+                    } else {
+                        // The new token that will replace the pair
+                        *i1 = new_token;
+                        
+                        // Erase the second element and get iterator to the next element
+                        i_next = text.erase(i2);
+                    }
 
                     // Update frequencies
                     auto f = freqs->get_pair(mp);
@@ -537,7 +553,11 @@ namespace MinBpeCC::Tokenizer {
             }
 
             // Continue with BPE algorithm
-            auto flists = vector(chunks);
+            vector<skipping_list<Token>> flists;
+            flists.reserve(chunks.size());
+            for (const auto& chunk : chunks) {
+                flists.emplace_back(chunk.begin(), chunk.end());
+            }
             std::unique_ptr<PairCount<Token>> freqs;
             if (verbose) {
                 using std::chrono::high_resolution_clock;

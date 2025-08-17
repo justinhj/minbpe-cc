@@ -133,6 +133,17 @@ public:
         }
     }
 
+    template<class InputIt>
+    skipping_list(InputIt first, InputIt last) {
+        list_.reserve(std::distance(first, last));
+        for (auto it = first; it != last; ++it) {
+            const auto& val = *it;
+            // The user-provided value should not have the MSB set, as it's reserved for our flag.
+            assert((val & skip_mask_) == 0 && "Initial values must not have the top bit set.");
+            list_.push_back(val);
+        }
+    }
+
     iterator begin() { return iterator(this, list_.begin()); }
     const_iterator begin() const { return const_iterator(this, list_.cbegin()); }
     iterator end() { return iterator(this, list_.end()); }
@@ -165,6 +176,17 @@ public:
         // We can construct it from the underlying physical iterator.
         auto final_dist = std::distance(list_.cbegin(), next_valid_it.current_);
         return iterator(this, list_.begin() + final_dist);
+    }
+
+    // ## Replace
+    // Replaces the value at a given position.
+    void replace(const_iterator position, T new_value) {
+        assert((new_value & skip_mask_) == 0 && "New value must not have the top bit set.");
+        auto dist = std::distance(list_.cbegin(), position.current_);
+        auto it = list_.begin() + dist;
+        if (it != list_.end()) {
+            *it = new_value;
+        }
     }
 
     // Returns the number of "active" (not deleted) elements. This is slow (O(N)).
