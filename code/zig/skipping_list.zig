@@ -99,6 +99,28 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 .index = 0,
             };
         }
+
+        pub const DebugIterator = struct {
+            list: *const Self,
+            index: usize,
+
+            pub fn next(it: *DebugIterator) ?T {
+                if (it.index >= it.list.data.len) {
+                    return null;
+                }
+                const raw_value = it.list.data[it.index];
+                it.index += 1;
+                return raw_value;
+            }
+        };
+
+        /// Returns a debug iterator that traverses the list, returning raw values.
+        pub fn debug_iterator(self: *const Self) DebugIterator {
+            return DebugIterator{
+                .list = self,
+                .index = 0,
+            };
+        }
     };
 }
 
@@ -167,4 +189,27 @@ test "replace pairs" {
 
     const expected_sum: u32 = 50 + 50 + 50 + 60 + 70 + 50 + 0 + 0; // 330
     try std.testing.expectEqual(expected_sum, sum);
+}
+
+test "debug iterator" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 10, 20, 30, 40, 50 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
+
+    list.set_skip(1, 1); // This should be ignored by the debug iterator
+
+    var raw_values = std.ArrayList(u32).init(allocator);
+    defer raw_values.deinit();
+
+    var it = list.debug_iterator();
+    while (it.next()) |raw_value| {
+        try raw_values.append(raw_value);
+    }
+
+    const expected_skip_value = (@as(u32, 1) << 24) | 20;
+    const expected_values = [_]u32{ 10, expected_skip_value, 30, 40, 50 };
+
+    try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
 }
