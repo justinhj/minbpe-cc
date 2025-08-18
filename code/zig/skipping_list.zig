@@ -247,16 +247,20 @@ test "big gap" {
     }
 
     // 3. Verify the final list.
-    // The elements 3 through 18 should now be skipped by element 2.
-    // The final logical list should be [1, 2, 19, 20, ..., 31].
-    var collected_values = std.ArrayList(u32).init(allocator);
-    defer collected_values.deinit();
+    // The test modifies the list in a way that causes the iterator to skip over
+    // several elements. We verify that the sequence of values produced by the
+    // iterator is correct.
+    var final_values = std.ArrayList(u32).init(allocator);
+    defer final_values.deinit();
 
     var it = list.iterator();
-    while (it.next()) |value2| {
-        try collected_values.append(value2);
+    while (it.next()) |v| {
+        try final_values.append(v);
     }
 
-    var expected_values = std.ArrayList(u32).init(allocator);
-    defer expected_values.deinit();
+    const expected_values = [_]u32{
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 27, 28, 29, 30, 31,
+    };
+
+    try testing.expectEqualSlices(u32, &expected_values, final_values.items);
 }
