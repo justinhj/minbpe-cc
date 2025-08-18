@@ -86,7 +86,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 // 1. Get the raw data which now has the skip bits set.
                 const raw_data = it.list.data[it.index];
                 // 2. Isolate the just-set skip bits.
-                const skip_part = raw_data & ~VALUE_MASK;
+                const skip_part = raw_data & ~@as(T, VALUE_MASK);
                 // 3. Combine with the new value.
                 it.list.data[it.index] = skip_part | new_value;
             }
