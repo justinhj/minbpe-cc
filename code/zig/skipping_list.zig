@@ -179,16 +179,19 @@ test "replace pairs" {
         _ = mut_it.next(); // Advance the iterator
     }
 
-    // --- Phase 2: Verify the result ---
-    // The new logical sequence of values should be: { 50, 50, 50, 60, 70, 50, 0, 0 }
-    var sum: u32 = 0;
-    var final_it = list.iterator();
-    while (final_it.next()) |value| {
-        sum += value;
+    // --- Phase 2: Verify the result with debug_iterator ---
+    var raw_values = std.ArrayList(u32).init(allocator);
+    defer raw_values.deinit();
+
+    var debug_it = list.debug_iterator();
+    while (debug_it.next()) |raw_value| {
+        try raw_values.append(raw_value);
     }
 
-    const expected_sum: u32 = 50 + 50 + 50 + 60 + 70 + 50 + 0 + 0; // 330
-    try std.testing.expectEqual(expected_sum, sum);
+    const s = @as(u32, 1) << 24;
+    const expected_values = [_]u32{ s | 50, 20, s | 50, 20, 50, 60, 70, s | 50, 20, 0, 0 };
+
+    try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
 }
 
 test "debug iterator" {
@@ -212,4 +215,48 @@ test "debug iterator" {
     const expected_values = [_]u32{ 10, expected_skip_value, 30, 40, 50 };
 
     try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
+}
+
+test "big gap" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 4); // 4 bits for skip, max skip is 15
+
+    // 1. Create a list with numbers 1 to 31
+    var source_data_array: [31]u32 = undefined;
+    var i: u32 = 0;
+    while (i < source_data_array.len) : (i += 1) {
+        source_data_array[i] = i + 1;
+    }
+    var list = try MyList.init(allocator, &source_data_array);
+    defer list.deinit();
+
+    // 2. Iteratively "delete" the 9th logical element, 16 times.
+    var finder_it = list.iterator();
+
+    var k: u32 = 0;
+    var value = finder_it.next();
+    while (k < 8 - 1) : (k += 1) {
+        value = finder_it.next();
+    }
+    while (k < 16) : (k += 1) {
+        if (value) |v| {
+            // Replace the current value with the next one, skipping the next 15 elements.
+            finder_it.replaceAndSkipNext(v + 1);
+        }
+        value = finder_it.next();
+    }
+
+    // 3. Verify the final list.
+    // The elements 3 through 18 should now be skipped by element 2.
+    // The final logical list should be [1, 2, 19, 20, ..., 31].
+    var collected_values = std.ArrayList(u32).init(allocator);
+    defer collected_values.deinit();
+
+    var it = list.iterator();
+    while (it.next()) |value2| {
+        try collected_values.append(value2);
+    }
+
+    var expected_values = std.ArrayList(u32).init(allocator);
+    defer expected_values.deinit();
 }
