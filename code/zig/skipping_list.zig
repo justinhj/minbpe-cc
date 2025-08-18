@@ -55,10 +55,8 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             self.data[index] = value_part | skip_part;
         }
 
-        // --- ADDED ITERATOR ---
-
         pub const Iterator = struct {
-            list: *const Self,
+            list: *Self,
             index: usize,
 
             /// Returns the value of the next element and advances the iterator
@@ -77,10 +75,25 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
                 return current_value;
             }
+
+            pub fn replaceAndSkipNext(it: *Iterator, new_value: T) void {
+                std.debug.assert(it.index + 1 < it.list.data.len);
+
+                // Set the skip bits to 1, preserving the original value for now.
+                it.list.set_skip(it.index, 1);
+
+                // Now, replace the value part, keeping the new skip bits.
+                // 1. Get the raw data which now has the skip bits set.
+                const raw_data = it.list.data[it.index];
+                // 2. Isolate the just-set skip bits.
+                const skip_part = raw_data & ~VALUE_MASK;
+                // 3. Combine with the new value.
+                it.list.data[it.index] = skip_part | new_value;
+            }
         };
 
         /// Returns an iterator that traverses the list, respecting skip values.
-        pub fn iterator(self: *const Self) Iterator {
+        pub fn iterator(self: *Self) Iterator {
             return Iterator{
                 .list = self,
                 .index = 0,
@@ -100,7 +113,6 @@ test "init and deinit" {
     try testing.expectEqualSlices(u32, &source_data, list.data);
 }
 
-// --- ADDED TEST FOR THE ITERATOR ---
 test "iterator and skipping" {
     const allocator = testing.allocator;
     const MyList = SkippingList(u32, 8);
@@ -121,4 +133,38 @@ test "iterator and skipping" {
     // Expected sum is 10 (index 0) + 20 (index 1) + 40 (index 3) + 50 (index 4) = 120
     const expected_sum: u32 = 10 + 20 + 40 + 50;
     try testing.expectEqual(expected_sum, sum);
+}
+
+test "replace pairs" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 10, 20, 10, 20, 50, 60, 70, 10, 20, 0, 0 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
+
+    // --- Phase 1: Modify the list ---
+    // Replace every pair of (10, 20) with a single 50.
+    var mut_it = list.iterator();
+    while (mut_it.index < list.data.len - 1) {
+        const current_val = list.get_value(mut_it.index);
+        const next_val = list.get_value(mut_it.index + 1);
+
+        if (current_val == 10 and next_val == 20) {
+            // Replace the current item (10) with 50 and set its skip to 1
+            // to jump over the next item (20).
+            mut_it.replaceAndSkipNext(50);
+        }
+        _ = mut_it.next(); // Advance the iterator
+    }
+
+    // --- Phase 2: Verify the result ---
+    // The new logical sequence of values should be: { 50, 50, 50, 60, 70, 50, 0, 0 }
+    var sum: u32 = 0;
+    var final_it = list.iterator();
+    while (final_it.next()) |value| {
+        sum += value;
+    }
+
+    const expected_sum: u32 = 50 + 50 + 50 + 60 + 70 + 50 + 0 + 0; // 330
+    try std.testing.expectEqual(expected_sum, sum);
 }
