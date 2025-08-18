@@ -13,9 +13,12 @@ pub fn SkippingList(comptime T: type, skip_bits: T) type {
         }
     }
 
-
     return struct {
         const Self = @This();
+        const T_BITS = @typeInfo(T).Int.bits;
+        const SHIFT_AMOUNT = T_BITS - skip_bits;
+        const VALUE_MASK = std.math.maxInt(T) >> skip_bits;
+        const MAX_SKIP_VALUE = (@as(T, 1) << skip_bits) - 1;
 
         allocator: std.mem.Allocator,
         data: []T,
@@ -35,6 +38,21 @@ pub fn SkippingList(comptime T: type, skip_bits: T) type {
 
         pub fn deinit(self: *Self) void {
             self.allocator.free(self.data);
+        }
+        
+        pub fn get_skip(self: Self, index: usize) T {
+            return self.data[index] >> SHIFT_AMOUNT;
+        }
+
+        pub fn get_value(self: Self, index: usize) T {
+            return self.data[index] & VALUE_MASK;
+        }
+
+        pub fn set_skip(self: *Self, index: usize, skip: T) void {
+            std.debug.assert(skip <= MAX_SKIP_VALUE);
+            const value_part = self.data[index] & VALUE_MASK;
+            const skip_part = skip << SHIFT_AMOUNT;
+            self.data[index] = value_part | skip_part;
         }
     };
 }
