@@ -40,15 +40,15 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             self.allocator.free(self.data);
         }
 
-        pub fn get_skip(self: Self, index: usize) T {
+        fn get_skip(self: Self, index: usize) T {
             return self.data[index] >> SHIFT_AMOUNT;
         }
 
-        pub fn get_value(self: Self, index: usize) T {
+        fn get_value(self: Self, index: usize) T {
             return self.data[index] & VALUE_MASK;
         }
 
-        pub fn set_skip(self: *Self, index: usize, skip: T) void {
+        fn set_skip(self: *Self, index: usize, skip: T) void {
             std.debug.assert(skip <= MAX_SKIP_VALUE);
             const value_part = self.data[index] & VALUE_MASK;
             const skip_part = skip << SHIFT_AMOUNT;
