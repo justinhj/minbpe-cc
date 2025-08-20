@@ -59,6 +59,14 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             list: *Self,
             index: usize,
 
+            // Return the value of the current element without advancing the iterator
+            pub fn peek(it: *Iterator) ?T {
+                if (it.index >= it.list.data.len) {
+                    return null;
+                }
+                return it.list.get_value(it.index);
+            } 
+
             /// Returns the value of the next element and advances the iterator
             /// by `1 + skip_amount`. Returns `null` at the end.
             pub fn next(it: *Iterator) ?T {
@@ -76,6 +84,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 return current_value;
             }
 
+            /// Replaces the current value with `new_value` and sets the skip bits
             pub fn replaceAndSkipNext(it: *Iterator, new_value: T) void {
                 std.debug.assert(it.index + 1 < it.list.data.len);
 
@@ -219,7 +228,7 @@ test "debug iterator" {
 
 test "big gap" {
     const allocator = testing.allocator;
-    const MyList = SkippingList(u32, 4); // 4 bits for skip, max skip is 15
+    const MyList = SkippingList(u32, 2); // 2 bits for skip, max skip is 4
 
     // 1. Create a list with numbers 1 to 31
     var source_data_array: [31]u32 = undefined;
@@ -230,21 +239,20 @@ test "big gap" {
     var list = try MyList.init(allocator, &source_data_array);
     defer list.deinit();
 
-    // 2. Iteratively "delete" the 9th logical element, 16 times.
-    var finder_it = list.iterator();
-
-    var k: u32 = 0;
-    var value = finder_it.next();
-    while (k < 8 - 1) : (k += 1) {
-        value = finder_it.next();
-    }
-    while (k < 16) : (k += 1) {
+    // 2. Iteratively "delete" the 9th element 16 times
+    var j: u32 = 0;
+    while(j < 16) : (j +=1) {
+        var finder_it = list.iterator();
+        var k: u32 = 0;
+        var value = finder_it.next();
+        while (k < 8 - 1) : (k += 1) {
+            value = finder_it.next();
+        }
         if (value) |v| {
-            // Replace the current value with the next one, skipping the next 15 elements.
             finder_it.replaceAndSkipNext(v + 1);
         }
-        value = finder_it.next();
     }
+
 
     // 3. Verify the final list.
     // The test modifies the list in a way that causes the iterator to skip over
@@ -259,8 +267,76 @@ test "big gap" {
     }
 
     const expected_values = [_]u32{
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 27, 28, 29, 30, 31,
+        1, 2, 3, 4, 5, 6, 7, 8, 24, 25, 26, 27, 28, 29, 30, 31,
     };
 
+    try testing.expectEqualSlices(u32, &expected_values, final_values.items);
+}
+
+fn mergePairs(
+    comptime T: type,
+    comptime skip_bits: u4,
+    list: *SkippingList(T, skip_bits),
+    left: T,
+    right: T,
+    replacement: T,
+) !void {
+    var it = list.iterator();
+    while (true) {
+        const current_index = it.index;
+        const current_val = it.next() orelse break;
+
+        if (it.peek()) |next_val| {
+            if (current_val == left and next_val == right) {
+                // Found a pair. The iterator `it` is now at the start of the second element.
+                // We need to modify the first element of the pair (at current_index)
+                // to replace its value and make it skip over the second element.
+
+                const next_index = it.index;
+
+                // The number of raw elements to skip is the distance between the start
+                // of the first element and the start of the second.
+                const elements_to_skip = next_index - current_index;
+
+                // If the second element itself has a skip, we need to add that too.
+                const skip_at_next = list.get_skip(next_index);
+                const total_skip = elements_to_skip + skip_at_next;
+
+                // Set the new skip value on the first element of the pair.
+                list.set_skip(current_index, total_skip);
+
+                // Now, replace the value part of the first element, keeping the new skip bits.
+                const raw_data_with_skip = list.data[current_index];
+                const skip_part = raw_data_with_skip & ~@as(T, list.VALUE_MASK);
+                list.data[current_index] = skip_part | replacement;
+
+                // Advance the iterator past the second element of the pair that we just consumed.
+                _ = it.next();
+            }
+        } else {
+            // No item after current_val, so no more pairs are possible.
+            break;
+        }
+    }
+}
+
+test "merge pairs" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 1, 2, 1, 2, 4, 5, 6 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
+
+    try mergePairs(u32, 8, &list, 1, 2, 10);
+
+    // Collect the results from the iterator to verify the merge logic
+    var final_values = std.ArrayList(u32).init(allocator);
+    defer final_values.deinit();
+    var it = list.iterator();
+    while (it.next()) |v| {
+        try final_values.append(v);
+    }
+
+    const expected_values = [_]u32{ 10, 10, 4, 5, 6 };
     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
 }
