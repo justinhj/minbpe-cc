@@ -144,8 +144,18 @@ pub fn build(b: *std.Build) void {
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 
-    // Add a step to run the test executable
-    const run_test = b.addRunArtifact(test_exe);
-    const test_step = b.step("test", "Run the tests");
-    test_step.dependOn(&run_test.step);
+    // C++ tests
+    const run_cpp_tests = b.addRunArtifact(test_exe);
+
+    // Zig tests
+    const skipping_list_tests = b.addTest(.{
+        .root_source_file = b.path("code/zig/skipping_list.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const run_zig_tests = b.addRunArtifact(skipping_list_tests);
+
+    const test_step = b.step("test", "Run all tests");
+    test_step.dependOn(&run_cpp_tests.step);
+    test_step.dependOn(&run_zig_tests.step);
 }
