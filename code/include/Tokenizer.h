@@ -22,7 +22,6 @@
 #include <pcre2.h> // Main PCRE2 header
 
 #include "PairCount.h" // Assuming this is a local header
-#include "skipping_list.h"
 
 using std::string;
 using std::unordered_map;
@@ -37,11 +36,6 @@ using std::make_pair;
 using namespace MinBpeCC::Util; // Assuming this namespace contains PairCount
 
 namespace MinBpeCC::Tokenizer {
-    template<typename T>
-    struct is_skipping_list : std::false_type {};
-
-    template<typename T>
-    struct is_skipping_list<skipping_list<T>> : std::true_type {};
     using Token = uint32_t; // Here it is safe to change to uint16_t and other types as needed, 
                             // but be sure to not have any special tokens that exceed the range.
     using TokenPair = std::pair<Token, Token>;
@@ -188,13 +182,8 @@ namespace MinBpeCC::Tokenizer {
                 }
 
                 if (*i1 == p1_val && *i2 == p2_val) {
-                    if constexpr (is_skipping_list<Container>::value) {
-                        text.replace(i1, new_token);
-                        i1 = text.erase_after(i1);
-                    } else {
-                        *i1 = new_token;
-                        i1 = text.erase(i2);
-                    }
+                    *i1 = new_token;
+                    i1 = text.erase(i2);
                 } else {
                     ++i1;
                 }
@@ -241,16 +230,11 @@ namespace MinBpeCC::Tokenizer {
                     }
 
                     typename Container::iterator i_next = text.end();
-                    if constexpr (is_skipping_list<Container>::value) {
-                        text.replace(i1, new_token);
-                        i_next = text.erase_after(i1);
-                    } else {
-                        // The new token that will replace the pair
-                        *i1 = new_token;
-                        
-                        // Erase the second element and get iterator to the next element
-                        i_next = text.erase(i2);
-                    }
+                    // The new token that will replace the pair
+                    *i1 = new_token;
+                    
+                    // Erase the second element and get iterator to the next element
+                    i_next = text.erase(i2);
 
                     // Update frequencies
                     auto f = freqs->get_pair(mp);
@@ -501,7 +485,7 @@ namespace MinBpeCC::Tokenizer {
             merges.reserve(vocab_size - 256); // Pre-allocate space for merges
             initialize_vocab();
 
-            vector<vector<Token>> chunks;
+            vector<std::forward_list<Token>> chunks;
 
             if (compiled_pattern_pcre2 != NULL) {
               PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.data());
@@ -554,7 +538,7 @@ namespace MinBpeCC::Tokenizer {
             }
 
             // Continue with BPE algorithm
-            vector<skipping_list<Token>> flists;
+            vector<vector<Token>> flists;
             flists.reserve(chunks.size());
             for (const auto& chunk : chunks) {
                 flists.emplace_back(chunk.begin(), chunk.end());
@@ -629,18 +613,6 @@ namespace MinBpeCC::Tokenizer {
                     size += std::distance(fl.begin(), fl.end());
                 }
                 cout << "Length of training text " << text.length() << ". After merges " << size << ".\n";
-
-                size_t total_skips = 0;
-                size_t consecutive_skips = 0;
-                if constexpr (is_skipping_list<typename decltype(flists)::value_type>::value) {
-                    for (const auto& slist : flists) {
-                        auto stats = slist.get_skip_stats();
-                        total_skips += stats.first;
-                        consecutive_skips += stats.second;
-                    }
-                    cout << "Total skips: " << total_skips << "\n";
-                    cout << "Consecutive skips: " << consecutive_skips << "\n";
-                }
             }
         };
 
