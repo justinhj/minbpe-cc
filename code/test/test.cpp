@@ -1,7 +1,6 @@
 #include "Tokenizer.h"
 #include <catch_amalgamated.hpp>
 #include <utility>
-#include <vector>
 
 using MinBpeCC::Tokenizer::Tokenizer;
 using MinBpeCC::Util::PairCount;
@@ -110,19 +109,29 @@ TEST_CASE("PairCountLexicalOrder get most frequent", "[paircount]") {
 // Test helper class to expose protected members of Tokenizer
 class TokenizerTest : public Tokenizer {
 public:
+    auto create_lists_public(const vector<vector<MinBpeCC::Tokenizer::Token>> &chunks) {
+        return create_lists(chunks);
+    };
+
     auto text_to_vector_public(const string &text) {
         return text_to_vector(text);
     };
 
-    auto calculate_freqs_public(const vector<vector<MinBpeCC::Tokenizer::Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+    auto calculate_freqs_public(const vector<std::forward_list<MinBpeCC::Tokenizer::Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
         return calculate_freqs(chunks, conflict_resolution);
     };
 
-    void merge_public(vector<MinBpeCC::Tokenizer::Token> &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
+    void merge_public(std::forward_list<MinBpeCC::Tokenizer::Token> &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
                       MinBpeCC::Tokenizer::Token new_token, PairCount<MinBpeCC::Tokenizer::Token> *freqs) {
         merge(text, mp, new_token, freqs);
     }
 };
+
+// Helper to get the length of a forward_list
+template<typename T>
+size_t getForwardListLength(const std::forward_list<T>& flist) {
+    return std::distance(flist.begin(), flist.end());
+}
 
 TEST_CASE("Tokenizer training", "[tokenizer]") {
     TokenizerTest bt;
@@ -130,11 +139,12 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     const auto test_string = string("abcbcde");
     chunks.push_back(bt.text_to_vector_public(test_string));
 
-    REQUIRE( chunks.size() == 1 );
-    REQUIRE( chunks[0].size() == test_string.size());
+    auto flists = bt.create_lists_public(chunks);
+    REQUIRE( flists.size() == 1 );
+    REQUIRE( getForwardListLength(flists[0]) == test_string.size());
 
     // FIX: `freqs` is now a std::unique_ptr, so we use it like a pointer.
-    auto freqs = bt.calculate_freqs_public(chunks, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    auto freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
 
     // FIX: Use the -> operator to access members of the object managed by unique_ptr.
     auto max = freqs->get_top_pair_count();
@@ -142,17 +152,17 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c') ); // 98, 99
 
     // FIX: Pass the raw pointer using .get() to the merge function.
-    bt.merge_public(chunks[0], make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c'), 256, freqs.get());
+    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c'), 256, freqs.get());
 
     // Recalculate frequencies and re-assign the unique_ptr.
-    freqs = bt.calculate_freqs_public(chunks, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256) ); // 97, 256
 
-    bt.merge_public(chunks[0], make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256), 257, freqs.get());
+    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256), 257, freqs.get());
 
-    freqs = bt.calculate_freqs_public(chunks, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)257, (MinBpeCC::Tokenizer::Token)256) );
@@ -174,4 +184,3 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     // Also check that the total number of pairs is 3
     REQUIRE(freqs->get_count() == 3);
 }
-

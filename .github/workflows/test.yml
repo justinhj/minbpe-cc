@@ -1,4 +1,3 @@
-
 name: Run Tests
 on:
   pull_request:
@@ -28,7 +27,7 @@ jobs:
       run: |
         export DEFAULT_LIB_PATH=$(realpath --relative-to=$PWD /usr/lib/x86_64-linux-gnu)
         export DEFAULT_INCLUDE_PATH=$(realpath --relative-to=$PWD /usr/include)
-        zig build test
+        zig build -Doptimize=ReleaseFast test
     - name: Run end to end tests
       run: |
         ./endtoend-test.sh
