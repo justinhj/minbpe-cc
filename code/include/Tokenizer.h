@@ -485,7 +485,7 @@ namespace MinBpeCC::Tokenizer {
             merges.reserve(vocab_size - 256); // Pre-allocate space for merges
             initialize_vocab();
 
-            vector<std::forward_list<Token>> chunks;
+            vector<vector<Token>> chunks;
 
             if (compiled_pattern_pcre2 != NULL) {
               PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(text.data());
@@ -538,11 +538,7 @@ namespace MinBpeCC::Tokenizer {
             }
 
             // Continue with BPE algorithm
-            vector<vector<Token>> flists;
-            flists.reserve(chunks.size());
-            for (const auto& chunk : chunks) {
-                flists.emplace_back(chunk.begin(), chunk.end());
-            }
+            vector<vector<Token>> flists = chunks;
             std::unique_ptr<PairCount<Token>> freqs;
             if (verbose) {
                 using std::chrono::high_resolution_clock;
