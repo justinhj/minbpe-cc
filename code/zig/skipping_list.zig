@@ -344,7 +344,7 @@ pub const CSkippingListIterator = CSkippingList.Iterator;
 /// The list creates its own copy of the data.
 /// The caller owns the returned pointer and must free it with skipping_list_destroy.
 /// Returns null on allocation failure.
-pub export fn skipping_list_create(source_data: [*c]const C_API_T, len: usize) ?*CSkippingList {
+export fn skipping_list_create(source_data: [*c]const C_API_T, len: usize) ?*CSkippingList {
     // We need an allocator. The C++ side doesn't provide one.
     // We can use a general-purpose allocator.
     var gpa = std.heap.page_allocator;
@@ -359,7 +359,7 @@ pub export fn skipping_list_create(source_data: [*c]const C_API_T, len: usize) ?
 }
 
 /// Destroys a SkippingList instance.
-pub export fn skipping_list_destroy(list: *CSkippingList) void {
+export fn skipping_list_destroy(list: *CSkippingList) void {
     const allocator = list.allocator;
     list.deinit();
     allocator.destroy(list);
@@ -368,7 +368,7 @@ pub export fn skipping_list_destroy(list: *CSkippingList) void {
 /// Creates an iterator for the list.
 /// The caller owns the returned pointer and must free it with skipping_list_iterator_destroy.
 /// Returns null on allocation failure.
-pub export fn skipping_list_iterator_create(list: *CSkippingList) ?*CSkippingListIterator {
+export fn skipping_list_iterator_create(list: *CSkippingList) ?*CSkippingListIterator {
     const iter = list.iterator();
     const iter_ptr = list.allocator.create(CSkippingListIterator) catch return null;
     iter_ptr.* = iter;
@@ -376,14 +376,14 @@ pub export fn skipping_list_iterator_create(list: *CSkippingList) ?*CSkippingLis
 }
 
 /// Destroys a list iterator.
-pub export fn skipping_list_iterator_destroy(iter: *CSkippingListIterator) void {
+export fn skipping_list_iterator_destroy(iter: *CSkippingListIterator) void {
     // The iterator contains a pointer to the list, which contains the allocator.
     iter.list.allocator.destroy(iter);
 }
 
 /// Advances the iterator and gets the next value.
 /// Returns true if a value was retrieved, false if the end of the list was reached.
-pub export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
+export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
     if (iter.next()) |value| {
         out_value.* = value;
         return true;
@@ -393,6 +393,6 @@ pub export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_valu
 }
 
 /// Replaces the current value in the list with new_value and skips the next element.
-pub export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
+export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
     iter.replaceAndSkipNext(new_value);
 }
