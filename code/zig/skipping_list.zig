@@ -327,3 +327,72 @@ test "merge pairs" {
     const expected_values = [_]u32{ 10, 10, 4, 5, 6 };
     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
 }
+
+// ============================================================================
+// C API
+// ============================================================================
+
+const C_API_T = u32;
+const C_API_SKIP_BITS = 8;
+const C_SkippingListType = SkippingList(C_API_T, C_API_SKIP_BITS);
+
+// In Zig, we can use a more descriptive name. C will see the exported name.
+pub const CSkippingList = C_SkippingListType;
+pub const CSkippingListIterator = CSkippingList.Iterator;
+
+/// Creates a SkippingList from a C array.
+/// The list creates its own copy of the data.
+/// The caller owns the returned pointer and must free it with skipping_list_destroy.
+/// Returns null on allocation failure.
+export fn skipping_list_create(source_data: [*c]const C_API_T, len: usize) ?*CSkippingList {
+    // We need an allocator. The C++ side doesn't provide one.
+    // We can use a general-purpose allocator.
+    var gpa = std.heap.page_allocator;
+    const list = gpa.create(CSkippingList) catch return null;
+
+    const slice = source_data[0..len];
+    list.* = CSkippingList.init(gpa, slice) catch {
+        gpa.destroy(list);
+        return null;
+    };
+    return list;
+}
+
+/// Destroys a SkippingList instance.
+export fn skipping_list_destroy(list: *CSkippingList) void {
+    const allocator = list.allocator;
+    list.deinit();
+    allocator.destroy(list);
+}
+
+/// Creates an iterator for the list.
+/// The caller owns the returned pointer and must free it with skipping_list_iterator_destroy.
+/// Returns null on allocation failure.
+export fn skipping_list_iterator_create(list: *CSkippingList) ?*CSkippingListIterator {
+    const iter = list.iterator();
+    const iter_ptr = list.allocator.create(CSkippingListIterator) catch return null;
+    iter_ptr.* = iter;
+    return iter_ptr;
+}
+
+/// Destroys a list iterator.
+export fn skipping_list_iterator_destroy(iter: *CSkippingListIterator) void {
+    // The iterator contains a pointer to the list, which contains the allocator.
+    iter.list.allocator.destroy(iter);
+}
+
+/// Advances the iterator and gets the next value.
+/// Returns true if a value was retrieved, false if the end of the list was reached.
+export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
+    if (iter.next()) |value| {
+        out_value.* = value;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/// Replaces the current value in the list with new_value and skips the next element.
+export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
+    iter.replaceAndSkipNext(new_value);
+}
