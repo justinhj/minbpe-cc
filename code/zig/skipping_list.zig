@@ -392,6 +392,15 @@ export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *
     }
 }
 
+export fn skipping_list_iterator_peek(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
+    if (iter.peek()) |value| {
+        out_value.* = value;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /// Replaces the current value in the list with new_value and skips the next element.
 export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
     iter.replaceAndSkipNext(new_value);

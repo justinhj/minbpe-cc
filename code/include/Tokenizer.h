@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <chrono>
 
+#include "skipping_list.h"
+
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h> // Main PCRE2 header
 
@@ -111,15 +113,17 @@ namespace MinBpeCC::Tokenizer {
             }
         }
 
-        // Converts a vector of vector of ints (chunks) to a vector of forward_list of ints
+        // Converts a vector of vector of ints (chunks) to a vector of skipping_lists of ints
         auto create_lists(const vector<vector<Token>> &chunks) {
-            vector<std::forward_list<Token>> flists;
+            vector<CSkippingList*> flists;
             flists.reserve(chunks.size()); // Reserve space
             for(const auto &chunk: chunks) {
-                std::forward_list<Token> flist;
-                // Copy in reverse to use front_inserter efficiently
-                std::copy(chunk.rbegin(), chunk.rend(), std::front_inserter(flist));
-                flists.push_back(flist);
+                auto sl = skipping_list_create(chunk.data(), chunk.size());
+
+                // std::forward_list<Token> flist;
+                // // Copy in reverse to use front_inserter efficiently
+                // std::copy(chunk.rbegin(), chunk.rend(), std::front_inserter(flist));
+                flists.push_back(sl);
             }
             return flists;
         }
@@ -157,6 +161,40 @@ namespace MinBpeCC::Tokenizer {
                     pair_count.create_or_modify_pair(a, b, 1);
                 }
             }
+        }
+
+        std::unique_ptr<PairCount<Token>> calculate_freqs(const std::vector<CSkippingList*>& corpus, CONFLICT_RESOLUTION conflict_resolution) const {
+          std::unique_ptr<PairCount<Token>> freqs;
+          if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
+              freqs = std::make_unique<PairCountInsertOrder<Token>>();
+          } else { // LEXICAL
+              freqs = std::make_unique<PairCountLexicalOrder<Token>>();
+          }
+         for (CSkippingList* word : corpus) {
+              CSkippingListIterator* iter = skipping_list_iterator_create(word);
+              if (!iter) {
+                  // Skip if iterator creation fails.
+                  // TODO throw an error
+                  continue;
+              }
+
+              Token a;
+              if (!skipping_list_iterator_next(iter, &a)) {
+                  skipping_list_iterator_destroy(iter);
+                  continue;
+              }
+
+              Token b;
+              if (skipping_list_iterator_peek(iter, &b)) {
+                  freqs.create_or_modify_pair(a, b, 1);
+                  // The current token 'b' becomes the first token 'a' for the next pair.
+                  a = b;
+              }
+
+              // The iterator for the current word is no longer needed; destroy it.
+              skipping_list_iterator_destroy(iter);
+           }
+          return freqs;
         }
 
         // Merges a specific pair within a single forward_list then completly update frequencies
@@ -307,8 +345,7 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs,
-              CONFLICT_RESOLUTION conflict_resolution) {
+        void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs, CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
               if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
                   merge(chunk, mp, idx, freqs);
