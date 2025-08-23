@@ -281,28 +281,11 @@ fn mergePairs(
     right: T,
     replacement: T,
 ) !void {
-    var main_it = list.iterator();
-    while (main_it.peek()) |_| {
-        // Create a copy of the main iterator to "look ahead" one step.
-        var lookahead_it = main_it;
-
-        // Use the lookahead to check the current and next values without
-        // advancing the main iterator yet.
-        const current_val = lookahead_it.next() orelse break;
-        const next_val = lookahead_it.peek() orelse break;
-
-        if (current_val == left and next_val == right) {
-            // Found a pair. Call replaceAndSkipNext on the main iterator,
-            // which is still pointing at the first element of the pair.
-            // This replaces the value and sets a raw skip of 1.
-            main_it.replaceAndSkipNext(replacement);
-
-            // Now, advance the main iterator. It will use the new skip value
-            // to jump over the second element of the pair.
-            _ = main_it.next();
-        } else {
-            // No match, just advance the main iterator by one step.
-            _ = main_it.next();
+    var iterator = list.iterator();
+    while(iterator.next()) |current| {
+        const next = iterator.peek();
+        if(current == left and next == right) {
+          iterator.replaceAndSkipNext(replacement);
         }
     }
 }
