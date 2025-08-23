@@ -93,34 +93,11 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             /// Like peek but look at the next next element
             /// peekN may be useful but I don't need it
             pub fn peekpeek(it: *Iterator) ?T {
-                const initial_state = it.index == std.math.maxInt(usize);
-                // Check for already at the end but not when initial state
-                if (!initial_state and it.index + 1 >= it.list.data.len) {
-                    return null;
-                }
-                // Initial state means no skip value to consider, otherwise get the skip value
-                const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
-                var index = if (initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
-                // Skips can chain so loop over them
-                while (index < it.list.data.len) {
-                    const next_skip = it.list.get_skip(index);
-                    if (next_skip == 0) {
-                        break;
-                    } else {
-                        index += @as(usize, @intCast(next_skip)) + 1;
-                    }
-                }
-                // At this point index is the first non-skipped element or at the end
-                if (index >= it.list.data.len) {
-                    return null;
-                }
-                // Now find the next non-skipped element after index
-                while (index < it.list.data.len) {
-                    const next_skip = it.list.get_skip(index);
-                    if (next_skip == 0) {
-                        return it.list.get_value(index);
-                    } else {
-                        index += @as(usize, @intCast(next_skip)) + 1;
+                if (it.findNextIndex()) |first_idx| {
+                    var temp_it = it.*;
+                    temp_it.index = first_idx;
+                    if (temp_it.findNextIndex()) |second_idx| {
+                        return temp_it.list.get_value(second_idx);
                     }
                 }
                 return null;
