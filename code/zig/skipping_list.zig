@@ -19,6 +19,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
         const SHIFT_AMOUNT = T_BITS - skip_bits;
         const VALUE_MASK = std.math.maxInt(T) >> skip_bits;
         const MAX_SKIP_VALUE = (@as(T, 1) << skip_bits) - 1;
+        const MAX_VALUE = (@as(T, 1) << T_BITS - skip_bits) - 1;
 
         allocator: std.mem.Allocator,
         data: []T,
@@ -50,6 +51,9 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
         // Set the value of this element without changing the skip bits
         fn set_value(self: *Self, index: usize, value: T) void {
+            std.debug.assert(value <= MAX_VALUE);
+            const skip_part = self.data[index] & ~VALUE_MASK;
+            self.data[index] = skip_part | value;
         }
 
         fn set_skip(self: *Self, index: usize, skip: T) void {
@@ -73,7 +77,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 }
                 // Initial state means no skip value to consider, otherwise get the skip value
                 const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
-                var index = if(initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
+                var index = if (initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
                 // Skips can chain so loop over them
                 while (index < it.list.data.len) {
                     const next_skip = it.list.get_skip(index);
@@ -109,7 +113,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 }
                 // Initial state means no skip value to consider, otherwise get the skip value
                 const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
-                var index = if(initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
+                var index = if (initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
                 // Skips can chain so loop over them
                 while (index < it.list.data.len) {
                     const next_skip = it.list.get_skip(index);
@@ -132,7 +136,8 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 std.debug.assert(it.index != std.math.maxInt(usize));
                 std.debug.assert(it.index + 1 < it.list.data.len);
 
-                
+                it.set_value(it.index, new_value);
+
 
             }
         };
