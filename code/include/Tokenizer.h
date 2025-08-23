@@ -173,21 +173,18 @@ namespace MinBpeCC::Tokenizer {
               CSkippingListIterator* iter = skipping_list_iterator_create(word);
               if (!iter) {
                   // Skip if iterator creation fails.
-                  // TODO throw an error
-                  continue;
+                  assert(false); // Should not happen in practice.
               }
 
               Token a;
-              if (!skipping_list_iterator_next(iter, &a)) {
-                  skipping_list_iterator_destroy(iter);
-                  continue;
-              }
+              while(skipping_list_iterator_next(iter, &a)) {
 
-              Token b;
-              if (skipping_list_iterator_peek(iter, &b)) {
-                  freqs->create_or_modify_pair(a, b, 1);
-                  // The current token 'b' becomes the first token 'a' for the next pair.
-                  a = b;
+                Token b;
+                if (skipping_list_iterator_peek(iter, &b)) {
+                    freqs->create_or_modify_pair(a, b, 1);
+                    // The current token 'b' becomes the first token 'a' for the next pair.
+                    a = b;
+                }
               }
 
               // The iterator for the current word is no longer needed; destroy it.
@@ -199,18 +196,13 @@ namespace MinBpeCC::Tokenizer {
         // Merges a specific pair within a skipping list
         void merge(CSkippingList *list, TokenPair mp, Token new_token) {
           auto main_it = skipping_list_iterator_create(list);
-          Token peeked;
-          Token left = mp.first;
-          Token right = mp.second;
+          Token current_val;
 
-          while (skipping_list_iterator_peek(main_it, &peeked)) {
+          const Token left = mp.first;
+          const Token right = mp.second;
 
-              Token current_val;
+          while (skipping_list_iterator_next(main_it, &current_val)) {
               Token next_val;
-
-              if(!skipping_list_iterator_next(main_it, &current_val)) {
-                  break; // End of the list reached
-              }
               if(!skipping_list_iterator_peek(main_it, &next_val)) {
                   break; // No next value available
               }
@@ -220,9 +212,10 @@ namespace MinBpeCC::Tokenizer {
                   // which is still pointing at the first element of the pair.
                   // This replaces the value and sets a raw skip of 1.
                   skipping_list_iterator_replace_and_skip_next(main_it, new_token);
-
               }
           }
+
+          skipping_list_iterator_destroy(main_it);
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
