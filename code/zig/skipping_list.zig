@@ -287,27 +287,27 @@ test "peek, next and peekpeek" {
     try testing.expectEqual(null, it.peekpeek());
 }
 
-// test "iterator and skipping" {
-//     const allocator = testing.allocator;
-//     const MyList = SkippingList(u32, 8);
-//     const source_data = [_]u32{ 10, 20, 30, 40, 50 };
-//     var list = try MyList.init(allocator, &source_data);
-//     defer list.deinit();
+test "iterator and skipping" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 10, 20, 30, 40, 50 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
 
-//     // Set element at index 1 (value 20) to skip 1 element ahead.
-//     // The iterator should visit 10, then 20, then jump to 40 (skipping 30).
-//     list.set_skip(1, 1);
+    // Set element at index 1 (value 20) to skip 1 element ahead.
+    // The iterator should visit 10, then jump to 40 (skipping 20 and 30).
+    list.set_skip(1, 1);
 
-//     var sum: u32 = 0;
-//     var it = list.iterator();
-//     while (it.next()) |value| {
-//         sum += value;
-//     }
+    var sum: u32 = 0;
+    var it = list.iterator();
+    while (it.next()) |value| {
+        sum += value;
+    }
 
-//     // Expected sum is 10 (index 0) + 20 (index 1) + 40 (index 3) + 50 (index 4) = 120
-//     const expected_sum: u32 = 10 + 20 + 40 + 50;
-//     try testing.expectEqual(expected_sum, sum);
-// }
+    // Expected sum is 10 (from index 0) + 40 (from index 3) + 50 (from index 4) = 100
+    const expected_sum: u32 = 10 + 40 + 50;
+    try testing.expectEqual(expected_sum, sum);
+}
 
 // test "replace pairs" {
 //     const allocator = testing.allocator;
