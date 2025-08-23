@@ -15,11 +15,11 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
     return struct {
         const Self = @This();
-        const T_BITS = @typeInfo(T).int.bits;
-        const SHIFT_AMOUNT = T_BITS - skip_bits;
-        const VALUE_MASK = std.math.maxInt(T) >> skip_bits;
-        const MAX_SKIP_VALUE = (@as(T, 1) << skip_bits) - 1;
-        const MAX_VALUE = (@as(T, 1) << T_BITS - skip_bits) - 1;
+        const T_BITS : T = @typeInfo(T).int.bits;
+        const SHIFT_AMOUNT : T = T_BITS - skip_bits;
+        const VALUE_MASK : T = std.math.maxInt(T) >> skip_bits;
+        const MAX_SKIP_VALUE : T = (@as(T, 1) << skip_bits) - 1;
+        const MAX_VALUE : T = (@as(T, 1) << T_BITS - skip_bits) - 1;
 
         allocator: std.mem.Allocator,
         data: []T,
@@ -128,17 +128,116 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 return null;
             }
 
+// Example of input and output
+
+// input: skipping list with the content 1 2 1 2 4 5 6, replace 1, 2 with 10
+// output: skipping list content 10, 10, 4, 5, 6
+
+// it has replaced the target pair
+// it should use only the iterator interface as shown 
+
+
+// 0 1 2 1 2 3 4
+
+// current = null
+// peek = 0
+// peek2 = 1
+
+// check for pair
+// replace and skip next
+
+// or next
+
+// skip a 0 b 0 c 0 d 0
+// delete b from a
+// skip a 1 b 0 c 0 d 0
+// iterate gives a c d
+
+// delete c from a
+// if skip is already non zero we cannot simply skip 1 again
+// find the next non skipped element
+
+// index = 0
+// follow the skip
+// index = 2
+// is it skipped?
+// no
+// so skip it
+
+// a 1 b 0 c 1 d 0
+
+// iterate gives a d
+// delete d from a
+
+// skip is non zero so find next non skipped
+
+// index = 3 (d)
+// skip d to 1
+
+// a 1 b 0 c 1 d 1
+// iterate gives a
+
+// ok let's try where c is deleted and we start at a again
+
+// a 0 b 1 c 0 d 0
+
+// at a delete b
+
+// a
+// skip is non zero so find next non skipped
+
+// algorithm
+// when the current element has no skip it means the next element is not deleted by definition
+
+
+
             /// Replaces the current value with `new_value` and sets the skip bits
             /// TODO consider replacing this with two methods, a set and erase_next
             /// For now this matches my limited use case though
             pub fn replaceAndSkipNext(it: *Iterator, new_value: T) void {
-                // TODO these should be user errors but just assert for now
                 std.debug.assert(it.index != std.math.maxInt(usize));
                 std.debug.assert(it.index + 1 < it.list.data.len);
 
-                it.set_value(it.index, new_value);
+                it.list.set_value(it.index, new_value);
 
+                const find_next_index = struct {
+                    fn f(iter: *Iterator) ?usize {
+                        const initial_state = iter.index == std.math.maxInt(usize);
+                        if (!initial_state and iter.index + 1 >= iter.list.data.len) {
+                            return null;
+                        }
+                        const skip_amount = if (initial_state) 0 else iter.list.get_skip(iter.index);
+                        var idx = if (initial_state) 0 else iter.index + @as(usize, @intCast(skip_amount)) + 1;
+                        while (idx < iter.list.data.len) {
+                            const next_skip = iter.list.get_skip(idx);
+                            if (next_skip == 0) {
+                                return idx;
+                            } else {
+                                idx += @as(usize, @intCast(next_skip)) + 1;
+                            }
+                        }
+                        return null;
+                    }
+                }.f;
 
+                if (find_next_index(it)) |next_idx| {
+                    var temp_it = it.*;
+                    temp_it.index = next_idx;
+                    const next_next_idx_opt = find_next_index(&temp_it);
+                    const target_idx = next_next_idx_opt orelse it.list.data.len;
+
+                    var current: usize = it.index;
+                    var remaining: isize = @as(isize, @intCast(target_idx)) - @as(isize, @intCast(current)) - 1;
+                    while (remaining > 0) {
+                        var skip_val: isize = @min(remaining, @as(isize, @intCast(Self.MAX_SKIP_VALUE)));
+                        if (remaining == @as(isize, @intCast(Self.MAX_SKIP_VALUE)) + 1) {
+                            skip_val = @as(isize, @intCast(Self.MAX_SKIP_VALUE)) - 1;
+                        }
+                        it.list.set_skip(current, @as(T, @intCast(skip_val)));
+                        current += @as(usize, @intCast(skip_val)) + 1;
+                        remaining = @as(isize, @intCast(target_idx)) - @as(isize, @intCast(current)) - 1;
+                    }
+                }
             }
         };
 
