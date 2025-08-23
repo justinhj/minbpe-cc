@@ -98,18 +98,26 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             /// Returns the value of the next element and advances the iterator
             /// by `1 + skip_amount`. Returns `null` at the end.
             pub fn next(it: *Iterator) ?T {
-                if (it.index >= it.list.data.len) {
+                const initial_state = it.index == std.math.maxInt(usize);
+                // Check for already at the end but not when initial state
+                if (!initial_state and it.index + 1 >= it.list.data.len) {
                     return null;
                 }
-
-                const current_value = it.list.get_value(it.index);
-                const skip_amount = it.list.get_skip(it.index);
-
-                // Advance the index for the next call. A skip of 0 means we
-                // just advance to the very next element.
-                it.index += @as(usize, @intCast(skip_amount)) + 1;
-
-                return current_value;
+                // Initial state means no skip value to consider, otherwise get the skip value
+                const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
+                var index = if(initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
+                // Skips can chain so loop over them
+                while (index < it.list.data.len) {
+                    const next_skip = it.list.get_skip(index);
+                    if (next_skip == 0) {
+                        it.index = index;
+                        return it.list.get_value(index);
+                    } else {
+                        index += @as(usize, @intCast(next_skip)) + 1;
+                    }
+                }
+                it.index = index; // Remember we got to the end
+                return null;
             }
 
             /// Replaces the current value with `new_value` and sets the skip bits
@@ -182,6 +190,13 @@ test "peek, next and peekpeek" {
 
     var it = list.iterator();
     try testing.expectEqual(10, it.peek().?);
+    try testing.expectEqual(10, it.next().?);
+    try testing.expectEqual(20, it.peek().?);
+    try testing.expectEqual(20, it.next().?);
+
+    try testing.expectEqual(null, it.peek());
+    try testing.expectEqual(null, it.next());
+    try testing.expectEqual(null, it.peek());
 }
 
 // test "iterator and skipping" {
@@ -328,17 +343,6 @@ fn mergePairs(
             it.replaceAndSkipNext(replacement);
         }
     }
-}
-
-test "peek" {
-    const allocator = testing.allocator;
-    const MyList = SkippingList(u32, 8);
-    const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
-    var list = try MyList.init(allocator, &source_data);
-    defer list.deinit();
-
-    var it = list.iterator();
-    try testing.expectEqual(97, it.peek().?);
 }
 
 // test "merge pairs" {
