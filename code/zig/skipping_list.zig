@@ -279,11 +279,12 @@ test "peek, next and peekpeek" {
     try testing.expectEqual(20, it.peekpeek().?);
     try testing.expectEqual(10, it.next().?);
     try testing.expectEqual(20, it.peek().?);
+    try testing.expectEqual(null, it.peekpeek());
     try testing.expectEqual(20, it.next().?);
-
     try testing.expectEqual(null, it.peek());
     try testing.expectEqual(null, it.next());
     try testing.expectEqual(null, it.peek());
+    try testing.expectEqual(null, it.peekpeek());
 }
 
 // test "iterator and skipping" {
