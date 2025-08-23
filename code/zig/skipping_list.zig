@@ -48,6 +48,10 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             return self.data[index] & VALUE_MASK;
         }
 
+        // Set the value of this element without changing the skip bits
+        fn set_value(self: *Self, index: usize, value: T) void {
+        }
+
         fn set_skip(self: *Self, index: usize, skip: T) void {
             std.debug.assert(skip <= MAX_SKIP_VALUE);
             const value_part = self.data[index] & VALUE_MASK;
@@ -121,19 +125,15 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             }
 
             /// Replaces the current value with `new_value` and sets the skip bits
+            /// TODO consider replacing this with two methods, a set and erase_next
+            /// For now this matches my limited use case though
             pub fn replaceAndSkipNext(it: *Iterator, new_value: T) void {
+                // TODO these should be user errors but just assert for now
+                std.debug.assert(it.index != std.math.maxInt(usize));
                 std.debug.assert(it.index + 1 < it.list.data.len);
 
-                // Set the skip bits to 1, preserving the original value for now.
-                it.list.set_skip(it.index, 1);
+                
 
-                // Now, replace the value part, keeping the new skip bits.
-                // 1. Get the raw data which now has the skip bits set.
-                const raw_data = it.list.data[it.index];
-                // 2. Isolate the just-set skip bits.
-                const skip_part = raw_data & ~@as(T, VALUE_MASK);
-                // 3. Combine with the new value.
-                it.list.data[it.index] = skip_part | new_value;
             }
         };
 
