@@ -1,7 +1,6 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
-#include <algorithm>
 #include <unordered_map>
 #include <string>
 #include <functional>
@@ -186,7 +185,7 @@ namespace MinBpeCC::Tokenizer {
 
               Token b;
               if (skipping_list_iterator_peek(iter, &b)) {
-                  freqs.create_or_modify_pair(a, b, 1);
+                  freqs->create_or_modify_pair(a, b, 1);
                   // The current token 'b' becomes the first token 'a' for the next pair.
                   a = b;
               }
@@ -197,44 +196,33 @@ namespace MinBpeCC::Tokenizer {
           return freqs;
         }
 
-        // Merges a specific pair within a single forward_list then completly update frequencies
-        void merge(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
-            auto verbose = 0; // Control verbosity for debugging
-            if(verbose >= 2) {
-                cout << "before merge\n";
-                for(auto c: text) {
-                    cout << c << " ";
-                }
-                cout << "\n";
-            }
+        // Merges a specific pair within a skipping list
+        void merge(CSkippingList *list, TokenPair mp, Token new_token) {
+          auto main_it = skipping_list_iterator_create(list);
+          Token peeked;
+          Token left = mp.first;
+          Token right = mp.second;
 
-            auto [p1_val, p2_val] = mp; // Deconstruct the pair
-            auto i1 = text.begin();
-            auto i2 = std::next(i1);
+          while (skipping_list_iterator_peek(main_it, &peeked)) {
 
-            while(i1 != text.end() && i2 != text.end()) {
-                if(*i1 == p1_val && *i2 == p2_val) {
-                    if(verbose >= 1) {
-                        cout << "found pair " << p1_val << ", " << p2_val << " replace with " << new_token << "\n";
-                    }
+              Token current_val;
+              Token next_val;
 
-                    *i1 = new_token; // Replace the first element of the pair with the new token
-                    i2 = text.erase_after(i1); // Erase the second element
+              if(!skipping_list_iterator_next(main_it, &current_val)) {
+                  break; // End of the list reached
+              }
+              if(!skipping_list_iterator_peek(main_it, &next_val)) {
+                  break; // No next value available
+              }
 
+              if (current_val == left and next_val == right) {
+                  // Found a pair. Call replaceAndSkipNext on the main iterator,
+                  // which is still pointing at the first element of the pair.
+                  // This replaces the value and sets a raw skip of 1.
+                  skipping_list_iterator_replace_and_skip_next(main_it, new_token);
 
-                } else {
-                    // Advance iterators if no merge occurred
-                    i1 = i2;
-                    i2 = std::next(i2);
-                }
-            }
-            if(verbose >= 2) {
-                cout << "after merge\n";
-                for(auto c: text) {
-                    cout << c << " ";
-                }
-                cout << "\n";
-            }
+              }
+          }
         }
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
@@ -345,12 +333,13 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Merges a specific pair across all forward_lists in chunks
-        void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs, CONFLICT_RESOLUTION conflict_resolution) {
+        void merge_chunks(vector<CSkippingList*> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs, CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
               if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
-                  merge(chunk, mp, idx, freqs);
+                  merge(chunk, mp, idx);
               } else if(conflict_resolution == CONFLICT_RESOLUTION::LEXICAL) {
-                  merge_incremental(chunk, mp, idx, freqs);
+                  assert(false); // Lexical resolution is not implemented in this version
+                  // merge_incremental(chunk, mp, idx, freqs);
               } else {
                   throw std::runtime_error("Unknown conflict resolution strategy");
               }
@@ -652,11 +641,11 @@ namespace MinBpeCC::Tokenizer {
             }
 
             if(verbose) {
-                int size = 0;
-                for(auto &fl: flists) {
-                    size += std::distance(fl.begin(), fl.end());
-                }
-                cout << "Length of training text " << text.length() << ". After merges " << size << ".\n";
+                // int size = 0;
+                // for(auto &fl: flists) {
+                //     size += std::distance(fl.begin(), fl.end());
+                // }
+                // cout << "Length of training text " << text.length() << ". After merges " << size << ".\n";
             }
         };
 
