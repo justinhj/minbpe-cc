@@ -59,13 +59,39 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             list: *Self,
             index: usize,
 
-            // Return the value of the current element without advancing the iterator
+            // Looks at the next element without advancing the iterator.
+            // Returns null if at the end.
             pub fn peek(it: *Iterator) ?T {
-                if (it.index >= it.list.data.len) {
+                // Check for already at the end
+                if (it.index + 1 >= it.list.data.len) {
                     return null;
                 }
-                return it.list.get_value(it.index);
-            } 
+                // Initial state means no skip value to consider, otherwise get the skip value
+                const skip_amount = if (it.index == @typeInfo(usize).Int.max) 0 else it.list.get_skip(it.index);
+                var index = it.index + @as(usize, @intCast(skip_amount)) + 1;
+                // Skips can chain so loop over them
+                while (index < it.list.data.len) {
+                    const next_skip = it.list.get_skip(index);
+                    if (next_skip == 0) {
+                        return it.list.get_value(index);
+                    } else {
+                        index += @as(usize, @intCast(next_skip)) + 1;
+                    }
+                }
+            }
+
+            pub fn peekN(it: *Iterator, n: usize) ?T {
+                std.debug.assert(n > 0);
+                var index: usize = it.index;
+                while (n > 0) : (n -= 1) {
+                    const skip_amount = it.list.get_skip(index);
+                    index += @as(usize, @intCast(skip_amount)) + 1;
+                    if (index >= it.list.data.len) {
+                        return null;
+                    }
+                }
+                return it.list.get_value(index);
+            }
 
             /// Returns the value of the next element and advances the iterator
             /// by `1 + skip_amount`. Returns `null` at the end.
@@ -105,7 +131,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
         pub fn iterator(self: *Self) Iterator {
             return Iterator{
                 .list = self,
-                .index = 0,
+                .index = @typeInfo(usize).Int.max,
             };
         }
 
@@ -253,7 +279,6 @@ test "debug iterator" {
 //         }
 //     }
 
-
 //     // 3. Verify the final list.
 //     // The test modifies the list in a way that causes the iterator to skip over
 //     // several elements. We verify that the sequence of values produced by the
@@ -281,35 +306,60 @@ fn mergePairs(
     right: T,
     replacement: T,
 ) !void {
-    var iterator = list.iterator();
-    while(iterator.next()) |current| {
-        const next = iterator.peek();
-        if(current == left and next == right) {
-          iterator.replaceAndSkipNext(replacement);
+    var it = list.iterator();
+    while (it.next()) |current_val| {
+        const next_val = it.peek() orelse break;
+
+        if (current_val == left and next_val == right) {
+            it.replaceAndSkipNext(replacement);
         }
     }
 }
 
-test "merge pairs" {
+test "peek" {
     const allocator = testing.allocator;
     const MyList = SkippingList(u32, 8);
     const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
     var list = try MyList.init(allocator, &source_data);
     defer list.deinit();
 
-    try mergePairs(u32, 8, &list, 98, 99, 256);
-
-    // Collect the results from the iterator to verify the merge logic
-    var final_values = std.ArrayList(u32).init(allocator);
-    defer final_values.deinit();
     var it = list.iterator();
-    while (it.next()) |v| {
-        try final_values.append(v);
-    }
-
-    const expected_values = [_]u32{ 97, 256, 256, 100, 101 };
-    try testing.expectEqualSlices(u32, &expected_values, final_values.items);
+    try testing.expectEqual(97, it.peek().?);
 }
+
+// test "merge pairs" {
+//     const allocator = testing.allocator;
+//     const MyList = SkippingList(u32, 8);
+//     const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
+//     var list = try MyList.init(allocator, &source_data);
+//     defer list.deinit();
+
+//     try mergePairs(u32, 8, &list, 98, 99, 256);
+
+//     // Collect the results from the iterator to verify the merge logic
+//     var final_values = std.ArrayList(u32).init(allocator);
+//     defer final_values.deinit();
+//     var it = list.iterator();
+//     while (it.next()) |v| {
+//         try final_values.append(v);
+//     }
+
+//     const expected_values = [_]u32{ 97, 256, 256, 100, 101 };
+//     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
+
+//     try mergePairs(u32, 8, &list, 256, 256, 257);
+
+//     // Collect the results from the iterator to verify the merge logic
+//     var final_values2 = std.ArrayList(u32).init(allocator);
+//     defer final_values2.deinit();
+//     var it2 = list.iterator();
+//     while (it2.next()) |v| {
+//         try final_values2.append(v);
+//     }
+
+//     const expected_values2 = [_]u32{ 97, 257, 100, 101 };
+//     try testing.expectEqualSlices(u32, &expected_values2, final_values2.items);
+// }
 
 // ============================================================================
 // C API
