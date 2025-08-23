@@ -310,11 +310,11 @@ fn mergePairs(
 test "merge pairs" {
     const allocator = testing.allocator;
     const MyList = SkippingList(u32, 8);
-    const source_data = [_]u32{ 1, 2, 1, 2, 4, 5, 6 };
+    const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
     var list = try MyList.init(allocator, &source_data);
     defer list.deinit();
 
-    try mergePairs(u32, 8, &list, 1, 2, 10);
+    try mergePairs(u32, 8, &list, 98, 99, 256);
 
     // Collect the results from the iterator to verify the merge logic
     var final_values = std.ArrayList(u32).init(allocator);
@@ -324,7 +324,7 @@ test "merge pairs" {
         try final_values.append(v);
     }
 
-    const expected_values = [_]u32{ 10, 10, 4, 5, 6 };
+    const expected_values = [_]u32{ 97, 256, 256, 100, 101 };
     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
 }
 
