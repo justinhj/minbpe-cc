@@ -327,51 +327,51 @@ test "debug iterator" {
     try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
 }
 
-// test "big gap" {
-//     const allocator = testing.allocator;
-//     const MyList = SkippingList(u32, 2); // 2 bits for skip, max skip is 4
+test "big gap" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 2); // 2 bits for skip, max skip is 4
 
-//     // 1. Create a list with numbers 1 to 31
-//     var source_data_array: [31]u32 = undefined;
-//     var i: u32 = 0;
-//     while (i < source_data_array.len) : (i += 1) {
-//         source_data_array[i] = i + 1;
-//     }
-//     var list = try MyList.init(allocator, &source_data_array);
-//     defer list.deinit();
+    // 1. Create a list with numbers 1 to 31
+    var source_data_array: [31]u32 = undefined;
+    var i: u32 = 0;
+    while (i < source_data_array.len) : (i += 1) {
+        source_data_array[i] = i + 1;
+    }
+    var list = try MyList.init(allocator, &source_data_array);
+    defer list.deinit();
 
-//     // 2. Iteratively "delete" the 9th element 16 times
-//     var j: u32 = 0;
-//     while(j < 16) : (j +=1) {
-//         var finder_it = list.iterator();
-//         var k: u32 = 0;
-//         var value = finder_it.next();
-//         while (k < 8 - 1) : (k += 1) {
-//             value = finder_it.next();
-//         }
-//         if (value) |v| {
-//             finder_it.replaceAndSkipNext(v + 1);
-//         }
-//     }
+    // 2. Iteratively "delete" the 9th element 16 times
+    var j: u32 = 0;
+    while(j < 16) : (j +=1) {
+        var finder_it = list.iterator();
+        var k: u32 = 0;
+        var value = finder_it.next();
+        while (k < 8 - 1) : (k += 1) {
+            value = finder_it.next();
+        }
+        if (value) |v| {
+            finder_it.replaceAndSkipNext(v + 1);
+        }
+    }
 
-//     // 3. Verify the final list.
-//     // The test modifies the list in a way that causes the iterator to skip over
-//     // several elements. We verify that the sequence of values produced by the
-//     // iterator is correct.
-//     var final_values = std.ArrayList(u32).init(allocator);
-//     defer final_values.deinit();
+    // 3. Verify the final list.
+    // The test modifies the list in a way that causes the iterator to skip over
+    // several elements. We verify that the sequence of values produced by the
+    // iterator is correct.
+    var final_values = std.ArrayList(u32).init(allocator);
+    defer final_values.deinit();
 
-//     var it = list.iterator();
-//     while (it.next()) |v| {
-//         try final_values.append(v);
-//     }
+    var it = list.iterator();
+    while (it.next()) |v| {
+        try final_values.append(v);
+    }
 
-//     const expected_values = [_]u32{
-//         1, 2, 3, 4, 5, 6, 7, 8, 24, 25, 26, 27, 28, 29, 30, 31,
-//     };
+    const expected_values = [_]u32{
+        1, 2, 3, 4, 5, 6, 7, 8, 24, 25, 26, 27, 28, 29, 30, 31,
+    };
 
-//     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
-// }
+    try testing.expectEqualSlices(u32, &expected_values, final_values.items);
+}
 
 fn mergePairs(
     comptime T: type,
