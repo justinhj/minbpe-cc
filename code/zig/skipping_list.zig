@@ -391,39 +391,39 @@ fn mergePairs(
     }
 }
 
-// test "merge pairs" {
-//     const allocator = testing.allocator;
-//     const MyList = SkippingList(u32, 8);
-//     const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
-//     var list = try MyList.init(allocator, &source_data);
-//     defer list.deinit();
+test "merge pairs" {
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 97, 98, 99, 98, 99, 100, 101 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
 
-//     try mergePairs(u32, 8, &list, 98, 99, 256);
+    try mergePairs(u32, 8, &list, 98, 99, 256);
 
-//     // Collect the results from the iterator to verify the merge logic
-//     var final_values = std.ArrayList(u32).init(allocator);
-//     defer final_values.deinit();
-//     var it = list.iterator();
-//     while (it.next()) |v| {
-//         try final_values.append(v);
-//     }
+    // Collect the results from the iterator to verify the merge logic
+    var final_values = std.ArrayList(u32).init(allocator);
+    defer final_values.deinit();
+    var it = list.iterator();
+    while (it.next()) |v| {
+        try final_values.append(v);
+    }
 
-//     const expected_values = [_]u32{ 97, 256, 256, 100, 101 };
-//     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
+    const expected_values = [_]u32{ 97, 256, 256, 100, 101 };
+    try testing.expectEqualSlices(u32, &expected_values, final_values.items);
 
-//     try mergePairs(u32, 8, &list, 256, 256, 257);
+    try mergePairs(u32, 8, &list, 256, 256, 257);
 
-//     // Collect the results from the iterator to verify the merge logic
-//     var final_values2 = std.ArrayList(u32).init(allocator);
-//     defer final_values2.deinit();
-//     var it2 = list.iterator();
-//     while (it2.next()) |v| {
-//         try final_values2.append(v);
-//     }
+    // Collect the results from the iterator to verify the merge logic
+    var final_values2 = std.ArrayList(u32).init(allocator);
+    defer final_values2.deinit();
+    var it2 = list.iterator();
+    while (it2.next()) |v| {
+        try final_values2.append(v);
+    }
 
-//     const expected_values2 = [_]u32{ 97, 257, 100, 101 };
-//     try testing.expectEqualSlices(u32, &expected_values2, final_values2.items);
-// }
+    const expected_values2 = [_]u32{ 97, 257, 100, 101 };
+    try testing.expectEqualSlices(u32, &expected_values2, final_values2.items);
+}
 
 // ============================================================================
 // C API
