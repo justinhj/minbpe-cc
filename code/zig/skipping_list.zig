@@ -93,77 +93,25 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             /// by `1 + skip_amount`. Returns `null` at the end.
             pub fn next(it: *Iterator) ?T {
                 if (it.findNextIndex()) |next_idx| {
+                    std.debug.print("Iterator next: moving to index {}\n", .{next_idx});
                     it.index = next_idx;
                     return it.list.get_value(next_idx);
                 } else {
                     // Mark the iterator as finished by setting the index to the end
                     // to prevent re-scanning on subsequent calls.
+                    std.debug.print("Iterator next: the end {}\n", .{it.list.data.len});
                     it.index = it.list.data.len;
                     return null;
                 }
             }
 
-            // Example of input and output
-
-            // input: skipping list with the content 1 2 1 2 4 5 6, replace 1, 2 with 10
-            // output: skipping list content 10, 10, 4, 5, 6
-
-            // it has replaced the target pair
-            // it should use only the iterator interface as shown
-
-            // 0 1 2 1 2 3 4
-
-            // current = null
-            // peek = 0
-            // peek2 = 1
-
-            // check for pair
-            // replace and skip next
-
-            // or next
-
-            // skip a 0 b 0 c 0 d 0
-            // delete b from a
-            // skip a 1 b 0 c 0 d 0
-            // iterate gives a c d
-
-            // delete c from a
-            // if skip is already non zero we cannot simply skip 1 again
-            // find the next non skipped element
-
-            // index = 0
-            // follow the skip
-            // index = 2
-            // is it skipped?
-            // no
-            // so skip it
-
-            // a 1 b 0 c 1 d 0
-
-            // iterate gives a d
-            // delete d from a
-
-            // skip is non zero so find next non skipped
-
-            // index = 3 (d)
-            // skip d to 1
-
-            // a 1 b 0 c 1 d 1
-            // iterate gives a
-
-            // ok let's try where c is deleted and we start at a again
-
-            // a 0 b 1 c 0 d 0
-
-            // at a delete b
-
-            // a
-            // skip is non zero so find next non skipped
-
-            // algorithm
-            // when the current element has no skip it means the next element is not deleted by definition
-
             // Helper to find the index of the next non-deleted element
+            // Input... the iterator is at the current position stored as index
+            //   we expect index to be a valid non skipped item (high bits zero) or 
+            //   the initial state (maxInt)
+            //   or it could be at the end of the collection (>= len)
+            // Output... advance the index by one and repeat until we find a non-skipped item
+            //   or reach the end of the collection
             pub fn findNextIndex(it: *const Iterator) ?usize {
                 const initial_state = it.index == std.math.maxInt(usize);
                 if (!initial_state and it.index + 1 >= it.list.data.len) {
@@ -172,45 +120,40 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                 const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
                 var idx = if (initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
 
+                std.debug.print("skip amount: {}, idx: {}\n", .{skip_amount, idx}); 
 
+                if (skip_amount == 0) {
+                    return idx;
+                }
 
+                // keep skipping until we find a non-skipped element or reach the end
                 while (idx < it.list.data.len) {
                     const next_skip = it.list.get_skip(idx);
                     if (next_skip == 0) {
                         return idx;
                     } else {
-                        idx += @as(usize, @intCast(next_skip)) + 1;
+                        idx += @as(usize, @intCast(next_skip));
                     }
                 }
                 return null;
             }
 
             /// Replaces the current value with `new_value` and sets the skip bits
-            /// TODO consider replacing this with two methods, a set and erase_next
-            /// For now this matches my limited use case though
             pub fn replaceAndSkipNext(it: *Iterator, new_value: T) void {
-                // TODO these should be user errors but just assert for now
-                std.debug.assert(it.index != std.math.maxInt(usize));
-                std.debug.assert(it.index + 1 < it.list.data.len);
+                if (it.index == std.math.maxInt(usize)) {
+                    // Can't replace before the first next() call
+                    return;
+                }
+
+                if (it.index >= it.list.data.len) { 
+                    // Can't replace after the end
+                    return;
+                }
 
                 it.list.set_value(it.index, new_value);
 
                 if (it.findNextIndex()) |next_idx| {
-                    var temp_it = it.*;
-                    temp_it.index = next_idx;
-                    const next_next_idx_opt = temp_it.findNextIndex();
-                    const target_idx = next_next_idx_opt orelse it.list.data.len;
-
-                    var current: usize = it.index;
-                    var remaining: isize = @as(isize, @intCast(target_idx)) - @as(isize, @intCast(current)) - 1;
-                    while (remaining > 0) : (remaining = @as(isize, @intCast(target_idx)) - @as(isize, @intCast(current)) - 1) {
-                        var skip_val: isize = @min(remaining, @as(isize, @intCast(Self.MAX_SKIP_VALUE)));
-                        if (remaining == @as(isize, @intCast(Self.MAX_SKIP_VALUE)) + 1) {
-                            skip_val = @as(isize, @intCast(Self.MAX_SKIP_VALUE)) - 1;
-                        }
-                        it.list.set_skip(current, @as(T, @intCast(skip_val)));
-                        current += @as(usize, @intCast(skip_val)) + 1;
-                    }
+                    it.list.set_skip(next_idx, 1);
                 }
             }
         };
@@ -290,20 +233,21 @@ test "replaceAndSkipNext" {
     var it = list.iterator();
     try testing.expectEqual(10, it.next().?);
     it.replaceAndSkipNext(90);
+
+    var debug_it = list.debug_iterator();
+    while(debug_it.next()) |raw_value| {
+        std.debug.print("Raw value: 0x{X} {}\n", .{raw_value, raw_value & 0xFFFF});
+    }
+
     try testing.expectEqual(30, it.next().?);
     try testing.expectEqual(40, it.next().?);
     it.replaceAndSkipNext(100);
     try testing.expectEqual(20, it.next().?);
     try testing.expectEqual(null, it.next());
 
-    var debug_it = list.debug_iterator();
-    while(debug_it.next()) |raw_value| {
-        // Print the raw values for debugging
-        std.debug.print("Raw value: 0x{X} {}\n", .{raw_value, raw_value & 0xFFFF});
-    }
 
     it = list.iterator();
-    try testing.expectEqual(0, it.findNextIndex().?);
+    try testing.expectEqual(90, it.findNextIndex().?);
     try testing.expectEqual(90, it.next().?);
     try testing.expectEqual(30, it.next().?);
     try testing.expectEqual(100, it.next().?);
