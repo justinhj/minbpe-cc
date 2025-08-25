@@ -93,13 +93,13 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             /// by `1 + skip_amount`. Returns `null` at the end.
             pub fn next(it: *Iterator) ?T {
                 if (it.findNextIndex()) |next_idx| {
-                    std.debug.print("Iterator next: moving to index {}\n", .{next_idx});
+                    // std.debug.print("Iterator next: moving to index {}\n", .{next_idx});
                     it.index = next_idx;
                     return it.list.get_value(next_idx);
                 } else {
                     // Mark the iterator as finished by setting the index to the end
                     // to prevent re-scanning on subsequent calls.
-                    std.debug.print("Iterator next: the end {}\n", .{it.list.data.len});
+                    // std.debug.print("Iterator next: the end {}\n", .{it.list.data.len});
                     it.index = it.list.data.len;
                     return null;
                 }
@@ -107,34 +107,31 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
             // Helper to find the index of the next non-deleted element
             // Input... the iterator is at the current position stored as index
-            //   we expect index to be a valid non skipped item (high bits zero) or 
+            //   we expect index to be a valid non skipped item (high bits zero) or
             //   the initial state (maxInt)
             //   or it could be at the end of the collection (>= len)
             // Output... advance the index by one and repeat until we find a non-skipped item
             //   or reach the end of the collection
             pub fn findNextIndex(it: *const Iterator) ?usize {
                 const initial_state = it.index == std.math.maxInt(usize);
+
+                // Already at or past end? Nothing left
                 if (!initial_state and it.index + 1 >= it.list.data.len) {
                     return null;
                 }
-                const skip_amount = if (initial_state) 0 else it.list.get_skip(it.index);
-                var idx = if (initial_state) 0 else it.index + @as(usize, @intCast(skip_amount)) + 1;
 
-                std.debug.print("skip amount: {}, idx: {}\n", .{skip_amount, idx}); 
+                // Where to start scanning
+                var idx: usize = if (initial_state) 0 else it.index + 1;
 
-                if (skip_amount == 0) {
-                    return idx;
-                }
-
-                // keep skipping until we find a non-skipped element or reach the end
+                // Scan forward until non-skipped or end
                 while (idx < it.list.data.len) {
-                    const next_skip = it.list.get_skip(idx);
-                    if (next_skip == 0) {
-                        return idx;
-                    } else {
-                        idx += @as(usize, @intCast(next_skip));
+                    const skip_amount = it.list.get_skip(idx);
+                    if (skip_amount == 0) {
+                        return idx; // found usable element
                     }
+                    idx += @as(usize, @intCast(skip_amount));
                 }
+
                 return null;
             }
 
@@ -145,7 +142,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
                     return;
                 }
 
-                if (it.index >= it.list.data.len) { 
+                if (it.index >= it.list.data.len) {
                     // Can't replace after the end
                     return;
                 }
@@ -234,20 +231,14 @@ test "replaceAndSkipNext" {
     try testing.expectEqual(10, it.next().?);
     it.replaceAndSkipNext(90);
 
-    var debug_it = list.debug_iterator();
-    while(debug_it.next()) |raw_value| {
-        std.debug.print("Raw value: 0x{X} {}\n", .{raw_value, raw_value & 0xFFFF});
-    }
-
     try testing.expectEqual(30, it.next().?);
     try testing.expectEqual(40, it.next().?);
     it.replaceAndSkipNext(100);
     try testing.expectEqual(20, it.next().?);
     try testing.expectEqual(null, it.next());
 
-
     it = list.iterator();
-    try testing.expectEqual(90, it.findNextIndex().?);
+    try testing.expectEqual(0, it.findNextIndex().?);
     try testing.expectEqual(90, it.next().?);
     try testing.expectEqual(30, it.next().?);
     try testing.expectEqual(100, it.next().?);
@@ -262,7 +253,7 @@ test "iterator and skipping" {
     defer list.deinit();
 
     // Set element at index 1 (value 20) to skip 1 element ahead.
-    // The iterator should visit 10, then jump to 40 (skipping 20 and 30).
+    // The iterator should visit 10, then jump to 30 (skipping 20).
     list.set_skip(1, 1);
 
     var sum: u32 = 0;
@@ -272,7 +263,7 @@ test "iterator and skipping" {
     }
 
     // Expected sum is 10 (from index 0) + 40 (from index 3) + 50 (from index 4) = 100
-    const expected_sum: u32 = 10 + 40 + 50;
+    const expected_sum: u32 = 10 + 30 + 40 + 50;
     try testing.expectEqual(expected_sum, sum);
 }
 
