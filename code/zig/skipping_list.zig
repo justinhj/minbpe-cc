@@ -340,7 +340,7 @@ test "big gap" {
     var list = try MyList.init(allocator, &source_data_array);
     defer list.deinit();
 
-    // 2. Iteratively "delete" the 9th element 16 times
+    // 2. Iteratively update the 8th element and skip the 9th, 16 times
     var j: u32 = 0;
     while(j < 16) : (j +=1) {
         var finder_it = list.iterator();
@@ -367,7 +367,7 @@ test "big gap" {
     }
 
     const expected_values = [_]u32{
-        1, 2, 3, 4, 5, 6, 7, 8, 24, 25, 26, 27, 28, 29, 30, 31,
+        1, 2, 3, 4, 5, 6, 7, 24, 25, 26, 27, 28, 29, 30, 31,
     };
 
     try testing.expectEqualSlices(u32, &expected_values, final_values.items);
