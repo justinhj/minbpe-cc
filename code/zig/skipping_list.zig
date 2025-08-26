@@ -23,6 +23,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
         allocator: std.mem.Allocator,
         data: []T,
+        size: usize,
 
         pub fn init(
             allocator: std.mem.Allocator,
@@ -34,6 +35,7 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
             return Self{
                 .allocator = allocator,
                 .data = data,
+                .size = sourceData.len,
             };
         }
 
@@ -151,9 +153,14 @@ pub fn SkippingList(comptime T: type, comptime skip_bits: u4) type {
 
                 if (it.findNextIndex()) |next_idx| {
                     it.list.set_skip(next_idx, 1);
+                    it.list.size -= 1;
                 }
             }
         };
+
+        pub fn get_size(self: Self) usize {
+            return self.size;
+        }
 
         /// Returns an iterator that traverses the list, respecting skip values.
         pub fn iterator(self: *Self) Iterator {
@@ -391,6 +398,29 @@ fn mergePairs(
     }
 }
 
+test "size" {
+    const allocator = testing.allocator;
+
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 10, 20, 30, 40, 10, 20 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
+
+    try testing.expectEqual(@as(usize, 6), list.get_size());
+
+    var it = list.iterator();
+    _ = it.next(); // 10
+    it.replaceAndSkipNext(90); // replaces 10 with 90, skips 20. size should be 5
+
+    try testing.expectEqual(@as(usize, 5), list.get_size());
+
+    _ = it.next(); // 30
+    _ = it.next(); // 40
+    it.replaceAndSkipNext(100); // replaces 40 with 100, skips 10. size should be 4
+
+    try testing.expectEqual(@as(usize, 4), list.get_size());
+}
+
 test "merge pairs" {
     const allocator = testing.allocator;
     const MyList = SkippingList(u32, 8);
@@ -501,4 +531,9 @@ export fn skipping_list_iterator_peek(iter: *CSkippingListIterator, out_value: *
 /// Replaces the current value in the list with new_value and skips the next element.
 export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
     iter.replaceAndSkipNext(new_value);
+}
+
+/// Returns the number of elements in the list.
+export fn skipping_list_size(list: *const CSkippingList) usize {
+    return list.get_size();
 }
