@@ -342,7 +342,7 @@ test "big gap" {
 
     // 2. Iteratively update the 8th element and skip the 9th, 16 times
     var j: u32 = 0;
-    while(j < 16) : (j +=1) {
+    while (j < 16) : (j += 1) {
         var finder_it = list.iterator();
         var k: u32 = 0;
         var value = finder_it.next();
