@@ -14,6 +14,10 @@ extern "C" {
 // Opaque struct declarations. The internal structure is managed by Zig.
 typedef struct CSkippingList CSkippingList;
 typedef struct CSkippingListIterator CSkippingListIterator;
+typedef struct {
+    CSkippingListIterator* list;
+    size_t index;
+} ISkippingListIterator;
 
 /**
  * @brief Creates a SkippingList from a C array.
@@ -40,14 +44,7 @@ void skipping_list_destroy(CSkippingList* list);
  * @return A pointer to the new iterator, or NULL on allocation failure.
  * The caller owns this pointer and must free it with skipping_list_iterator_destroy.
  */
-CSkippingListIterator* skipping_list_iterator_create(CSkippingList* list);
-
-/**
- * @brief Destroys a list iterator and frees its memory.
- *
- * @param iter A pointer to the iterator to be destroyed.
- */
-void skipping_list_iterator_destroy(CSkippingListIterator* iter);
+ISkippingListIterator skipping_list_iterator_create(CSkippingList* list);
 
 /**
  * @brief Advances the iterator and gets the next value.
@@ -56,10 +53,10 @@ void skipping_list_iterator_destroy(CSkippingListIterator* iter);
  * @param out_value A pointer to a uint32_t where the next value will be stored.
  * @return true if a value was retrieved, false if the end of the list was reached.
  */
-bool skipping_list_iterator_next(CSkippingListIterator* iter, uint32_t* out_value);
+bool skipping_list_iterator_next(ISkippingListIterator iter, uint32_t* out_value);
 
 // Same as next but does not advance the iterator
-bool skipping_list_iterator_peek(CSkippingListIterator* iter, uint32_t* out_value);
+bool skipping_list_iterator_peek(ISkippingListIterator iter, uint32_t* out_value);
 
 /**
  * @brief Replaces the value at the iterator's current position and sets it to skip the next element.
@@ -67,7 +64,7 @@ bool skipping_list_iterator_peek(CSkippingListIterator* iter, uint32_t* out_valu
  * @param iter A pointer to the iterator.
  * @param new_value The new value to write into the list.
  */
-void skipping_list_iterator_replace_and_skip_next(CSkippingListIterator* iter, uint32_t new_value);
+void skipping_list_iterator_replace_and_skip_next(ISkippingListIterator iter, uint32_t new_value);
 
 
 #ifdef __cplusplus

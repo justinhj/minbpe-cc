@@ -180,11 +180,7 @@ protected:
       freqs = std::make_unique<PairCountLexicalOrder<Token>>();
     }
     for (CSkippingList *word : corpus) {
-      CSkippingListIterator *iter = skipping_list_iterator_create(word);
-      if (!iter) {
-        // Skip if iterator creation fails.
-        assert(false); // Should not happen in practice.
-      }
+      ISkippingListIterator iter = skipping_list_iterator_create(word);
 
       Token a;
       while (skipping_list_iterator_next(iter, &a)) {
@@ -197,9 +193,6 @@ protected:
           a = b;
         }
       }
-
-      // The iterator for the current word is no longer needed; destroy it.
-      skipping_list_iterator_destroy(iter);
     }
     return freqs;
   }
@@ -225,8 +218,6 @@ protected:
         skipping_list_iterator_replace_and_skip_next(main_it, new_token);
       }
     }
-
-    skipping_list_iterator_destroy(main_it);
   }
 
   // Merges a specific pair within a single forward_list, updating frequencies
@@ -240,8 +231,7 @@ protected:
     Token right = mp.second;
 
     // Iterator over the list
-    CSkippingListIterator *iter = skipping_list_iterator_create(text);
-    assert(iter != NULL);
+    ISkippingListIterator iter = skipping_list_iterator_create(text);
 
     // Sliding window of 3 values: prev, current, next
     optional<Token> prev_val;
@@ -249,7 +239,6 @@ protected:
 
     // Advance to first element
     if (!skipping_list_iterator_next(iter, &cur_val)) {
-      skipping_list_iterator_destroy(iter);
       return; // Empty list
     }
 
@@ -308,17 +297,14 @@ protected:
       }
     }
 
-    skipping_list_iterator_destroy(iter);
-
     if (verbose >= 2) {
       cout << "after merge\n";
-      CSkippingListIterator *dump_iter = skipping_list_iterator_create(text);
+      ISkippingListIterator dump_iter = skipping_list_iterator_create(text);
       Token v;
       while (skipping_list_iterator_next(dump_iter, &v)) {
         cout << v << " ";
       }
       cout << "\n";
-      skipping_list_iterator_destroy(dump_iter);
     }
   }
 

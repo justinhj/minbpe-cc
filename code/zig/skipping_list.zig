@@ -463,9 +463,15 @@ const C_API_T = u32;
 const C_API_SKIP_BITS = 8;
 const C_SkippingListType = SkippingList(C_API_T, C_API_SKIP_BITS);
 
-// In Zig, we can use a more descriptive name. C will see the exported name.
 pub const CSkippingList = C_SkippingListType;
 pub const CSkippingListIterator = CSkippingList.Iterator;
+
+
+// Can rename later but now for use I for interface
+pub const ISkippingListIterator = extern struct {
+    list: *CSkippingList,
+    index: usize,
+};
 
 /// Creates a SkippingList from a C array.
 /// The list creates its own copy of the data.
@@ -493,24 +499,22 @@ export fn skipping_list_destroy(list: *CSkippingList) void {
 }
 
 /// Creates an iterator for the list.
-/// The caller owns the returned pointer and must free it with skipping_list_iterator_destroy.
-/// Returns null on allocation failure.
-export fn skipping_list_iterator_create(list: *CSkippingList) ?*CSkippingListIterator {
+export fn skipping_list_iterator_create(list: *CSkippingList) ISkippingListIterator {
     const iter = list.iterator();
-    const iter_ptr = list.allocator.create(CSkippingListIterator) catch return null;
-    iter_ptr.* = iter;
-    return iter_ptr;
-}
-
-/// Destroys a list iterator.
-export fn skipping_list_iterator_destroy(iter: *CSkippingListIterator) void {
-    // The iterator contains a pointer to the list, which contains the allocator.
-    iter.list.allocator.destroy(iter);
+    const c_iter = ISkippingListIterator{
+        .list = iter.list,
+        .index = iter.index
+    };
+    return c_iter;
 }
 
 /// Advances the iterator and gets the next value.
 /// Returns true if a value was retrieved, false if the end of the list was reached.
-export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
+export fn skipping_list_iterator_next(c_iter: ISkippingListIterator, out_value: *C_API_T) bool {
+    var iter = CSkippingListIterator{
+        .list = c_iter.list,
+        .index = c_iter.index
+    };
     if (iter.next()) |value| {
         out_value.* = value;
         return true;
@@ -519,7 +523,11 @@ export fn skipping_list_iterator_next(iter: *CSkippingListIterator, out_value: *
     }
 }
 
-export fn skipping_list_iterator_peek(iter: *CSkippingListIterator, out_value: *C_API_T) bool {
+export fn skipping_list_iterator_peek(c_iter: ISkippingListIterator, out_value: *C_API_T) bool {
+    var iter = CSkippingListIterator{
+        .list = c_iter.list,
+        .index = c_iter.index
+    };
     if (iter.peek()) |value| {
         out_value.* = value;
         return true;
@@ -529,7 +537,11 @@ export fn skipping_list_iterator_peek(iter: *CSkippingListIterator, out_value: *
 }
 
 /// Replaces the current value in the list with new_value and skips the next element.
-export fn skipping_list_iterator_replace_and_skip_next(iter: *CSkippingListIterator, new_value: C_API_T) void {
+export fn skipping_list_iterator_replace_and_skip_next(c_iter: ISkippingListIterator, new_value: C_API_T) void {
+    var iter = CSkippingListIterator{
+        .list = c_iter.list,
+        .index = c_iter.index
+    };
     iter.replaceAndSkipNext(new_value);
 }
 
