@@ -474,7 +474,7 @@ pub const CSkippingListIterator = CSkippingList.Iterator;
 export fn skipping_list_create(source_data: [*c]const C_API_T, len: usize) ?*CSkippingList {
     // We need an allocator. The C++ side doesn't provide one.
     // We can use a general-purpose allocator.
-    var gpa = std.heap.page_allocator;
+    var gpa = std.heap.c_allocator;
     const list = gpa.create(CSkippingList) catch return null;
 
     const slice = source_data[0..len];
