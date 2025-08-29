@@ -125,7 +125,8 @@ namespace MinBpeCC::Tokenizer {
         }
 
         // Calculates frequencies of adjacent pairs in the chunks
-        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+        // Best pair is maintained and returned in top_pair
+        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution, TokenPair *top_pair = nullptr) const {
           std::unique_ptr<PairCount<Token>> freqs;
           if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
               freqs = std::make_unique<PairCountInsertOrder<Token>>();

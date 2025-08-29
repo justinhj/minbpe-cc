@@ -44,6 +44,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const headers = b.addInstallDirectory(.{
+        .source_dir = b.path("code/include"),
+        .install_dir = .header,
+        .install_subdir = "",
+    });
+
     // See if the user set DEFAULT_LIB_PATH or DEFAULT_INCLUDE_PATH in the environment
     // and retrieve the values or null if they don't using Zig's optional type
     const default_lib_path = std.process.getEnvVarOwned(b.allocator, "DEFAULT_LIB_PATH") catch |err| switch (err) {
@@ -83,6 +89,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    minbpe_cc.step.dependOn(&headers.step);
     minbpe_cc.addCSourceFile(.{
         .file = b.path("code/examples/minbpe-cc.cpp"),
         .flags = &.{"-std=c++23"},
@@ -101,6 +108,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    train.step.dependOn(&headers.step);
     train.addCSourceFile(.{
         .file = b.path("code/examples/train.cpp"),
         .flags = &.{"-std=c++23"},
@@ -118,6 +126,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    test_exe.step.dependOn(&headers.step);
     test_exe.addCSourceFile(.{
         .file = b.path("code/test/test.cpp"),
         .flags = &.{"-std=c++23"},
