@@ -183,10 +183,10 @@ protected:
       ISkippingListIterator iter = skipping_list_iterator_create(word);
 
       Token a;
-      while (skipping_list_iterator_next(iter, &a)) {
+      while (skipping_list_iterator_next(&iter, &a)) {
 
         Token b;
-        if (skipping_list_iterator_peek(iter, &b)) {
+        if (skipping_list_iterator_peek(&iter, &b)) {
           freqs->create_or_modify_pair(a, b, 1);
           // The current token 'b' becomes the first token 'a' for the next
           // pair.
@@ -205,9 +205,9 @@ protected:
     const Token left = mp.first;
     const Token right = mp.second;
 
-    while (skipping_list_iterator_next(main_it, &current_val)) {
+    while (skipping_list_iterator_next(&main_it, &current_val)) {
       Token next_val;
-      if (!skipping_list_iterator_peek(main_it, &next_val)) {
+      if (!skipping_list_iterator_peek(&main_it, &next_val)) {
         break; // No next value available
       }
 
@@ -215,7 +215,7 @@ protected:
         // Found a pair. Call replaceAndSkipNext on the main iterator,
         // which is still pointing at the first element of the pair.
         // This replaces the value and sets a raw skip of 1.
-        skipping_list_iterator_replace_and_skip_next(main_it, new_token);
+        skipping_list_iterator_replace_and_skip_next(&main_it, new_token);
       }
     }
   }
@@ -238,13 +238,13 @@ protected:
     Token cur_val;
 
     // Advance to first element
-    if (!skipping_list_iterator_next(iter, &cur_val)) {
+    if (!skipping_list_iterator_next(&iter, &cur_val)) {
       return; // Empty list
     }
 
     while (true) {
       Token next_val;
-      if (!skipping_list_iterator_peek(iter, &next_val)) {
+      if (!skipping_list_iterator_peek(&iter, &next_val)) {
         break; // no next element, done
       }
 
@@ -256,7 +256,7 @@ protected:
         }
 
         // Replace cur with new_token and skip over the next
-        skipping_list_iterator_replace_and_skip_next(iter, new_token);
+        skipping_list_iterator_replace_and_skip_next(&iter, new_token);
         cur_val = new_token;
 
         // --- Update frequencies ---
@@ -278,7 +278,7 @@ protected:
 
         // Adjust (right,nextnext) → (new_token,nextnext)
         Token after_val;
-        if (skipping_list_iterator_peek(iter, &after_val)) {
+        if (skipping_list_iterator_peek(&iter, &after_val)) {
           auto next_pair = make_pair(right, after_val);
           if (freqs->get_pair(next_pair).has_value()) {
             freqs->create_or_modify_pair(right, after_val, -1);
@@ -291,7 +291,7 @@ protected:
       } else {
         // Advance sliding window
         prev_val = cur_val;
-        if (!skipping_list_iterator_next(iter, &cur_val)) {
+        if (!skipping_list_iterator_next(&iter, &cur_val)) {
           break; // reached end
         }
       }
@@ -301,7 +301,7 @@ protected:
       cout << "after merge\n";
       ISkippingListIterator dump_iter = skipping_list_iterator_create(text);
       Token v;
-      while (skipping_list_iterator_next(dump_iter, &v)) {
+      while (skipping_list_iterator_next(&dump_iter, &v)) {
         cout << v << " ";
       }
       cout << "\n";

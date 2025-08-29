@@ -53,10 +53,10 @@ ISkippingListIterator skipping_list_iterator_create(CSkippingList* list);
  * @param out_value A pointer to a uint32_t where the next value will be stored.
  * @return true if a value was retrieved, false if the end of the list was reached.
  */
-bool skipping_list_iterator_next(ISkippingListIterator iter, uint32_t* out_value);
+bool skipping_list_iterator_next(ISkippingListIterator *iter, uint32_t* out_value);
 
 // Same as next but does not advance the iterator
-bool skipping_list_iterator_peek(ISkippingListIterator iter, uint32_t* out_value);
+bool skipping_list_iterator_peek(ISkippingListIterator *iter, uint32_t* out_value);
 
 /**
  * @brief Replaces the value at the iterator's current position and sets it to skip the next element.
@@ -64,7 +64,7 @@ bool skipping_list_iterator_peek(ISkippingListIterator iter, uint32_t* out_value
  * @param iter A pointer to the iterator.
  * @param new_value The new value to write into the list.
  */
-void skipping_list_iterator_replace_and_skip_next(ISkippingListIterator iter, uint32_t new_value);
+void skipping_list_iterator_replace_and_skip_next(ISkippingListIterator *iter, uint32_t new_value);
 
 
 #ifdef __cplusplus

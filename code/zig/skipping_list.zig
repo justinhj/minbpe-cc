@@ -510,39 +510,49 @@ export fn skipping_list_iterator_create(list: *CSkippingList) ISkippingListItera
 
 /// Advances the iterator and gets the next value.
 /// Returns true if a value was retrieved, false if the end of the list was reached.
-export fn skipping_list_iterator_next(c_iter: ISkippingListIterator, out_value: *C_API_T) bool {
+export fn skipping_list_iterator_next(c_iter: *ISkippingListIterator, out_value: *C_API_T) bool {
     var iter = CSkippingListIterator{
         .list = c_iter.list,
         .index = c_iter.index
     };
     if (iter.next()) |value| {
+        c_iter.index = iter.index;
+        c_iter.list = iter.list;
         out_value.* = value;
         return true;
     } else {
+        c_iter.index = iter.index;
+        c_iter.list = iter.list;
         return false;
     }
 }
 
-export fn skipping_list_iterator_peek(c_iter: ISkippingListIterator, out_value: *C_API_T) bool {
+export fn skipping_list_iterator_peek(c_iter: *ISkippingListIterator, out_value: *C_API_T) bool {
     var iter = CSkippingListIterator{
         .list = c_iter.list,
         .index = c_iter.index
     };
     if (iter.peek()) |value| {
+        c_iter.index = iter.index;
+        c_iter.list = iter.list;
         out_value.* = value;
         return true;
     } else {
+        c_iter.index = iter.index;
+        c_iter.list = iter.list;
         return false;
     }
 }
 
 /// Replaces the current value in the list with new_value and skips the next element.
-export fn skipping_list_iterator_replace_and_skip_next(c_iter: ISkippingListIterator, new_value: C_API_T) void {
+export fn skipping_list_iterator_replace_and_skip_next(c_iter: *ISkippingListIterator, new_value: C_API_T) void {
     var iter = CSkippingListIterator{
         .list = c_iter.list,
         .index = c_iter.index
     };
     iter.replaceAndSkipNext(new_value);
+    c_iter.index = iter.index;
+    c_iter.list = iter.list;
 }
 
 /// Returns the number of elements in the list.
