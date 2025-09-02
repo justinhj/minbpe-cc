@@ -10,7 +10,6 @@
 #include <boost/multi_index/member.hpp>
 #include <limits>
 #include <vector>
-#include <cstdint>
 
 using std::pair;
 using std::optional;
@@ -37,7 +36,8 @@ public:
     virtual optional<int> get_pair(pair<T,T> mp) = 0;
 
     // Creates a new pair or modifies the frequency of an existing one.
-    virtual bool create_or_modify_pair(T a, T b, int freq) = 0;
+    // returning the new frequency
+    virtual int create_or_modify_pair(T a, T b, int freq) = 0;
 
     // Gets the pair with the highest count.
     virtual optional<pair<T,T>> get_top_pair_count() = 0;
@@ -136,18 +136,18 @@ public:
      * @param a The first element of the pair.
      * @param b The second element of the pair.
      * @param freq The value to add to the pair's count (can be negative).
-     * @return True if the pair was newly created, false if it already existed.
+     * @return The new frequency count of the pair.
      */
-    bool create_or_modify_pair(T a, T b, int freq) override {
+    int create_or_modify_pair(T a, T b, int freq) override {
         pair<T,T> mp = {a, b};
         auto& index_by_key = pcs.template get<0>();
         auto f = index_by_key.find(mp);
         if(f != pcs.end()) {
             index_by_key.modify(f, [freq](PairCountOrder<T>& pc) { pc.count += freq; });
-            return false;
+            return f->count;
         } else {
             pcs.insert(PairCountOrder<T>(mp, freq, next_insert++));
-            return true;
+            return freq;
         }
     }
 
@@ -246,16 +246,16 @@ public:
         }
     }
 
-    bool create_or_modify_pair(T a, T b, int freq) override {
+    int create_or_modify_pair(T a, T b, int freq) override {
         pair<T,T> mp = {a, b};
         auto& index_by_key = pcs.template get<0>();
         auto f = index_by_key.find(mp);
         if(f != pcs.end()) {
             index_by_key.modify(f, [freq](PairCountLexical<T>& pc) { pc.count += freq; });
-            return false;
+            return f->count;
         } else {
             pcs.insert(PairCountLexical<T>(mp, freq));
-            return true;
+            return freq;
         }
     }
 

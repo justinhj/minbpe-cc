@@ -126,7 +126,9 @@ namespace MinBpeCC::Tokenizer {
 
         // Calculates frequencies of adjacent pairs in the chunks
         // Best pair is maintained and returned in top_pair
-        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution, TokenPair *top_pair = nullptr) const {
+        std::unique_ptr<PairCount<Token>> calculate_freqs(const vector<std::forward_list<Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution, TokenPair *top_pair) const {
+          TokenPair best;
+          int best_freq = 0;
           std::unique_ptr<PairCount<Token>> freqs;
           if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
               freqs = std::make_unique<PairCountInsertOrder<Token>>();
@@ -134,17 +136,46 @@ namespace MinBpeCC::Tokenizer {
               freqs = std::make_unique<PairCountLexicalOrder<Token>>();
           }
 
-            for(const auto &chunk: chunks) {
-                auto p1 = chunk.begin();
-                auto p2 = std::next(p1);
-                while(p1 != chunk.end() && p2 != chunk.end()) {
-                    auto p = make_pair(*p1, *p2);
-                    freqs->create_or_modify_pair(*p1, *p2, 1);
-                    ++p1;
-                    ++p2;
-                }
-            }
-            return freqs;
+          for(const auto &chunk: chunks) {
+              auto p1 = chunk.begin();
+              auto p2 = std::next(p1);
+              while(p1 != chunk.end() && p2 != chunk.end()) {
+                  auto p = make_pair(*p1, *p2);
+                  freqs->create_or_modify_pair(*p1, *p2, 1);
+
+                  if(best_freq == 0) {
+                      best = p;
+                      best_freq = 1;
+                  } else {
+                    if(conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
+                        auto f = freqs->get_pair(p);
+                        if(f.has_value() && f.value() > best_freq) {
+                            best = p;
+                            best_freq = f.value();
+                        }
+                    } else { // LEXICAL
+                        auto f = freqs->get_pair(p);
+                        if(f.has_value()) {
+                            if(f.value() > best_freq) {
+                                best = p;
+                                best_freq = f.value();
+                            } else if(f.value() == best_freq) {
+                                // Tie-breaking: choose lexicographically smaller pair
+                                if(p < best) {
+                                    best = p;
+                                    best_freq = f.value();
+                                }
+                            }
+                        }
+                    }
+    
+                  }
+
+                  ++p1;
+                  ++p2;
+              }
+          }
+          return freqs;
         }
 
         // Calculate frequencies and first occurrence of all symbol pairs in the corpus
@@ -202,6 +233,7 @@ namespace MinBpeCC::Tokenizer {
 
         // Merges a specific pair within a single forward_list, updating frequencies incrementally
         void merge_incremental(std::forward_list<Token> &text, TokenPair mp, Token new_token, PairCount<Token> *freqs) {
+          // TODO update the max frequency here
             auto verbose = 0; // Control verbosity for debugging
             if(verbose >= 2) {
                 cout << "before merge\n";
@@ -309,11 +341,15 @@ namespace MinBpeCC::Tokenizer {
 
         // Merges a specific pair across all forward_lists in chunks
         void merge_chunks(vector<std::forward_list<Token>> &chunks, TokenPair mp, Token idx, PairCount<Token> *freqs,
-              CONFLICT_RESOLUTION conflict_resolution) {
+            // TODO mp and a new param max frequency should be updated 
+            // during merge incremental 
+            // For merge it doesn't matter since it will be recalculated anyway
+            CONFLICT_RESOLUTION conflict_resolution) {
             for(auto &chunk: chunks) {
               if (conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
                   merge(chunk, mp, idx, freqs);
               } else if(conflict_resolution == CONFLICT_RESOLUTION::LEXICAL) {
+                // TODO needs max pair and max frequency update
                   merge_incremental(chunk, mp, idx, freqs);
               } else {
                   throw std::runtime_error("Unknown conflict resolution strategy");
@@ -552,18 +588,20 @@ namespace MinBpeCC::Tokenizer {
             // Continue with BPE algorithm
             auto flists = create_lists(chunks);
             std::unique_ptr<PairCount<Token>> freqs;
+            TokenPair top_pair;
             if (verbose) {
                 using std::chrono::high_resolution_clock;
                 using std::chrono::duration_cast;
                 using std::chrono::milliseconds;
                 auto t1 = high_resolution_clock::now();
-                freqs = calculate_freqs(flists, conflict_resolution);
+                freqs = calculate_freqs(flists, conflict_resolution, &top_pair);
                 auto t2 = high_resolution_clock::now();
                 auto duration = t2 - t1;
                 auto ms_int = duration_cast<milliseconds>(duration).count();
                 cout << "Calculated frequencies in " << ms_int / 1000.0 << " (s)\n";
             } else {
-                freqs = calculate_freqs(flists, conflict_resolution);
+                freqs = calculate_freqs(flists, conflict_resolution, &top_pair);
+
             }
 
             int total_merges = vocab_size - 256;
@@ -598,11 +636,11 @@ namespace MinBpeCC::Tokenizer {
                     }
                     merges.push_back(max_pair);
                     merges_lookup[max_pair] = i;
-                    merge_chunks(flists, max_pair, i, freqs.get(), conflict_resolution);
+                    merge_chunks(flists, &max_pair, i, freqs.get(), conflict_resolution);
                     if(conflict_resolution == CONFLICT_RESOLUTION::FIRST) {
                       // The lexical conflict resolution primarily gets its speed up from
                       // not having to recalculate frequencies after each merge.
-                      freqs = std::move(calculate_freqs(flists, conflict_resolution));
+                      freqs = std::move(calculate_freqs(flists, conflict_resolution, &top_pair));
                     }
                     auto iteration_end_time = high_resolution_clock::now();
                     auto iteration_duration = iteration_end_time - iteration_start_time;

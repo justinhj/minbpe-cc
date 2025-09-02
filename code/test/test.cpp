@@ -118,7 +118,8 @@ public:
     };
 
     auto calculate_freqs_public(const vector<std::forward_list<MinBpeCC::Tokenizer::Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
-        return calculate_freqs(chunks, conflict_resolution);
+        MinBpeCC::Tokenizer::TokenPair top_pair;
+        return calculate_freqs(chunks, conflict_resolution, &top_pair);
     };
 
     void merge_public(std::forward_list<MinBpeCC::Tokenizer::Token> &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
