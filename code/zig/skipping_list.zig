@@ -275,40 +275,34 @@ test "iterator and skipping" {
 }
 
 test "replace pairs" {
-    // const allocator = testing.allocator;
-    // const MyList = SkippingList(u32, 8);
-    // const source_data = [_]u32{ 10, 20, 10, 20, 50, 60, 70, 10, 20, 0, 0 };
-    // var list = try MyList.init(allocator, &source_data);
-    // defer list.deinit();
+    const allocator = testing.allocator;
+    const MyList = SkippingList(u32, 8);
+    const source_data = [_]u32{ 10, 20, 10, 20, 50, 60, 70, 10, 20, 0, 0 };
+    var list = try MyList.init(allocator, &source_data);
+    defer list.deinit();
 
-    // // --- Phase 1: Modify the list ---
-    // // Replace every pair of (10, 20) with a single 50.
-    // var mut_it = list.iterator();
-    // while (mut_it.index < list.data.len - 1) {
-    //     if (mut_it.peek()) |current_val| {
-    //         if (mut_it.peekpeek()) |next_val| {
-    //             if (current_val == 10 and next_val == 20) {
-    //                 // Replace the current item (10) with 50 and set its skip to 1
-    //                 // to jump over the next item (20).
-    //                 mut_it.replaceAndSkipNext(50);
-    //                 continue; // Continue without advancing the iterator
-    //             }
-    //         }
-    //     }
-    //     _ = mut_it.next(); // Advance the iterator
-    // }
+    // --- Phase 1: Modify the list ---
+    // Replace every pair of (10, 20) with a single 50.
+    var mut_it = list.iterator();
+    while (mut_it.next()) |current_val| {
+        if (mut_it.peek()) |next_val| {
+            if (current_val == 10 and next_val == 20) {
+                mut_it.replaceAndSkipNext(50);
+            }
+        }
+    }
 
-    // // --- Phase 2: Verify the result with debug_iterator ---
-    // var raw_values = std.ArrayList(u32).init(allocator);
-    // defer raw_values.deinit();
+    // --- Phase 2: Verify the result ---
+    var raw_values = std.ArrayList(u32).init(allocator);
+    defer raw_values.deinit();
 
-    // var test_it = list.iterator();
-    // while (test_it.next()) |raw_value| {
-    //     try raw_values.append(raw_value);
-    // }
+    var test_it = list.iterator();
+    while (test_it.next()) |raw_value| {
+        try raw_values.append(raw_value);
+    }
 
-    // const expected_values = [_]u32{ 50, 50, 50, 60, 70, 50, 0, 0 };
-    // try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
+    const expected_values = [_]u32{ 50, 50, 50, 60, 70, 50, 0, 0 };
+    try testing.expectEqualSlices(u32, &expected_values, raw_values.items);
 }
 
 test "debug iterator" {
