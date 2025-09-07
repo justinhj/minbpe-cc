@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <chrono>
 
+#include <boost/intrusive/list.hpp>
+
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h> // Main PCRE2 header
 
@@ -39,6 +41,17 @@ namespace MinBpeCC::Tokenizer {
     using Token = uint32_t; // Here it is safe to change to uint16_t and other types as needed, 
                             // but be sure to not have any special tokens that exceed the range.
     using TokenPair = std::pair<Token, Token>;
+
+    // Intrusive list data structures
+    struct TokenNode {
+        Token value;
+        boost::intrusive::list_member_hook<> hook;
+    };
+    
+    using TokenList = boost::intrusive::list<
+        TokenNode,
+        boost::intrusive::member_hook<TokenNode, boost::intrusive::list_member_hook<>, &TokenNode::hook>
+    >;
 
     // Hash function for std::pair<int,int>
     inline std::function<std::size_t(const TokenPair&)> pair_token_hash =

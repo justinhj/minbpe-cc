@@ -1,6 +1,7 @@
 #include "Tokenizer.h"
 #include <catch_amalgamated.hpp>
 #include <utility>
+#include <boost/intrusive/list.hpp>
 
 using MinBpeCC::Tokenizer::Tokenizer;
 using MinBpeCC::Util::PairCount;
@@ -183,4 +184,29 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
 
     // Also check that the total number of pairs is 3
     REQUIRE(freqs->get_count() == 3);
+}
+
+// Simple test for intrusive list functionality
+TEST_CASE("Intrusive list test", "[intrusive]") {
+    using namespace MinBpeCC::Tokenizer;
+    
+    // Create a vector of tokens
+    vector<Token> tokens = {1, 2, 3, 4, 5};
+    
+    // Create an intrusive list from the vector
+    TokenList tokenList;
+    vector<TokenNode> nodes(tokens.size());
+    
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        nodes[i].value = tokens[i];
+        tokenList.push_back(nodes[i]);
+    }
+    
+    // Compare the contents
+    auto it = tokenList.begin();
+    for (size_t i = 0; i < tokens.size(); ++i, ++it) {
+        REQUIRE(it->value == tokens[i]);
+    }
+    
+    REQUIRE(std::distance(tokenList.begin(), tokenList.end()) == tokens.size());
 }
