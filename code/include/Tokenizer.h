@@ -1,7 +1,6 @@
 #ifndef MINBPE_TOKENIZER_HPP
 #define MINBPE_TOKENIZER_HPP
 
-#include <algorithm>
 #include <unordered_map>
 #include <string>
 #include <functional>
