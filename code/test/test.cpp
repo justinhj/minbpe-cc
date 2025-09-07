@@ -118,20 +118,20 @@ public:
         return text_to_vector(text);
     };
 
-    auto calculate_freqs_public(const vector<std::forward_list<MinBpeCC::Tokenizer::Token>> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
+    auto calculate_freqs_public(const vector<MinBpeCC::Tokenizer::TokenList> &chunks, CONFLICT_RESOLUTION conflict_resolution) {
         return calculate_freqs(chunks, conflict_resolution);
     };
 
-    void merge_public(std::forward_list<MinBpeCC::Tokenizer::Token> &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
+    void merge_public(MinBpeCC::Tokenizer::TokenList &text, pair<MinBpeCC::Tokenizer::Token, MinBpeCC::Tokenizer::Token> mp,
                       MinBpeCC::Tokenizer::Token new_token, PairCount<MinBpeCC::Tokenizer::Token> *freqs) {
         merge(text, mp, new_token, freqs);
     }
 };
 
-// Helper to get the length of a forward_list
+// Helper to get the length of a TokenList
 template<typename T>
-size_t getForwardListLength(const std::forward_list<T>& flist) {
-    return std::distance(flist.begin(), flist.end());
+size_t getTokenListLength(const T& tlist) {
+    return std::distance(tlist.begin(), tlist.end());
 }
 
 TEST_CASE("Tokenizer training", "[tokenizer]") {
@@ -140,12 +140,12 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     const auto test_string = string("abcbcde");
     chunks.push_back(bt.text_to_vector_public(test_string));
 
-    auto flists = bt.create_lists_public(chunks);
-    REQUIRE( flists.size() == 1 );
-    REQUIRE( getForwardListLength(flists[0]) == test_string.size());
+    auto tlists = bt.create_lists_public(chunks);
+    REQUIRE( tlists.size() == 1 );
+    REQUIRE( getTokenListLength(tlists[0]) == test_string.size());
 
     // FIX: `freqs` is now a std::unique_ptr, so we use it like a pointer.
-    auto freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    auto freqs = bt.calculate_freqs_public(tlists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
 
     // FIX: Use the -> operator to access members of the object managed by unique_ptr.
     auto max = freqs->get_top_pair_count();
@@ -153,17 +153,17 @@ TEST_CASE("Tokenizer training", "[tokenizer]") {
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c') ); // 98, 99
 
     // FIX: Pass the raw pointer using .get() to the merge function.
-    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c'), 256, freqs.get());
+    bt.merge_public(tlists[0], make_pair((MinBpeCC::Tokenizer::Token)'b', (MinBpeCC::Tokenizer::Token)'c'), 256, freqs.get());
 
     // Recalculate frequencies and re-assign the unique_ptr.
-    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    freqs = bt.calculate_freqs_public(tlists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256) ); // 97, 256
 
-    bt.merge_public(flists[0], make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256), 257, freqs.get());
+    bt.merge_public(tlists[0], make_pair((MinBpeCC::Tokenizer::Token)'a', (MinBpeCC::Tokenizer::Token)256), 257, freqs.get());
 
-    freqs = bt.calculate_freqs_public(flists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
+    freqs = bt.calculate_freqs_public(tlists, Tokenizer::CONFLICT_RESOLUTION::FIRST);
     max = freqs->get_top_pair_count();
     REQUIRE( max.has_value() );
     REQUIRE( max.value() == make_pair((MinBpeCC::Tokenizer::Token)257, (MinBpeCC::Tokenizer::Token)256) );
@@ -211,6 +211,54 @@ TEST_CASE("Intrusive list test", "[intrusive]") {
     }
     
     REQUIRE(std::distance(tokenList.begin(), tokenList.end()) == tokens.size());
+    
+    // Clear the list before nodes go out of scope to avoid destructor issues
+    tokenList.clear();
+}
+
+// Test for scanning and replacing tokens in intrusive list
+TEST_CASE("Intrusive list scan and replace", "[intrusive]") {
+    using namespace MinBpeCC::Tokenizer;
+    
+    // Create a vector of tokens
+    vector<Token> tokens = {1, 2, 3, 4, 5};
+    
+    // Create nodes and add them to the list
+    vector<TokenNode> nodes;
+    for (const auto& t : tokens) {
+        nodes.emplace_back(t);
+    }
+    
+    TokenList tokenList;
+    for (auto& node : nodes) {
+        tokenList.push_back(node);
+    }
+    
+    // Scan the list for 2 followed by 3
+    auto it = tokenList.begin();
+    auto found_pair = false;
+    while (it != tokenList.end()) {
+        auto next_it = std::next(it);
+        if (next_it != tokenList.end() && it->value == 2 && next_it->value == 3) {
+            // Replace 2 and 3 with 6
+            it->value = 6;
+            tokenList.erase(next_it);
+            found_pair = true;
+            break;
+        }
+        ++it;
+    }
+    
+    REQUIRE(found_pair == true);
+    
+    // Verify the final list contains {1, 6, 4, 5}
+    vector<Token> expected = {1, 6, 4, 5};
+    auto list_it = tokenList.begin();
+    for (size_t i = 0; i < expected.size(); ++i, ++list_it) {
+        REQUIRE(list_it->value == expected[i]);
+    }
+    
+    REQUIRE(std::distance(tokenList.begin(), tokenList.end()) == expected.size());
     
     // Clear the list before nodes go out of scope to avoid destructor issues
     tokenList.clear();

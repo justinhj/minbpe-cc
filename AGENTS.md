@@ -2,6 +2,7 @@
 
 ## Operating procedures for agents
 - Make sure the program builds and tests pass before considering a task complete
+- Don't stage and commit changes until the user asks
 
 ## CMake is deprecated in this project
 - There is no need to maintain or run any CMake files
