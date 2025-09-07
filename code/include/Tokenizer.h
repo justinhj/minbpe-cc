@@ -43,15 +43,12 @@ namespace MinBpeCC::Tokenizer {
     using TokenPair = std::pair<Token, Token>;
 
     // Intrusive list data structures
-    struct TokenNode {
-        Token value;
-        boost::intrusive::list_member_hook<> hook;
+    struct TokenNode : public boost::intrusive::list_base_hook<> {
+       Token value;
+       TokenNode(Token v) : value(v) {}
     };
     
-    using TokenList = boost::intrusive::list<
-        TokenNode,
-        boost::intrusive::member_hook<TokenNode, boost::intrusive::list_member_hook<>, &TokenNode::hook>
-    >;
+    using TokenList = boost::intrusive::list<TokenNode>;
 
     // Hash function for std::pair<int,int>
     inline std::function<std::size_t(const TokenPair&)> pair_token_hash =

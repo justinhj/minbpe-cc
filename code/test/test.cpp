@@ -193,13 +193,15 @@ TEST_CASE("Intrusive list test", "[intrusive]") {
     // Create a vector of tokens
     vector<Token> tokens = {1, 2, 3, 4, 5};
     
-    // Create an intrusive list from the vector
-    TokenList tokenList;
-    vector<TokenNode> nodes(tokens.size());
+    // Create nodes and add them to the list
+    vector<TokenNode> nodes;
+    for (const auto& t : tokens) {
+        nodes.emplace_back(t);
+    }
     
-    for (size_t i = 0; i < tokens.size(); ++i) {
-        nodes[i].value = tokens[i];
-        tokenList.push_back(nodes[i]);
+    TokenList tokenList;
+    for (auto& node : nodes) {
+        tokenList.push_back(node);
     }
     
     // Compare the contents
@@ -209,4 +211,7 @@ TEST_CASE("Intrusive list test", "[intrusive]") {
     }
     
     REQUIRE(std::distance(tokenList.begin(), tokenList.end()) == tokens.size());
+    
+    // Clear the list before nodes go out of scope to avoid destructor issues
+    tokenList.clear();
 }

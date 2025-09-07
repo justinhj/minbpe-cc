@@ -31,6 +31,7 @@
 - Run all tests: `zig build test`
 - Run specific test: `zig build test --test-filter "Tokenizer training"`
 - End-to-end tests: `./endtoend-test.sh` and `./endtoend-shakespeare-test.sh`
+- End-to-end tests only need to be run when the user asks
 
 ## Naming Conventions
 - Classes and types: PascalCase
