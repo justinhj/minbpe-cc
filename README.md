@@ -44,6 +44,16 @@ In my case I have two implementations for this conflict resolution which you can
 - **First Occurence**: This is the default and matches Karpathy's original implementation. It chooses the conflicting pairs based which was first added to the Python dictionary. This is simple to implement because it is the default behaviour of Python dictionaries since Raymond Hettinger's implementation in Python 3.6+.
 - **Lexicographic Order**: By using lexicographic ordering I can optimize the training process by incrementally updating the frequency counts and still give deterministic results. This is the greatest speedup in this implementation.
 
+## Note on encode and decode
+
+Note that I implemented encode in a basic fashion that is efficient but not compatible with gpt tokenizers, nor Karpathy's example. I will at some point do that, but I have been mostly been focusing on optimizing the training process.
+
+In the Python code the encode function correctly iterates all the pairs, finds the pair that can be merged that has the lowest index. This process is better aligned with the training process that merges most frequent pairs first.
+
+Decode should be compatible.
+
+In both cases there is not much optimization.
+
 ## Building
 
 See [BUILDING.md](BUILDING.md) for more detailed instructions.
