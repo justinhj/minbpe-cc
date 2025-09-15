@@ -73,10 +73,6 @@ pub fn build(b: *std.Build) void {
         std.log.err("Failed to get PCRE2_INCLUDE: {any}", .{err});
         @panic("Build configuration error: PCRE2_INCLUDE");
     };
-    const cli11_include = getPath(b, "CLI11_INCLUDE", false, default_lib_path, default_include_path) catch |err| {
-        std.log.err("Failed to get CLI11_INCLUDE: {any}", .{err});
-        @panic("Build configuration error: CLI11_INCLUDE");
-    };
     // Executable: minbpe-cc
     const minbpe_cc = b.addExecutable(.{
         .name = "minbpe-cc",
@@ -89,7 +85,6 @@ pub fn build(b: *std.Build) void {
     });
     minbpe_cc.addIncludePath(b.path(boost_include));
     minbpe_cc.addIncludePath(b.path(pcre2_include));
-    minbpe_cc.addIncludePath(b.path(cli11_include));
     minbpe_cc.addIncludePath(b.path("code/include"));
     minbpe_cc.addLibraryPath(b.path("../vcpkg/installed/x64-windows/lib"));
     minbpe_cc.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library

@@ -1,7 +1,7 @@
 #include "Tokenizer.h"
 #include <fstream>
 #include <iostream>
-#include <CLI/CLI.hpp>
+#include <CLI11.hpp>
 
 using std::string;
 using std::cout;
