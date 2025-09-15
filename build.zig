@@ -91,7 +91,9 @@ pub fn build(b: *std.Build) void {
     minbpe_cc.addIncludePath(b.path(pcre2_include));
     minbpe_cc.addIncludePath(b.path(cli11_include));
     minbpe_cc.addIncludePath(b.path("code/include"));
+    minbpe_cc.addLibraryPath(b.path("../vcpkg/installed/x64-windows/lib"));
     minbpe_cc.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
+    minbpe_cc.linkSystemLibrary("cli11");
     minbpe_cc.linkLibCpp();
     b.installArtifact(minbpe_cc);
 
@@ -108,7 +110,9 @@ pub fn build(b: *std.Build) void {
     train.addIncludePath(b.path(boost_include));
     train.addIncludePath(b.path(pcre2_include));
     train.addIncludePath(b.path("code/include"));
+    train.addLibraryPath(b.path("../vcpkg/installed/x64-windows/lib"));
     train.linkSystemLibrary("pcre2-8");  // ICU Internationalization Library
+    train.linkSystemLibrary("cli11");
     train.linkLibCpp();
     b.installArtifact(train);
 
@@ -130,7 +134,9 @@ pub fn build(b: *std.Build) void {
     test_exe.addIncludePath(b.path(pcre2_include));
     test_exe.addIncludePath(b.path("code/include"));
     test_exe.addIncludePath(b.path("code/catch2"));
+    test_exe.addLibraryPath(b.path("../vcpkg/installed/x64-windows/lib"));
     test_exe.linkSystemLibrary("pcre2-8");
+    test_exe.linkSystemLibrary("cli11");
     test_exe.linkLibCpp();
     b.installArtifact(test_exe);
 
