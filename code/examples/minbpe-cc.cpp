@@ -4,8 +4,7 @@
 #include <iostream>
 #include <expected>
 
-#include <CLI/CLI.hpp>
-
+#include <CLI11.hpp>
 #include "Tokenizer.h"
 
 using std::string;
